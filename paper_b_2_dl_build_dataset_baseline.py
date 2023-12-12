@@ -124,7 +124,7 @@ for datapoint in tqdm(dataset, desc="Saving dataset"):
   save_row_to_jsonl_file(datapoint, output_file)
 
 print("\nClass distribution:")
-print(f"• Continue: {continue_class_counter}")
+print(f"• Continue: {len(dataset_continue)} (before prune {continue_class_counter})")
 print(f"• Not continue: {not_continue_class_counter}")
 
 print(f"\nExceeded token limit: {exceeded_token_limit}")
