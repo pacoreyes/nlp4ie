@@ -26,11 +26,11 @@ SEED = 42  # 42, 1234, 2021
 
 # Hyperparameters
 LEARNING_RATE = 1.5e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
-BATCH_SIZE = 32  # 8, 16, 32
+BATCH_SIZE = 16  # 8, 16, 32
 WARMUP_STEPS = 100  # 0, 100, 1000, 10000
 NUM_EPOCHS = 3  # 3, 5, 10
 WEIGHT_DECAY = 2e-2  # 1e-2 or 1e-3
-DROP_OUT_RATE = 0.2  # 0.1 or 0.2
+DROP_OUT_RATE = 0.1  # 0.1 or 0.2
 
 
 def get_device():
@@ -299,7 +299,7 @@ plt.plot(range(1, NUM_EPOCHS + 1), val_losses, label="Validation Loss", color="b
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.legend()
-plt.savefig("shared_images/paper_b_1_dl_bert_model_losses.png")
+plt.savefig("images/paper_b_1_dl_bert_model_losses.png")
 
 """
 RESULTS:
