@@ -9,7 +9,7 @@ from typing import List
 from gspread_dataframe import set_with_dataframe
 from pprint import pprint
 
-from utils.utils import load_jsonl_file
+from lib.utils import load_jsonl_file
 from db import spreadsheet_5
 
 

@@ -14,8 +14,8 @@ from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 from transformers import BertTokenizer, BertForSequenceClassification, get_linear_schedule_with_warmup
 
-from utils.utils import load_jsonl_file
-from utils.visualizations import plot_confusion_matrix
+from lib.utils import load_jsonl_file
+from lib.visualizations import plot_confusion_matrix
 
 
 # Initialize label map and class names

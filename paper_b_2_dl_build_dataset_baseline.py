@@ -4,8 +4,8 @@ from tqdm import tqdm
 import spacy
 from transformers import BertTokenizer
 
-from utils.ner_processing import custom_anonymize_text
-from utils.utils import save_row_to_jsonl_file, empty_json_file, load_jsonl_file
+from lib.ner_processing import custom_anonymize_text
+from lib.utils import save_row_to_jsonl_file, empty_json_file, load_jsonl_file
 
 """
 NOTE: install the following spaCy model before running this script:

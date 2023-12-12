@@ -1,7 +1,7 @@
 import spacy
 
-from utils.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file
-from utils.text_utils import preprocess_text, remove_leading_placeholders
+from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file
+from lib.text_utils import preprocess_text, remove_leading_placeholders
 
 # load spaCy's Transformer model
 # install the model with: python -m spacy download en_core_web_trf

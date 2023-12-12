@@ -15,8 +15,8 @@ The features are:
 """
 import spacy
 
-from utils.utils import save_row_to_jsonl_file, load_jsonl_file, empty_json_file
-from utils.linguistic_utils import check_if_has_one_word_or_more
+from lib.utils import save_row_to_jsonl_file, load_jsonl_file, empty_json_file
+from lib.linguistic_utils import check_if_has_one_word_or_more
 
 # load transformer model
 nlp = spacy.load("en_core_web_trf")
