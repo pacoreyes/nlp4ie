@@ -1,6 +1,6 @@
 from db import firestore_db, spreadsheet_5
 from tqdm import tqdm
-from utils import save_row_to_jsonl_file, load_jsonl_file, empty_json_file, firestore_timestamp_to_string
+from utils.utils import save_row_to_jsonl_file, load_jsonl_file, empty_json_file, firestore_timestamp_to_string
 
 from transformers import BertTokenizer
 
@@ -16,7 +16,7 @@ source_gsheet_dataset1 = spreadsheet_5.worksheet("dataset_1")
 dataset1_from_gsheets = source_gsheet_dataset1.get_all_values()
 dataset1_from_gsheets = dataset1_from_gsheets[1:]  # Remove the header
 
-empty_json_file('shared_data/dataset_1.jsonl')
+empty_json_file('shared_data/dataset_1_1_raw.jsonl')
 
 all_ids = [row[0] for row in dataset1_from_gsheets]
 
@@ -64,14 +64,14 @@ for _id in tqdm(all_ids, desc=f"Processing {len(all_ids)} datapoints"):
       monologic_class_counter += 1
     else:
       dialogic_class_counter += 1
-    save_row_to_jsonl_file(datapoint, "shared_data/dataset_1.jsonl")
+    save_row_to_jsonl_file(datapoint, "shared_data/dataset_1_1_raw.jsonl")
 
   index += 1
 
 print("Sorting the dataset by discourse_type")
-dataset1 = load_jsonl_file("shared_data/dataset_1.jsonl")
+dataset1 = load_jsonl_file("shared_data/dataset_1_1_raw.jsonl")
 # Empty output JSONL file
-empty_json_file('shared_data/dataset_1.jsonl')
+empty_json_file('shared_data/dataset_1_1_raw.jsonl')
 # Sort the dataset by "discourse_type"
 dataset1 = sorted(dataset1, key=lambda k: k['discourse_type'])
 
@@ -92,7 +92,7 @@ for d in tqdm(dataset1, desc=f"Saving {len(dataset1)} datapoints ordered by disc
       "gender": d["metadata"]["gender"]
     }
   }
-  save_row_to_jsonl_file(datapoint, "shared_data/dataset_1.jsonl")
+  save_row_to_jsonl_file(datapoint, "shared_data/dataset_1_1_raw.jsonl")
   index += 1
 
 print("\nSkipped datapoints due to token limit:", exceeded_token_limit)

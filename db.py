@@ -9,7 +9,7 @@
 # -----------------------------------------------------------
 from google.cloud import firestore
 import gspread
-from utils import load_json_file
+from utils.utils import load_json_file
 from oauth2client.service_account import ServiceAccountCredentials
 
 
