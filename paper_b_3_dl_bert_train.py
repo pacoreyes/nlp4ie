@@ -15,6 +15,8 @@ from tqdm import tqdm
 from transformers import BertTokenizer, BertForSequenceClassification, get_linear_schedule_with_warmup
 
 from utils.utils import load_jsonl_file
+from utils.visualizations import plot_confusion_matrix
+
 
 # Initialize label map and class names
 LABEL_MAP = {"continue": 0, "not_continue": 1}
@@ -30,7 +32,7 @@ BATCH_SIZE = 16  # 8, 16, 32
 WARMUP_STEPS = 100  # 0, 100, 1000, 10000
 NUM_EPOCHS = 3  # 3, 5, 10
 WEIGHT_DECAY = 2e-2  # 1e-2 or 1e-3
-DROP_OUT_RATE = 0.1  # 0.1 or 0.2
+DROP_OUT_RATE = 0.2  # 0.1 or 0.2
 
 
 def get_device():
@@ -142,10 +144,9 @@ predictions, true_labels = [], []
 # Training Loop
 for epoch in range(NUM_EPOCHS):
   model.train()
-
   total_train_loss = 0
-
   loss_fct = torch.nn.CrossEntropyLoss(weight=class_weights)
+
   for batch in tqdm(train_dataloader, desc=f"Training Epoch {epoch + 1}/{NUM_EPOCHS}"):
     b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
     # Clear gradients
@@ -240,6 +241,15 @@ for batch in tqdm(test_dataloader, desc="Testing"):
     # Store predictions and true labels
     test_predictions.extend(torch.argmax(logits, dim=1).cpu().numpy())  # Move to CPU before conversion
     test_true_labels.extend(label_ids)
+
+  plt.figure()
+  plot_confusion_matrix(test_true_labels,
+                        test_predictions,
+                        class_names,
+                        "paper_b_2_dl_bert_model_confusion_matrix.png",
+                        "Confusion Matrix for BERT Model",
+                        values_fontsize=22
+                        )
 
 # Concatenate all probabilities
 all_probabilities = np.concatenate(all_probabilities, axis=0)
