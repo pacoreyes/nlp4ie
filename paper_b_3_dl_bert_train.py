@@ -27,12 +27,12 @@ MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BER
 SEED = 42  # 42, 1234, 2021
 
 # Hyperparameters
-LEARNING_RATE = 1.3e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
+LEARNING_RATE = 1.2e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
 BATCH_SIZE = 16  # 8, 16, 32
 WARMUP_STEPS = 1000  # 0, 100, 1000, 10000
-NUM_EPOCHS = 4  # 3, 5, 10
-WEIGHT_DECAY = 2e-2  # 1e-2 or 1e-3
-DROP_OUT_RATE = 0.2  # 0.1 or 0.2
+NUM_EPOCHS = 3  # 3, 5, 10
+WEIGHT_DECAY = 1e-3  # 1e-2 or 1e-3
+DROP_OUT_RATE = 0.1  # 0.1 or 0.2
 
 
 def get_device():
@@ -91,7 +91,7 @@ dataset = load_jsonl_file(data_file)
 
 # Set seed for reproducibility
 set_seed(SEED)
-torch.use_deterministic_algorithms(True)
+# torch.use_deterministic_algorithms(True)
 
 sentences = [entry["text"] for entry in dataset]
 labels = [entry["label"] for entry in dataset]
@@ -147,6 +147,7 @@ for epoch in range(NUM_EPOCHS):
   total_train_loss = 0
   loss_fct = torch.nn.CrossEntropyLoss(weight=class_weights)
 
+  print()
   for batch in tqdm(train_dataloader, desc=f"Training Epoch {epoch + 1}/{NUM_EPOCHS}"):
     b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
     # Clear gradients
@@ -202,7 +203,7 @@ for epoch in range(NUM_EPOCHS):
   # scheduler.step()
 
   # Print average losses for this epoch
-  print(f"Epoch {epoch + 1}/{NUM_EPOCHS} - Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}")
+  print(f"* Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}")
 
 """ END of training /validation loop ------------------- """
 
@@ -242,14 +243,14 @@ for batch in tqdm(test_dataloader, desc="Testing"):
     test_predictions.extend(torch.argmax(logits, dim=1).cpu().numpy())  # Move to CPU before conversion
     test_true_labels.extend(label_ids)
 
-  plt.figure()
-  plot_confusion_matrix(test_true_labels,
-                        test_predictions,
-                        class_names,
-                        "paper_b_2_dl_bert_model_confusion_matrix.png",
-                        "Confusion Matrix for BERT Model",
-                        values_fontsize=22
-                        )
+plt.figure()
+plot_confusion_matrix(test_true_labels,
+                      test_predictions,
+                      class_names,
+                      "paper_b_2_dl_bert_model_confusion_matrix.png",
+                      "Confusion Matrix for BERT Model",
+                      values_fontsize=22
+                      )
 
 # Concatenate all probabilities
 all_probabilities = np.concatenate(all_probabilities, axis=0)
@@ -310,3 +311,4 @@ plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.legend()
 plt.savefig("images/paper_b_1_dl_bert_model_losses.png")
+plt.close()
