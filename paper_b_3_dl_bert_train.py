@@ -79,8 +79,8 @@ print(f"\nUsing device: {str(device).upper()}\n")
 data_file = "shared_data/dataset_2_2_pair_sentences.jsonl"
 
 # Initialize model and tokenizer
-tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
+tokenizer = BertTokenizer.from_pretrained("bert-large-uncased")
+model = BertForSequenceClassification.from_pretrained("bert-large-uncased",
                                                       num_labels=len(LABEL_MAP),
                                                       hidden_dropout_prob=DROP_OUT_RATE)
 # Move model to device
