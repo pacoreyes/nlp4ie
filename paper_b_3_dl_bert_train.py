@@ -312,3 +312,30 @@ plt.ylabel("Loss")
 plt.legend()
 plt.savefig("images/paper_b_1_dl_bert_model_losses.png")
 plt.close()
+
+"""
+- Accuracy: 0.616
+- Precision: 0.616
+- Recall: 0.616
+- F1 Score: 0.616
+- AUC-ROC: 0.690
+- Matthews Correlation Coefficient (MCC): 0.232
+- Confusion Matrix:
+              continue  not_continue
+continue           190           103
+not_continue       120           168
+
+continue: Precision = 0.55, Recall = 0.62, F1 = 0.58
+not_continue: Precision = 0.56, Recall = 0.49, F1 = 0.52
+
+Hyperparameters:
+- Learning Rate: 1.2e-05
+- Batch Size: 16
+- Warmup Steps: 1000
+- Number of Epochs: 3
+- Weight Decay: 0.001
+- Dropout Rate: 0.1
+---
+- Seed: 42
+"""
+
