@@ -49,4 +49,4 @@ def plot_confusion_matrix(y_true, y_pred,
     plt.figtext(0.5, -0.1, caption, ha="center", fontsize=12, wrap=True)
 
   # Save the plot to a file
-  plt.savefig(f"shared_images/{file_name}", format='png', bbox_inches='tight', dpi=300)
+  plt.savefig(f"images/{file_name}", format='png', bbox_inches='tight', dpi=300)

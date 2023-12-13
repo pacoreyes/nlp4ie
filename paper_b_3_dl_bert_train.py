@@ -27,10 +27,10 @@ MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BER
 SEED = 42  # 42, 1234, 2021
 
 # Hyperparameters
-LEARNING_RATE = 1.5e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
+LEARNING_RATE = 1.3e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
 BATCH_SIZE = 16  # 8, 16, 32
-WARMUP_STEPS = 100  # 0, 100, 1000, 10000
-NUM_EPOCHS = 3  # 3, 5, 10
+WARMUP_STEPS = 1000  # 0, 100, 1000, 10000
+NUM_EPOCHS = 4  # 3, 5, 10
 WEIGHT_DECAY = 2e-2  # 1e-2 or 1e-3
 DROP_OUT_RATE = 0.2  # 0.1 or 0.2
 
@@ -103,10 +103,10 @@ labels = [LABEL_MAP[label] for label in labels]
 df = pd.DataFrame({"text": sentences, "label": labels})
 
 # Stratified split of the data to obtain the train and the remaining data
-train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.2)
+train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.2, random_state=SEED)
 
 # Split the remaining data equally to get a validation set and a test set
-val_df, test_df = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5)
+val_df, test_df = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5, random_state=SEED)
 
 # Create TensorDatasets
 train_dataset = create_dataset(train_df)
@@ -118,7 +118,7 @@ class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(
 class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
 
 # Create DataLoaders
-train_dataloader = DataLoader(train_dataset, shuffle=False, batch_size=BATCH_SIZE)
+train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE)
 val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=BATCH_SIZE)
 test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=BATCH_SIZE)
 
@@ -310,21 +310,3 @@ plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.legend()
 plt.savefig("images/paper_b_1_dl_bert_model_losses.png")
-
-"""
-RESULTS:
-
-- Accuracy: 0.651
-- Precision: 0.654
-- Recall: 0.650
-- F1 Score: 0.648
-- AUC-ROC: 0.696
-- Matthews Correlation Coefficient (MCC): 0.304
-- Confusion Matrix:
-              continue  not_continue
-continue           213            80
-not_continue       123           165
-
-continue: Precision = 0.60, Recall = 0.74, F1 = 0.66
-not_continue: Precision = 0.65, Recall = 0.49, F1 = 0.56
-"""
