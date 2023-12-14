@@ -76,7 +76,7 @@ device = get_device()
 print(f"\nUsing device: {str(device).upper()}\n")
 
 # Load dataset
-data_file = "shared_data/dataset_1_sliced.jsonl"
+data_file = "shared_data/dataset_1_4_sliced.jsonl"
 
 # Initialize model and tokenizer
 tokenizer = BertTokenizer.from_pretrained("bert-large-uncased")

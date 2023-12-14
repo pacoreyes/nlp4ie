@@ -1,18 +1,18 @@
 pandas==2.1.4
-transformers==4.36.0
+transformers==4.36.1
 numpy==1.26.2
 torch==2.1.1
 scikit-learn==1.3.2
 accelerate==0.25.0
 xformers==0.0.23
 evaluate==0.4.1
-mlflow==2.9.1
+mlflow==2.9.2
 # huggingface_hub==0.18.0
 tqdm==4.66.1
-spacy==3.7.2  # for mac
-# spacy==3.7.2  # for windows
+# spacy[apple]==3.7.2  # for mac
+spacy==3.7.2  # for windows
 matplotlib==3.8.2
-google-cloud-firestore==2.13.1
+google-cloud-firestore==2.14.0
 oauth2client==4.1.3
 gspread==5.12.2
 gspread_dataframe==3.3.1

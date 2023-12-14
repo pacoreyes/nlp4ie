@@ -25,7 +25,7 @@ monologic_counter = 0
 dialogic_counter = 0
 
 # Process each text
-for idx, text_doc in tqdm.tqdm(enumerate(dataset), desc=f"Processing {len(dataset)} texts", total=len(dataset)):
+for idx, text_doc in tqdm.tqdm(enumerate(dataset), desc=f"Processing {len(dataset)} datapoints", total=len(dataset)):
   idx = int(idx)
   # print(f"Processing text {idx + 1}/{dataset}")
   doc = nlp(text_doc['text'])
@@ -69,12 +69,12 @@ for idx, text_doc in tqdm.tqdm(enumerate(dataset), desc=f"Processing {len(datase
     else:
       dialogic_counter += 1
 
-print()
-
 # Count the number of monologic and dialogic datapoints
 counter = Counter([item['label'] for item in load_jsonl_file(output_file)])
-monologic_percentage = counter[0] / (counter[0] + counter[1]) * 100
-dialogic_percentage = counter[1] / (counter[0] + counter[1]) * 100
+monologic_percentage = counter["monologic"] / (counter["monologic"] + counter["dialogic"]) * 100
+dialogic_percentage = counter["dialogic"] / (counter["monologic"] + counter["dialogic"]) * 100
 
-print(f"\nNumber of monologic datapoints: {counter[0]} ({monologic_percentage:.2f})")
-print(f"Number of dialogic datapoints: {counter[1]} ({dialogic_percentage:.2f})")
+print()
+print("The original dataset has been split:")
+print(f"\n• Monologic: {counter['monologic']} ({monologic_percentage:.2f})")
+print(f"• Dialogic: {counter['dialogic']} ({dialogic_percentage:.2f})")

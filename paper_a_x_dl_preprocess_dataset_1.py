@@ -20,6 +20,8 @@ dataset_raw = load_jsonl_file('shared_data/dataset_1_1_raw.jsonl')
 # Empty the output JSONL
 empty_json_file(output_file)
 
+more_entities = ["COVID-19", "COVID", "Army", "WeCanDoThis.HHS.gov", "HIV", "AIDS"]
+
 
 def anonymize_text(_text, _nlp):
   """
@@ -75,7 +77,6 @@ Preprocess text
 ########################################################################"""
 
 # Process all datapoints in Dataset 1
-# print(f"Starting to process dataset 1...")
 
 for idx, datapoint in tqdm.tqdm(enumerate(dataset_raw),
                                 desc=f"Processing {len(dataset_raw)} datapoints", total=len(dataset_raw)):
@@ -98,6 +99,9 @@ for idx, datapoint in tqdm.tqdm(enumerate(dataset_raw),
     text = remove_leading_placeholders(text)
   if ANONYMIZE:
     text = anonymize_text(text, nlp)
+    # Anonymize additional entities
+    for entity in more_entities:
+      pair = text.replace(entity, "[ENTITY]")
   slots = {
     "id": datapoint["id"],
     "text": text,
