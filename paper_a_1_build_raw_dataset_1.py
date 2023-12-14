@@ -34,7 +34,7 @@ for _id in tqdm(all_ids, desc=f"Processing {len(all_ids)} datapoints"):
 
   text = " ".join(rec["dataset1_text"])
 
-  if len(tokenizer.tokenize(text)) < 510:
+  if len(tokenizer.tokenize(text)) < 450:
     exceeded_token_limit += 1
     continue
   else:
@@ -48,7 +48,7 @@ for _id in tqdm(all_ids, desc=f"Processing {len(all_ids)} datapoints"):
 
     datapoint = {
       "text": rec["dataset1_text"],
-      "discourse_type": rec["dataset1_class"],
+      # "discourse_type": rec["dataset1_class"],
       "metadata": {
         "text_id": rec["id"],
         "title": rec["title"],
@@ -60,9 +60,11 @@ for _id in tqdm(all_ids, desc=f"Processing {len(all_ids)} datapoints"):
       }
     }
     number_of_datapoints += 1
-    if datapoint["discourse_type"] == 0:
+    if rec["dataset1_class"] == 0:
+      datapoint["discourse_type"] = "monologic"
       monologic_class_counter += 1
     else:
+      datapoint["discourse_type"] = "dialogic"
       dialogic_class_counter += 1
     save_row_to_jsonl_file(datapoint, "shared_data/dataset_1_1_raw.jsonl")
 
@@ -76,7 +78,7 @@ empty_json_file('shared_data/dataset_1_1_raw.jsonl')
 dataset1 = sorted(dataset1, key=lambda k: k['discourse_type'])
 
 index = 0
-for d in tqdm(dataset1, desc=f"Saving {len(dataset1)} datapoints ordered by discourse_type"):
+for d in tqdm(dataset1, desc=f"Saving {len(dataset1)} datapoints"):
   datapoint = {
     "id": index,
     # "text_id": d["metadata"]["text_id"],  # TODO: remove this

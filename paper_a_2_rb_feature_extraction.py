@@ -15,8 +15,8 @@ The features are:
 """
 import spacy
 
-from lib.utils import save_row_to_jsonl_file, load_jsonl_file, empty_json_file
 from lib.linguistic_utils import check_if_has_one_word_or_more
+from lib.utils import save_row_to_jsonl_file, load_jsonl_file, empty_json_file
 
 # load transformer model
 nlp = spacy.load("en_core_web_trf")
@@ -24,7 +24,6 @@ nlp = spacy.load("en_core_web_trf")
 # Initialize a JSONL file for the dataset
 # empty_json_file("shared_data/paper_a_2_feature_extraction.jsonl")
 empty_json_file("shared_data/dataset_1_2_features.jsonl")
-
 
 """All functions evaluate based on sentence occurrences, not token or text occurrences."""
 
@@ -251,6 +250,6 @@ for idx, texts_per_class in text_classes.items():
     save_row_to_jsonl_file(slots, "shared_data/dataset_1_2_features.jsonl")
     ms_data.append(slots)
 
-    print(f"{idx2+1}/{len(texts_per_class)} Added datapoint {item['id']} to JSONL file")
+    print(f"{idx2 + 1}/{len(texts_per_class)} Added datapoint {item['id']} to JSONL file")
 
   print()
