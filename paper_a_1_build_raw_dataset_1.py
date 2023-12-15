@@ -98,5 +98,5 @@ for d in tqdm(dataset1, desc=f"Saving {len(dataset1)} datapoints"):
 
 print("\nSkipped datapoints due to token limit:", exceeded_token_limit)
 print("Total number of datapoints:", number_of_datapoints)
-print(f"• Monologic class counter: {monologic_class_counter}")
-print(f"• Dialogic class counter: {dialogic_class_counter}")
+print(f"• Monologic: {monologic_class_counter}")
+print(f"• Dialogic: {dialogic_class_counter}")

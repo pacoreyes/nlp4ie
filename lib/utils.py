@@ -110,3 +110,26 @@ def firestore_timestamp_to_string(timestamp: DatetimeWithNanoseconds) -> str:
       str: The timestamp as a string in the format "DD-MM-YYYY".
   """
   return timestamp.strftime('%d-%m-%Y')
+
+
+# This function writes data to a Google Sheet
+def write_to_google_sheet(spreadsheet, sheet_name, data):
+  sheet = spreadsheet.worksheet(sheet_name)  # Get the sheet
+  # Convert list of strings to list of lists (one string per row)
+  # data = [[item] for item in data]
+  # Write data to the sheet all at once, starting from the cell A2
+  sheet.update('A2', data)
+  return sheet
+
+
+# This function reads data from a Google Sheet
+def read_from_google_sheet(spreadsheet, sheet_name):
+  sheet = spreadsheet.worksheet(sheet_name)  # Get the sheet
+  # Get all values from the sheet
+  values = sheet.get_all_values()
+  # Extract keys from the first row
+  keys = values[0]
+  # Extract values from the remaining rows
+  value_rows = values[1:]
+  # Return a list of dictionaries, one for each row of values
+  return [dict(zip(keys, value_row)) for value_row in value_rows]
