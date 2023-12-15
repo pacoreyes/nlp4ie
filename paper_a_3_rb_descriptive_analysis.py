@@ -2,12 +2,13 @@
 This script calculates the descriptive statistics for the features extracted from the measurements of linguistic
 features extracted from the texts.
 """
+from pprint import pprint
+
 import pandas as pd
 import numpy as np
 from scipy.stats import skew, kurtosis
 from typing import List
 from gspread_dataframe import set_with_dataframe
-from pprint import pprint
 
 from lib.utils import load_jsonl_file
 from db import spreadsheet_5
@@ -20,8 +21,8 @@ ms_data = load_jsonl_file("shared_data/dataset_1_2_features.jsonl")
 df = pd.DataFrame(ms_data)
 
 # Split the dataframe into monologic and dialogic
-df_monologic = df[df['discourse_type'] == 0]
-df_dialogic = df[df['discourse_type'] == 1]
+df_monologic = df[df['discourse_type'] == "monologic"]
+df_dialogic = df[df['discourse_type'] == "dialogic"]
 
 
 def calculate_statistics(column: List[int]) -> dict:

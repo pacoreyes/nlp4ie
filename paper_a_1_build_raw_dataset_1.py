@@ -1,9 +1,8 @@
-from db import firestore_db, spreadsheet_5
 from tqdm import tqdm
-from lib.utils import save_row_to_jsonl_file, load_jsonl_file, empty_json_file, firestore_timestamp_to_string
-
 from transformers import BertTokenizer
 
+from db import firestore_db, spreadsheet_5
+from lib.utils import save_row_to_jsonl_file, load_jsonl_file, empty_json_file, firestore_timestamp_to_string
 
 # Initialize Firestore DB
 source_texts_ref = firestore_db.collection('texts2')
