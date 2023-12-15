@@ -27,10 +27,10 @@ MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BER
 SEED = 42  # 42, 1234, 2021
 
 # Hyperparameters
-LEARNING_RATE = 1.2e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
-BATCH_SIZE = 16  # 8, 16, 32
-NUM_EPOCHS = 3  # 3, 5, 10
+LEARNING_RATE = 2e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
+BATCH_SIZE = 16  # 16, 32
 WARMUP_STEPS = 600  # 0, 100, 1000, 10000
+NUM_EPOCHS = 3  # 2, 3, 4, 5
 WEIGHT_DECAY = 1e-3  # 1e-2 or 1e-3
 DROP_OUT_RATE = 0.1  # 0.1 or 0.2
 
@@ -69,18 +69,15 @@ def preprocess(_texts, _tokenizer, _device, max_length=MAX_LENGTH):
   return inputs["input_ids"].to(_device), inputs["attention_mask"].to(_device)
 
 
-"""Initialize environment variables"""
-
 # Set device to CUDA, MPS, or CPU
 device = get_device()
 print(f"\nUsing device: {str(device).upper()}\n")
 
 # Load dataset
-data_file = "shared_data/dataset_1_sliced.jsonl"
+data_file = "shared_data/dataset_1_4_sliced.jsonl"
 
-# Initialize model and tokenizer
-tokenizer = BertTokenizer.from_pretrained("bert-large-uncased")
-model = BertForSequenceClassification.from_pretrained("bert-large-uncased",
+# Load BERT model
+model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
                                                       num_labels=len(LABEL_MAP),
                                                       hidden_dropout_prob=DROP_OUT_RATE)
 # Move model to device
@@ -92,6 +89,9 @@ dataset = load_jsonl_file(data_file)
 # Set seed for reproducibility
 set_seed(SEED)
 # torch.use_deterministic_algorithms(True)
+
+# Load the BERT tokenizer
+tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
 sentences = [entry["text"] for entry in dataset]
 labels = [entry["label"] for entry in dataset]
@@ -133,6 +133,7 @@ scheduler = get_linear_schedule_with_warmup(optimizer,
 
 # Initialize the gradient scaler only if the device is a GPU
 use_cuda = device.type == "cuda"
+grad_scaler = None
 if use_cuda:
   grad_scaler = GradScaler()
 
@@ -247,7 +248,7 @@ plt.figure()
 plot_confusion_matrix(test_true_labels,
                       test_predictions,
                       class_names,
-                      "paper_a_2_dl_bert_model_confusion_matrix.png",
+                      "paper_b_2_dl_bert_model_confusion_matrix.png",
                       "Confusion Matrix for BERT Model",
                       values_fontsize=22
                       )
@@ -310,32 +311,8 @@ plt.plot(range(1, NUM_EPOCHS + 1), val_losses, label="Validation Loss", color="b
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.legend()
-plt.savefig("images/paper_a_1_dl_bert_model_losses.png")
+plt.savefig("images/paper_b_1_dl_bert_model_losses.png")
 plt.close()
 
 """
-- Accuracy: 0.616
-- Precision: 0.616
-- Recall: 0.616
-- F1 Score: 0.616
-- AUC-ROC: 0.690
-- Matthews Correlation Coefficient (MCC): 0.232
-- Confusion Matrix:
-              continue  not_continue
-continue           190           103
-not_continue       120           168
-
-continue: Precision = 0.55, Recall = 0.62, F1 = 0.58
-not_continue: Precision = 0.56, Recall = 0.49, F1 = 0.52
-
-Hyperparameters:
-- Learning Rate: 1.2e-05
-- Batch Size: 16
-- Warmup Steps: 1000
-- Number of Epochs: 3
-- Weight Decay: 0.001
-- Dropout Rate: 0.1
----
-- Seed: 42
 """
-
