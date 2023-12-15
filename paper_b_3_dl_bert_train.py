@@ -28,11 +28,11 @@ SEED = 42  # 42, 1234, 2021
 
 # Hyperparameters
 LEARNING_RATE = 1.2e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
-BATCH_SIZE = 16  # 8, 16, 32
-WARMUP_STEPS = 1000  # 0, 100, 1000, 10000
-NUM_EPOCHS = 3  # 3, 5, 10
+BATCH_SIZE = 16  # 16, 32
+NUM_EPOCHS = 3  # 2, 3, 4, 5
 WEIGHT_DECAY = 1e-3  # 1e-2 or 1e-3
 DROP_OUT_RATE = 0.1  # 0.1 or 0.2
+WARMUP_STEPS = 1000  # 0, 100, 1000, 10000
 
 
 def get_device():
@@ -69,8 +69,6 @@ def preprocess(_texts, _tokenizer, _device, max_length=MAX_LENGTH):
   return inputs["input_ids"].to(_device), inputs["attention_mask"].to(_device)
 
 
-"""Initialize environment variables"""
-
 # Set device to CUDA, MPS, or CPU
 device = get_device()
 print(f"\nUsing device: {str(device).upper()}\n")
@@ -78,9 +76,8 @@ print(f"\nUsing device: {str(device).upper()}\n")
 # Load dataset
 data_file = "shared_data/dataset_2_2_pair_sentences.jsonl"
 
-# Initialize model and tokenizer
-tokenizer = BertTokenizer.from_pretrained("bert-large-uncased")
-model = BertForSequenceClassification.from_pretrained("bert-large-uncased",
+# Load BERT model
+model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
                                                       num_labels=len(LABEL_MAP),
                                                       hidden_dropout_prob=DROP_OUT_RATE)
 # Move model to device
@@ -92,6 +89,9 @@ dataset = load_jsonl_file(data_file)
 # Set seed for reproducibility
 set_seed(SEED)
 # torch.use_deterministic_algorithms(True)
+
+# Load the BERT tokenizer
+tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
 sentences = [entry["text"] for entry in dataset]
 labels = [entry["label"] for entry in dataset]
@@ -133,6 +133,7 @@ scheduler = get_linear_schedule_with_warmup(optimizer,
 
 # Initialize the gradient scaler only if the device is a GPU
 use_cuda = device.type == "cuda"
+grad_scaler = None
 if use_cuda:
   grad_scaler = GradScaler()
 
@@ -338,4 +339,3 @@ Hyperparameters:
 ---
 - Seed: 42
 """
-

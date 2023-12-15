@@ -20,7 +20,15 @@ dataset_raw = load_jsonl_file('shared_data/dataset_1_1_raw.jsonl')
 # Empty the output JSONL
 empty_json_file(output_file)
 
-more_entities = ["COVID-19", "COVID", "Army", "WeCanDoThis.HHS.gov", "HIV", "AIDS"]
+# Initialize a list of entities not anonymized by spaCy
+custom_entities = [
+  "COVID-19",
+  "COVID",
+  "Army",
+  "WeCanDoThis.HHS.gov",
+  "HIV",
+  "AIDS"
+]
 
 
 def anonymize_text(_text, _nlp):
@@ -46,7 +54,7 @@ def anonymize_text(_text, _nlp):
   - LANGUAGE: Any named language.
   - DATE: Absolute or relative dates or periods.
   - TIME: Times smaller than a day.
-  - PERCENT: Percentage, including ”%“.
+  - PERCENT: Percentage, including "%".
   - MONEY: Monetary values, including unit.
   - QUANTITY: Measurements, as of weight or distance.
   - ORDINAL: “first”, “second”, etc.
@@ -54,20 +62,21 @@ def anonymize_text(_text, _nlp):
   """
 
   doc = _nlp(_text)
-  ents = [e for e in doc.ents if
-          e.label_ in ["PERSON",
-                       "ORG",
-                       "NORP",
-                       "TIME",
-                       "DATE",
-                       "CARDINAL",
-                       "MONEY",
-                       "FAC",
-                       "QUANTITY",
-                       "PERCENT",
-                       "GPE"]]
-  sorted_ents = sorted(ents, key=lambda e: e.start_char, reverse=True)
-  for ent in sorted_ents:
+  entities = [ent for ent in doc.ents if ent.label_ in [
+    "PERSON",
+    "ORG",
+    "NORP",
+    "TIME",
+    "DATE",
+    "CARDINAL",
+    "MONEY",
+    "FAC",
+    "QUANTITY",
+    "PERCENT",
+    "GPE"]
+              ]
+  sorted_entities = sorted(entities, key=lambda e: e.start_char, reverse=True)
+  for ent in sorted_entities:
     _text = _text[:ent.start_char] + "[" + ent.label_ + "]" + _text[ent.end_char:]
   return _text
 
@@ -100,7 +109,7 @@ for idx, datapoint in tqdm.tqdm(enumerate(dataset_raw),
   if ANONYMIZE:
     text = anonymize_text(text, nlp)
     # Anonymize additional entities
-    for entity in more_entities:
+    for entity in custom_entities:
       pair = text.replace(entity, "[ENTITY]")
   slots = {
     "id": datapoint["id"],
