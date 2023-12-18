@@ -27,12 +27,12 @@ MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BER
 SEED = 42  # 42, 1234, 2021
 
 # Hyperparameters
-LEARNING_RATE = 1.2e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
+LEARNING_RATE = 2e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
 BATCH_SIZE = 16  # 16, 32
 NUM_EPOCHS = 3  # 2, 3, 4, 5
 WEIGHT_DECAY = 1e-3  # 1e-2 or 1e-3
 DROP_OUT_RATE = 0.1  # 0.1 or 0.2
-WARMUP_STEPS = 1000  # 0, 100, 1000, 10000
+WARMUP_STEPS = 500  # 0, 100, 1000, 10000
 
 
 def get_device():
@@ -74,7 +74,7 @@ device = get_device()
 print(f"\nUsing device: {str(device).upper()}\n")
 
 # Load dataset
-data_file = "shared_data/dataset_2_2_pair_sentences.jsonl"
+data_file = "shared_data/dataset_2_2_pair_sentences_anonym.jsonl"
 
 # Load BERT model
 model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
@@ -314,7 +314,7 @@ plt.legend()
 plt.savefig("images/paper_b_1_dl_bert_model_losses.png")
 plt.close()
 
-"""
+""" BASELINE RESULTS
 - Accuracy: 0.616
 - Precision: 0.616
 - Recall: 0.616
@@ -333,6 +333,31 @@ Hyperparameters:
 - Learning Rate: 1.2e-05
 - Batch Size: 16
 - Warmup Steps: 1000
+- Number of Epochs: 3
+- Weight Decay: 0.001
+- Dropout Rate: 0.1
+---
+- Seed: 42
+
+------------- December 15, 2023 -------------
+- Accuracy: 0.674
+- Precision: 0.675
+- Recall: 0.665
+- F1 Score: 0.664
+- AUC-ROC: 0.718
+- Matthews Correlation Coefficient (MCC): 0.340
+- Confusion Matrix:
+              continue  not_continue
+continue           323            90
+not_continue       159           192
+
+continue: Precision = 0.62, Recall = 0.81, F1 = 0.70
+not_continue: Precision = 0.64, Recall = 0.41, F1 = 0.50
+
+Hyperparameters:
+- Learning Rate: 2e-05
+- Batch Size: 16
+- Warmup Steps: 500
 - Number of Epochs: 3
 - Weight Decay: 0.001
 - Dropout Rate: 0.1
