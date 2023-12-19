@@ -1,18 +1,27 @@
 # from pprint import pprint
+from collections import Counter
 
 from tqdm import tqdm
+import spacy
 
 from db import spreadsheet_6
-from lib.utils import read_from_google_sheet, write_to_google_sheet
+from lib.utils import read_from_google_sheet, write_to_google_sheet, save_row_to_jsonl_file, empty_json_file
+from lib.ner_processing import custom_anonymize_text
 from lib.continuity_checks import (check_lexical_continuity, check_syntactic_continuity, check_semantic_continuity,
                                    check_transition_markers_continuity, check_coreference)
 
 
 dataset = read_from_google_sheet(spreadsheet_6, "dataset_2")
+# dataset = dataset[:10]
 
-# dataset = dataset[:100]
+nlp_trf = spacy.load("en_core_web_trf")
 
-print(f"\nReclassifying datapoint {len(dataset)}...")
+# Initialize path and name of output JSON-L file
+output_file = "shared_data/dataset_2_5_pair_sentences_reclass.jsonl"
+
+# Initialize a JSONL file for the dataset
+empty_json_file(output_file)
+
 
 for datapoint in tqdm(dataset, desc=f"Reclassifying {len(dataset)} datapoints", total=len(dataset)):
 
@@ -52,6 +61,30 @@ for datapoint in tqdm(dataset, desc=f"Reclassifying {len(dataset)} datapoints", 
 
 print(f"Reclassified dataset: {len(dataset)} datapoints\n")
 
+for datapoint in tqdm(dataset, desc=f"Anonymizing {len(dataset)} datapoints", total=len(dataset)):
+  pair = "[CLS] " + datapoint["text"] + " [SEP]"
+
+  # Anonymize text
+  more_entities = ["COVID-19", "COVID", "Army", "WeCanDoThis.HHS.gov", "HIV", "AIDS"]
+  pair_anonym = custom_anonymize_text(pair, nlp_trf,
+                                      ["PERSON", "NORP", "FAC", "ORG", "GPE", "LOC", "PRODUCT", "EVENT",
+                                       "LAW", "DATE", "TIME", "MONEY", "QUANTITY"])
+
+  for entity in more_entities:
+    datapoint["text"] = pair_anonym.replace(entity, "[ENTITY]")
+
+  # clone datapoint
+  new_datapoint = datapoint.copy()
+  # remove attributes annotator, label and continuity
+  new_datapoint.pop("annotator")
+  new_datapoint.pop("label")
+  new_datapoint.pop("continuity")
+  # rename attribute reclass to label
+  new_datapoint["label"] = new_datapoint.pop("reclass")
+
+  save_row_to_jsonl_file(new_datapoint, output_file)
+print(f"Anonymized dataset: {len(dataset)} datapoints\n")
+
 
 new_dataset = []
 for _datapoint in tqdm(dataset, desc=f"Uploading {len(dataset)} datapoints", total=len(dataset)):
@@ -69,3 +102,12 @@ for _datapoint in tqdm(dataset, desc=f"Uploading {len(dataset)} datapoints", tot
 write_to_google_sheet(spreadsheet_6, "dataset_2_reclass", new_dataset)
 
 print(f"Uploaded dataset: {len(new_dataset)} datapoints")
+
+counter = Counter([datapoint["label"] for datapoint in dataset])
+continue_percentage = counter["continue"] / (counter["continue"] + counter["not_continue"]) * 100
+not_continue_percentage = counter["not_continue"] / (counter["continue"] + counter["not_continue"]) * 100
+
+print()
+print("Class distribution:")
+print(f"\n• Continue: {counter['continue']} ({continue_percentage:.2f})")
+print(f"• Not continue: {counter['not_continue']} ({not_continue_percentage:.2f})")

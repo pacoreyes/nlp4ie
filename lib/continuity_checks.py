@@ -27,6 +27,8 @@ nlp_coref.replace_listeners("transformer", "span_resolver", ["model.tok2vec"])
 nlp_sm_coref.add_pipe("coref", source=nlp_coref)
 nlp_sm_coref.add_pipe("span_resolver", source=nlp_coref)
 
+ignore_units = {"be", "ROOT", "other"}
+
 
 # Check if the sentences have lexical continuity
 def check_lexical_continuity(_sent1, _sent2):
@@ -35,14 +37,16 @@ def check_lexical_continuity(_sent1, _sent2):
   noun, proper noun, verb, adjective or adverb.
   :param _sent1:
   :param _sent2:
-  :return:
+  :return: dict
   """
 
   def extract_key_syntactic_units(doc):
     # return [token.lemma_ for token in doc if token.pos_ in ["NOUN", "PROPN", "VERB", "ADJ", "ADV"]]
-    return [token.lemma_ for token in doc if
-            token.pos_ in ["NOUN", "PROPN", "VERB", "ADJ", "ADV", "PRON", "ADP", "CONJ", "CCONJ", "SCONJ", "DET", "NUM",
-                           "AUX"]]
+    syntactic_units = [token.lemma_ for token in doc if token.pos_ in
+                       ["NOUN", "PROPN", "VERB", "ADJ", "ADV", "SCONJ", "NUM"]]
+
+    # Remove tokens that are in the ignore list
+    return list(set([unit for unit in syntactic_units if unit not in ignore_units]))
 
   doc1 = nlp(_sent1)
   doc2 = nlp(_sent2)
@@ -68,15 +72,32 @@ def check_lexical_continuity(_sent1, _sent2):
 
 
 def check_syntactic_continuity(_sent1, _sent2):
+  """
+  This function checks if two sentences have syntactic continuity, which means that they have at least one common
+  dependency pattern.
+  :param _sent1:
+  :param _sent2:
+  :return: dict
+  """
   def extract_dependency_patterns(doc):
+    """
+    This function extracts dependency patterns from a sentence.
+    :param doc:
+    :return:
+    """
     return {(token.head.lemma_, token.lemma_, token.dep_) for token in doc}
 
   doc1 = nlp(_sent1)
   doc2 = nlp(_sent2)
 
+  ignore_dependencies = {"be", "punct", "."}
+
   # Enhanced Dependency Analysis
   dependencies1 = extract_dependency_patterns(doc1)
   dependencies2 = extract_dependency_patterns(doc2)
+
+  # Remove dependencies that are in the ignore list
+  dependencies1 = {dep for dep in dependencies1 if dep[2] not in ignore_dependencies}
 
   # Find common dependency patterns
   common_dependencies = dependencies1.intersection(dependencies2)
@@ -92,7 +113,21 @@ def check_syntactic_continuity(_sent1, _sent2):
 
 
 def check_semantic_continuity(_sent1, _sent2, similarity_threshold=0.75):
+  """
+  This function checks if two sentences have semantic continuity, which means that they have at least one common
+  named entity or at least one pair of key semantic units (nouns, verbs, adjectives, adverbs) with a semantic
+  similarity above a threshold.
+  :param _sent1:
+  :param _sent2:
+  :param similarity_threshold:
+  :return: dict
+  """
   def extract_key_semantic_units(doc):
+    """
+    This function extracts key semantic units from a sentence.
+    :param doc:
+    :return:
+    """
     # Extract lemmas of key semantic units
     return [token.lemma_ for token in doc if token.pos_ in ["NOUN", "VERB", "ADJ", "ADV"]]
 
@@ -138,6 +173,11 @@ def check_semantic_continuity(_sent1, _sent2, similarity_threshold=0.75):
 
 
 def check_transition_markers_continuity(_sent):
+  """
+  This function checks if a sentence starts with a transition marker or contains a transition marker.
+  :param _sent:
+  :return: dict
+  """
   for location, categories in transition_markers.items():
     for category, markers in categories.items():
       for marker in markers:

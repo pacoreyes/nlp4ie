@@ -1,4 +1,5 @@
 import random
+from collections import Counter
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -74,7 +75,8 @@ device = get_device()
 print(f"\nUsing device: {str(device).upper()}\n")
 
 # Load dataset
-data_file = "shared_data/dataset_2_2_pair_sentences_anonym.jsonl"
+# data_file = "shared_data/dataset_2_2_pair_sentences_anonym.jsonl"
+data_file = "shared_data/dataset_2_5_pair_sentences_reclass.jsonl"
 
 # Load BERT model
 model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
@@ -83,14 +85,31 @@ model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
 # Move model to device
 model.to(device)
 
-# Load and preprocess the dataset
-dataset = load_jsonl_file(data_file)
-
 # Set seed for reproducibility
 set_seed(SEED)
 # torch.use_deterministic_algorithms(True)
 
-# Load the BERT tokenizer
+# Load and preprocess the dataset
+dataset = load_jsonl_file(data_file)
+
+counter = Counter([item['label'] for item in dataset])
+print(counter)
+
+continue_class_counter = counter["continue"]
+not_continue_class_counter = counter["not_continue"]
+print("Class distribution:")
+print(f"- continue: {continue_class_counter}")
+print(f"- not_continue: {not_continue_class_counter}")
+
+random.shuffle(dataset)
+continue_class = [item for item in dataset if item['label'] == "continue"]
+not_continue_class = [item for item in dataset if item['label'] == "not_continue"]
+random.shuffle(not_continue_class)
+# trim 50% of not_continue_class
+not_continue_class = not_continue_class[:len(continue_class)]
+print(f"not_continue (after trim) : {len(not_continue_class)}")
+
+# Load the BERT tokenizerb
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
 sentences = [entry["text"] for entry in dataset]
