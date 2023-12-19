@@ -206,6 +206,6 @@ print(f"Uploaded {len(rows)} datapoints to Google Sheets")
 # - 294 duplicated
 #   ---
 #  7845 datapoints
-# -2324 malformed
+# -2360 malformed
 #   ---
 #  5485 datapoints

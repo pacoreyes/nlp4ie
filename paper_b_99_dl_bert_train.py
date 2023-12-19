@@ -33,7 +33,7 @@ BATCH_SIZE = 16  # 16, 32
 NUM_EPOCHS = 3  # 2, 3, 4, 5
 WEIGHT_DECAY = 1e-3  # 1e-2 or 1e-3
 DROP_OUT_RATE = 0.1  # 0.1 or 0.2
-WARMUP_STEPS = 500  # 0, 100, 1000, 10000
+WARMUP_STEPS = 350  # 0, 100, 1000, 10000
 
 
 def get_device():
@@ -93,11 +93,10 @@ set_seed(SEED)
 dataset = load_jsonl_file(data_file)
 
 counter = Counter([item['label'] for item in dataset])
-print(counter)
 
 continue_class_counter = counter["continue"]
 not_continue_class_counter = counter["not_continue"]
-print("Class distribution:")
+print("\nClass distribution:")
 print(f"- continue: {continue_class_counter}")
 print(f"- not_continue: {not_continue_class_counter}")
 
@@ -105,11 +104,14 @@ random.shuffle(dataset)
 continue_class = [item for item in dataset if item['label'] == "continue"]
 not_continue_class = [item for item in dataset if item['label'] == "not_continue"]
 random.shuffle(not_continue_class)
-# trim 50% of not_continue_class
-not_continue_class = not_continue_class[:len(continue_class)]
-print(f"not_continue (after trim) : {len(not_continue_class)}")
+# trim 50% of continue_class
+continue_class = continue_class[:continue_class_counter // 2]
 
-# Load the BERT tokenizerb
+print(f"continue (after trim) : {len(continue_class)}")
+
+dataset = continue_class + not_continue_class
+
+# Load the BERT tokenizer
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
 sentences = [entry["text"] for entry in dataset]
@@ -333,7 +335,7 @@ plt.legend()
 plt.savefig("images/paper_b_1_dl_bert_model_losses.png")
 plt.close()
 
-""" BASELINE RESULTS
+""" ------------ December 12, 2023 BASELINE RESULTS -------------
 - Accuracy: 0.616
 - Precision: 0.616
 - Recall: 0.616
@@ -377,6 +379,56 @@ Hyperparameters:
 - Learning Rate: 2e-05
 - Batch Size: 16
 - Warmup Steps: 500
+- Number of Epochs: 3
+- Weight Decay: 0.001
+- Dropout Rate: 0.1
+---
+- Seed: 42
+
+------------- December 19, 2023 with all datapoints -------------
+- Accuracy: 0.860
+- Precision: 0.829
+- Recall: 0.804
+- F1 Score: 0.815
+- AUC-ROC: 0.918
+- Matthews Correlation Coefficient (MCC): 0.633
+- Confusion Matrix:
+              continue  not_continue
+continue           371            30
+not_continue        47           101
+
+continue: Precision = 0.83, Recall = 0.91, F1 = 0.87
+not_continue: Precision = 0.66, Recall = 0.50, F1 = 0.57
+
+Hyperparameters:
+- Learning Rate: 2e-05
+- Batch Size: 16
+- Warmup Steps: 500
+- Number of Epochs: 3
+- Weight Decay: 0.001
+- Dropout Rate: 0.1
+---
+- Seed: 42
+
+------------- December 19, 2023 with 50% continue class -------------
+- Accuracy: 0.862
+- Precision: 0.862
+- Recall: 0.856
+- F1 Score: 0.858
+- AUC-ROC: 0.916
+- Matthews Correlation Coefficient (MCC): 0.718
+- Confusion Matrix:
+              continue  not_continue
+continue           180            20
+not_continue        28           121
+
+continue: Precision = 0.81, Recall = 0.77, F1 = 0.79
+not_continue: Precision = 0.70, Recall = 0.76, F1 = 0.73
+
+Hyperparameters:
+- Learning Rate: 2e-05
+- Batch Size: 16
+- Warmup Steps: 400
 - Number of Epochs: 3
 - Weight Decay: 0.001
 - Dropout Rate: 0.1
