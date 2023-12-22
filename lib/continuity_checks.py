@@ -8,6 +8,7 @@ https://aclanthology.org/N03-1030.pdf
 from collections import Counter
 
 import spacy
+from spacy.matcher import PhraseMatcher
 from scipy.spatial.distance import cosine
 
 from lib.lexicons import transition_markers
@@ -27,6 +28,29 @@ nlp_coref.replace_listeners("transformer", "span_resolver", ["model.tok2vec"])
 nlp_sm_coref.add_pipe("coref", source=nlp_coref)
 nlp_sm_coref.add_pipe("span_resolver", source=nlp_coref)
 
+
+# Initialize PhraseMatchers to match transition markers
+leading_continuity_matcher = PhraseMatcher(nlp.vocab, attr="LOWER")
+leading_shift_matcher = PhraseMatcher(nlp.vocab, attr="LOWER")
+flexible_continuity_matcher = PhraseMatcher(nlp.vocab, attr="LOWER")
+flexible_shift_matcher = PhraseMatcher(nlp.vocab, attr="LOWER")
+
+# Retrieve transition markers from lexicons.py
+leading_markers_continuity = transition_markers["leading_markers"]["topic_continuity"]
+leading_markers_shift = transition_markers["leading_markers"]["topic_shift"]
+flexible_markers_continuity = transition_markers["flexible_markers"]["topic_continuity"]
+flexible_markers_shift = transition_markers["flexible_markers"]["topic_shift"]
+
+# Add transition markers to PhraseMatchers
+patterns = [nlp.make_doc(text) for text in leading_markers_continuity]
+leading_continuity_matcher.add("leading_continuity", patterns)
+patterns = [nlp.make_doc(text) for text in leading_markers_shift]
+leading_shift_matcher.add("leading_shift", patterns)
+patterns = [nlp.make_doc(text) for text in flexible_markers_continuity]
+flexible_continuity_matcher.add("flexible_continuity", patterns)
+patterns = [nlp.make_doc(text) for text in flexible_markers_shift]
+flexible_shift_matcher.add("flexible_shift", patterns)
+
 ignore_units = {"be", "ROOT", "other"}
 
 
@@ -43,7 +67,7 @@ def check_lexical_continuity(_sent1, _sent2):
   def extract_key_syntactic_units(doc):
     # return [token.lemma_ for token in doc if token.pos_ in ["NOUN", "PROPN", "VERB", "ADJ", "ADV"]]
     syntactic_units = [token.lemma_ for token in doc if token.pos_ in
-                       ["NOUN", "PROPN", "VERB", "ADJ", "ADV", "SCONJ", "NUM"]]
+                       ["NOUN", "PROPN", "VERB", "ADJ", "ADV", "NUM"]]
 
     # Remove tokens that are in the ignore list
     return list(set([unit for unit in syntactic_units if unit not in ignore_units]))
@@ -64,10 +88,7 @@ def check_lexical_continuity(_sent1, _sent2):
 
   # Construct the result with metadata
   return {
-    "lexical_continuity": len(common_elements) > 0,
-    "metadata": {
-      "common_elements": dict(common_elements)
-    }
+    "lexical_continuity": dict(common_elements)
   }
 
 
@@ -90,25 +111,26 @@ def check_syntactic_continuity(_sent1, _sent2):
   doc1 = nlp(_sent1)
   doc2 = nlp(_sent2)
 
-  ignore_dependencies = {"be", "punct", "."}
+  ignore_dependencies = {"punct"}
 
   # Enhanced Dependency Analysis
   dependencies1 = extract_dependency_patterns(doc1)
   dependencies2 = extract_dependency_patterns(doc2)
+
+  """print(dependencies1)
+  print("---")
+  print(dependencies2)"""
 
   # Remove dependencies that are in the ignore list
   dependencies1 = {dep for dep in dependencies1 if dep[2] not in ignore_dependencies}
 
   # Find common dependency patterns
   common_dependencies = dependencies1.intersection(dependencies2)
-  has_common_dependencies = len(common_dependencies) > 0
+  # has_common_dependencies = len(common_dependencies) > 0
 
   # Construct the result with metadata
   return {
-    "syntactic_continuity": has_common_dependencies,
-    "metadata": {
-      "common_dependencies": common_dependencies
-    }
+    "syntactic_continuity": common_dependencies
   }
 
 
@@ -160,15 +182,11 @@ def check_semantic_continuity(_sent1, _sent2, similarity_threshold=0.75):
   common_entities, entity_continuity = check_common_entities(doc1, doc2)
 
   # Evaluate continuity based on semantic analysis
-  _continuity = bool(similarities_above_threshold) or entity_continuity
+  # _continuity = bool(similarities_above_threshold) or entity_continuity
 
   # Construct the result with metadata
   return {
-    "semantic_continuity": _continuity,
-    "metadata": {
-      "similarities": similarities_above_threshold,
-      "common_entities": list(common_entities)
-    }
+    "semantic_continuity": list(common_entities)
   }
 
 
@@ -178,30 +196,69 @@ def check_transition_markers_continuity(_sent):
   :param _sent:
   :return: dict
   """
-  for location, categories in transition_markers.items():
-    for category, markers in categories.items():
-      for marker in markers:
+  doc = nlp(_sent)
 
-        if _sent.lower().startswith(marker.lower()) and location == "leading_markers":
-          return {
-            "transition_markers_continuity": True,
-            "metadata": {
-              "transition_marker": marker,
-              "location": location
-            }
-          }
-        elif not _sent.lower().startswith(
-            marker.lower()) and marker.lower() in _sent.lower() and location == "flexible_markers":
-          return {
-            "transition_markers_continuity": True,
-            "metadata": {
-              "transition_marker": marker,
-              "location": location
-            }
-          }
-  return {
-    "transition_markers_continuity": False,
+  results = {
+    "transition_markers_continuity": []
   }
+
+  # Check if the sentence starts with a continuity marker
+  matches = leading_continuity_matcher(doc)
+  markers = {
+    "type": "continue",
+    "marker": [],
+    "location": "leading"
+  }
+  for match_id, start, end in matches:
+    marker = doc[start:end].text
+    if start == 0:
+      markers["marker"].append(marker.lower())
+  if markers["marker"]:
+    results["transition_markers_continuity"].append(markers)
+
+  # Check if the sentence starts with a shift marker
+  matches = leading_shift_matcher(doc)
+  markers = {
+    "type": "shift",
+    "marker": [],
+    "location": "leading"
+  }
+  for match_id, start, end in matches:
+    marker = doc[start:end].text
+    if start == 0:
+      markers["marker"].append(marker.lower())
+  if markers["marker"]:
+    results["transition_markers_continuity"].append(markers)
+
+  # Check if the sentence contains a continuity marker, not at the beginning
+  matches = flexible_continuity_matcher(doc)
+  markers = {
+    "type": "continue",
+    "marker": [],
+    "location": "flexible"
+  }
+  for match_id, start, end in matches:
+    marker = doc[start:end].text
+    if start > 0:
+      markers["marker"].append(marker.lower())
+  if markers["marker"]:
+    results["transition_markers_continuity"].append(markers)
+
+  # Check if the sentence contains a shift marker, not at the beginning
+  markers = {
+    "type": "shift",
+    "marker": [],
+    "location": "flexible"
+  }
+  matches = flexible_shift_matcher(doc)
+  for match_id, start, end in matches:
+    marker = doc[start:end].text
+    if start > 0:
+      markers["marker"].append(marker.lower())
+  if markers["marker"]:
+    results["transition_markers_continuity"].append(markers)
+
+  return results
 
 
 def check_coreference(sent1, sent2):
@@ -229,6 +286,8 @@ def check_coreference(sent1, sent2):
   clusters = {}
   cluster_id = 1
 
+  # pprint(doc.spans)
+
   for cluster in doc.spans:
     cluster_group = []
     if "head" in cluster:
@@ -254,8 +313,5 @@ def check_coreference(sent1, sent2):
         cluster_id += 1
 
   return {
-    "coreference": bool(clusters),
-    "metadata": {
-      "coreference_clusters": clusters
-    }
+    "coreference": clusters
   }

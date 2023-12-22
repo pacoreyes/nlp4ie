@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 from transformers import BertTokenizer, BertForSequenceClassification, get_linear_schedule_with_warmup
 
-from lib.utils import load_jsonl_file
+from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file
 from lib.visualizations import plot_confusion_matrix
 
 
@@ -23,17 +23,21 @@ from lib.visualizations import plot_confusion_matrix
 LABEL_MAP = {"continue": 0, "not_continue": 1}
 class_names = list(LABEL_MAP.keys())
 
+# Reversed Label Map
+# REVERSED_LABEL_MAP = {v: k for k, v in LABEL_MAP.items()}
+REVERSED_LABEL_MAP = {0: "continue", 1: "not_continue"}
+
 # Initialize constants
 MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BERT model
 SEED = 42  # 42, 1234, 2021
 
 # Hyperparameters
-LEARNING_RATE = 2e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
+LEARNING_RATE = 1.9e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
 BATCH_SIZE = 16  # 16, 32
 NUM_EPOCHS = 3  # 2, 3, 4, 5
 WEIGHT_DECAY = 1e-3  # 1e-2 or 1e-3
 DROP_OUT_RATE = 0.1  # 0.1 or 0.2
-WARMUP_STEPS = 350  # 0, 100, 1000, 10000
+WARMUP_STEPS = 400  # 0, 100, 1000, 10000
 
 
 def get_device():
@@ -59,9 +63,11 @@ def set_seed(seed_value):
 def create_dataset(_df):
   _texts = _df['text'].tolist()
   _labels = _df['label'].tolist()
+  _ids = _df['id'].tolist()  # keep ids as a list of strings
 
   _input_ids, _attention_masks = preprocess(_texts, tokenizer, device, max_length=MAX_LENGTH)
-  return TensorDataset(_input_ids, _attention_masks, torch.tensor(_labels))
+  # Create TensorDataset without ids, since they are strings
+  return TensorDataset(_input_ids, _attention_masks, torch.tensor(_labels)), _ids
 
 
 def preprocess(_texts, _tokenizer, _device, max_length=MAX_LENGTH):
@@ -121,7 +127,11 @@ labels = [entry["label"] for entry in dataset]
 labels = [LABEL_MAP[label] for label in labels]
 
 # Convert to pandas DataFrame for stratified splitting
-df = pd.DataFrame({"text": sentences, "label": labels})
+df = pd.DataFrame({
+    "id": [entry["id"] for entry in dataset],  # Include 'id'
+    "text": sentences,
+    "label": labels
+})
 
 # Stratified split of the data to obtain the train and the remaining data
 train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.2, random_state=SEED)
@@ -130,9 +140,9 @@ train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.
 val_df, test_df = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5, random_state=SEED)
 
 # Create TensorDatasets
-train_dataset = create_dataset(train_df)
-val_dataset = create_dataset(val_df)
-test_dataset = create_dataset(test_df)
+train_dataset, train_ids = create_dataset(train_df)
+val_dataset, val_ids = create_dataset(val_df)
+test_dataset, test_ids = create_dataset(test_df)
 
 # Calculate class weights
 class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(labels), y=labels)
@@ -142,6 +152,7 @@ class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
 train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE)
 val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=BATCH_SIZE)
 test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=BATCH_SIZE)
+
 
 # Optimizer and Scheduler
 optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
@@ -246,9 +257,15 @@ all_probabilities = []
 
 softmax = torch.nn.Softmax(dim=1)
 
-for batch in tqdm(test_dataloader, desc="Testing"):
+# Initialize JSONL file for misclassified examples
+misclassified_output_file = "shared_data/dataset_2_6_misclassified_examples.jsonl"
+empty_json_file(misclassified_output_file)
+
+for i, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
   with torch.no_grad():
-    b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
+    # Unpack batch data without ids
+    b_input_ids, b_attention_mask, b_labels = batch
+    b_input_ids, b_attention_mask, b_labels = b_input_ids.to(device), b_attention_mask.to(device), b_labels.to(device)
 
     # Forward pass
     outputs = model(b_input_ids, attention_mask=b_attention_mask, labels=b_labels)
@@ -262,8 +279,21 @@ for batch in tqdm(test_dataloader, desc="Testing"):
     label_ids = b_labels.cpu().numpy()  # Move to CPU before conversion
 
     # Store predictions and true labels
-    test_predictions.extend(torch.argmax(logits, dim=1).cpu().numpy())  # Move to CPU before conversion
+    test_predictions.extend(torch.argmax(logits, dim=1).cpu().numpy())
     test_true_labels.extend(label_ids)
+
+    # Identifying and saving misclassified examples
+    predictions = torch.argmax(logits, dim=1).cpu().numpy()
+    for j, (pred, true) in enumerate(zip(predictions, label_ids)):  # no _id in zip
+      if pred != true:
+        # Access the correct id using the batch index and the offset within the batch
+        example_id = test_ids[i * BATCH_SIZE + j]
+        save_row_to_jsonl_file({
+          "id": example_id,  # corrected to use the separate ids list
+          "true_label": REVERSED_LABEL_MAP[true],
+          "predicted_label": REVERSED_LABEL_MAP[pred],
+          "text": dataset[i * BATCH_SIZE + j]["text"],
+        }, misclassified_output_file)
 
 plt.figure()
 plot_confusion_matrix(test_true_labels,
@@ -410,7 +440,7 @@ Hyperparameters:
 ---
 - Seed: 42
 
-------------- December 19, 2023 with 50% continue class -------------
+------------- December 19, 2023 with 50% "continue" class -------------
 - Accuracy: 0.862
 - Precision: 0.862
 - Recall: 0.856
@@ -434,4 +464,29 @@ Hyperparameters:
 - Dropout Rate: 0.1
 ---
 - Seed: 42
+
+------------- December 22, 2023 with 50% "continue" class -------------
+
+- Accuracy: 0.865
+- Precision: 0.866
+- Recall: 0.865
+- F1 Score: 0.865
+- AUC-ROC: 0.939
+- Matthews Correlation Coefficient (MCC): 0.730
+- Confusion Matrix:
+              continue  not_continue
+continue           159            21
+not_continue        26           143
+
+continue: Precision = 0.84, Recall = 0.60, F1 = 0.70
+not_continue: Precision = 0.67, Recall = 0.88, F1 = 0.76
+
+Hyperparameters:
+- Learning Rate: 2.1e-05
+- Batch Size: 16
+- Warmup Steps: 400
+- Number of Epochs: 3
+- Weight Decay: 0.001
+- Dropout Rate: 0.1
+
 """

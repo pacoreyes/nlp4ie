@@ -12,7 +12,7 @@ from lib.continuity_checks import (check_lexical_continuity, check_syntactic_con
 
 
 dataset = read_from_google_sheet(spreadsheet_6, "dataset_2")
-# dataset = dataset[:10]
+# dataset = dataset[:600]
 
 nlp_trf = spacy.load("en_core_web_trf")
 
@@ -31,13 +31,14 @@ for datapoint in tqdm(dataset, desc=f"Reclassifying {len(dataset)} datapoints", 
   sent2 = sentences[1]
 
   continuity = []
+  not_continuity = []
 
   lexical_continuity = check_lexical_continuity(sent1, sent2)
-  if lexical_continuity['lexical_continuity']:
+  if lexical_continuity['lexical_continuity'] != {}:
     continuity.append(lexical_continuity)
 
   syntactic_continuity = check_syntactic_continuity(sent1, sent2)
-  if syntactic_continuity['syntactic_continuity']:
+  if syntactic_continuity['syntactic_continuity'] != set():
     continuity.append(syntactic_continuity)
 
   semantic_continuity = check_semantic_continuity(sent1, sent2)
@@ -45,8 +46,10 @@ for datapoint in tqdm(dataset, desc=f"Reclassifying {len(dataset)} datapoints", 
     continuity.append(semantic_continuity)
 
   transition_markers_continuity = check_transition_markers_continuity(sent2)
-  if transition_markers_continuity['transition_markers_continuity']:
+  if any(m.get('type') == 'continue' for m in transition_markers_continuity['transition_markers_continuity']):
     continuity.append(transition_markers_continuity)
+  elif any(m.get('type') == 'shift' for m in transition_markers_continuity['transition_markers_continuity']):
+    not_continuity.append(transition_markers_continuity)
 
   coreference = check_coreference(sent1, sent2)
   if coreference['coreference']:
@@ -57,11 +60,38 @@ for datapoint in tqdm(dataset, desc=f"Reclassifying {len(dataset)} datapoints", 
     datapoint['continuity'] = continuity
   else:
     datapoint['reclass'] = "not_continue"
-    datapoint['continuity'] = ""
+    datapoint['continuity'] = not_continuity
 
 print(f"Reclassified dataset: {len(dataset)} datapoints\n")
 
+new_dataset = []
+for _datapoint in tqdm(dataset, desc=f"Uploading {len(dataset)} datapoints", total=len(dataset)):
+  _row = [
+    _datapoint["id"],
+    _datapoint["passage_id"],
+    _datapoint["text"],
+    _datapoint["label"],
+    _datapoint["annotator"],
+    _datapoint["reclass"],
+    str(_datapoint["continuity"])
+  ]
+  new_dataset.append(_row)
+
+write_to_google_sheet(spreadsheet_6, "dataset_2_reclass", new_dataset)
+
+print(f"Uploaded dataset: {len(new_dataset)} datapoints")
+
+counter = Counter([datapoint["reclass"] for datapoint in dataset])
+continue_percentage = counter["continue"] / (counter["continue"] + counter["not_continue"]) * 100
+not_continue_percentage = counter["not_continue"] / (counter["continue"] + counter["not_continue"]) * 100
+
+print()
+print("Class distribution after reclassification")
+print(f"• Continue: {counter['continue']} ({continue_percentage:.2f})")
+print(f"• Not continue: {counter['not_continue']} ({not_continue_percentage:.2f})")
+
 for datapoint in tqdm(dataset, desc=f"Anonymizing {len(dataset)} datapoints", total=len(dataset)):
+  original_text = datapoint["text"]
   pair = "[CLS] " + datapoint["text"] + " [SEP]"
 
   # Anonymize text
@@ -84,30 +114,3 @@ for datapoint in tqdm(dataset, desc=f"Anonymizing {len(dataset)} datapoints", to
 
   save_row_to_jsonl_file(new_datapoint, output_file)
 print(f"Anonymized dataset: {len(dataset)} datapoints\n")
-
-
-new_dataset = []
-for _datapoint in tqdm(dataset, desc=f"Uploading {len(dataset)} datapoints", total=len(dataset)):
-  _row = [
-    _datapoint["id"],
-    _datapoint["passage_id"],
-    _datapoint["text"],
-    _datapoint["label"],
-    _datapoint["annotator"],
-    _datapoint["reclass"],
-    str(_datapoint["continuity"])
-  ]
-  new_dataset.append(_row)
-
-write_to_google_sheet(spreadsheet_6, "dataset_2_reclass", new_dataset)
-
-print(f"Uploaded dataset: {len(new_dataset)} datapoints")
-
-counter = Counter([datapoint["label"] for datapoint in dataset])
-continue_percentage = counter["continue"] / (counter["continue"] + counter["not_continue"]) * 100
-not_continue_percentage = counter["not_continue"] / (counter["continue"] + counter["not_continue"]) * 100
-
-print()
-print("Class distribution:")
-print(f"\n• Continue: {counter['continue']} ({continue_percentage:.2f})")
-print(f"• Not continue: {counter['not_continue']} ({not_continue_percentage:.2f})")
