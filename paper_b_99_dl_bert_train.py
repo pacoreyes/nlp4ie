@@ -29,15 +29,15 @@ REVERSED_LABEL_MAP = {0: "continue", 1: "not_continue"}
 
 # Initialize constants
 MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BERT model
-SEED = 42  # 42, 1234, 2021
+SEED = 14  # 42, 1234, 2021
 
 # Hyperparameters
-LEARNING_RATE = 1.9e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
+LEARNING_RATE = 2.4e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
 BATCH_SIZE = 16  # 16, 32
 NUM_EPOCHS = 3  # 2, 3, 4, 5
-WEIGHT_DECAY = 1e-3  # 1e-2 or 1e-3
+WEIGHT_DECAY = 0.001  # 0.01 or 0.001
 DROP_OUT_RATE = 0.1  # 0.1 or 0.2
-WARMUP_STEPS = 400  # 0, 100, 1000, 10000
+WARMUP_STEPS = 556  # 0, 100, 1000, 10000
 
 
 def get_device():

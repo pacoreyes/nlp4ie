@@ -45,6 +45,7 @@ ignore_patterns = ["JOHNSON:",
                    "Speaker 2:",
                    "ESPER:",
                    "THE PRESIDENT:",
+                   "Ambassador Spogli."
                    ]
 
 ignore_in_title_patterns = ["press release",
@@ -206,6 +207,6 @@ print(f"Uploaded {len(rows)} datapoints to Google Sheets")
 # - 294 duplicated
 #   ---
 #  7845 datapoints
-# -2563 malformed
+# -2564 malformed
 #   ---
-#  5282 datapoints
+#  5281 datapoints

@@ -48,7 +48,7 @@ for datapoint in tqdm(dataset, desc=f"Reclassifying {len(dataset)} datapoints", 
   transition_markers_continuity = check_transition_markers_continuity(sent2)
   if any(m.get('type') == 'continue' for m in transition_markers_continuity['transition_markers_continuity']):
     continuity.append(transition_markers_continuity)
-  elif any(m.get('type') == 'shift' for m in transition_markers_continuity['transition_markers_continuity']):
+  elif all(m.get('type') == 'shift' for m in transition_markers_continuity['transition_markers_continuity']):
     not_continuity.append(transition_markers_continuity)
 
   coreference = check_coreference(sent1, sent2)
