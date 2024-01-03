@@ -6,6 +6,7 @@ from tqdm import tqdm
 
 from db import firestore_db, spreadsheet_6
 from lib.utils import write_to_google_sheet, load_jsonl_file
+from lib.utils2 import remove_duplicated_datapoints
 
 source_dataset = load_jsonl_file("shared_data/dataset_2_3_pair_sentences.jsonl")
 
@@ -107,7 +108,9 @@ undesirable_chars = [
 Step 1: Ensure datapoints uniqueness by removing duplicates
 ############################################# """
 
-unique_texts = set()
+c_dataset = remove_duplicated_datapoints(source_dataset)
+
+"""unique_texts = set()
 c_dataset = []
 
 print("Removing duplicates...")
@@ -117,10 +120,10 @@ for item in tqdm(source_dataset, desc=f"Processing {len(source_dataset)} datapoi
     c_dataset.append(item)
 
 print(
-  f"Dataset 2 after duplicate removal: {len(source_dataset) - len(c_dataset)}  = {len(c_dataset)}\n")
+  f"Dataset 2 after duplicate removal: {len(source_dataset) - len(c_dataset)}  = {len(c_dataset)}\n")"""
 
 """ #############################################
-Step 2: Skip datapoints based on patterns 
+Step 2: Skip undesirable datapoints based on patterns 
 ############################################# """
 
 rows = []
