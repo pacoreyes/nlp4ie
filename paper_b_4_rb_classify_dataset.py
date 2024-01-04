@@ -1,5 +1,6 @@
 # from pprint import pprint
 from collections import Counter
+import json
 
 from tqdm import tqdm
 import spacy
@@ -12,7 +13,7 @@ from lib.continuity_checks import (check_lexical_continuity, check_syntactic_con
 
 
 dataset = read_from_google_sheet(spreadsheet_6, "dataset_2")
-# dataset = dataset[:600]
+# dataset = dataset[:300]
 
 nlp_trf = spacy.load("en_core_web_trf")
 
@@ -23,10 +24,14 @@ output_file = "shared_data/dataset_2_5_pair_sentences_reclass.jsonl"
 empty_json_file(output_file)
 
 
+"""#############################################
+Step 1: Extract continuity features, reclassify, and save to Google Sheets
+#############################################"""
+
 for datapoint in tqdm(dataset, desc=f"Reclassifying {len(dataset)} datapoints", total=len(dataset)):
 
   # Split the text into two sentences
-  sentences = datapoint["text"].split("[SEP] ")
+  sentences = datapoint["text"].split(" [SEP] ")
   sent1 = sentences[0]
   sent2 = sentences[1]
 
@@ -64,8 +69,21 @@ for datapoint in tqdm(dataset, desc=f"Reclassifying {len(dataset)} datapoints", 
 
 print(f"Reclassified dataset: {len(dataset)} datapoints\n")
 
+BEAUTIFY_JSON = False
+
 new_dataset = []
 for _datapoint in tqdm(dataset, desc=f"Uploading {len(dataset)} datapoints", total=len(dataset)):
+  # Remove empty continuity
+  if str(_datapoint["continuity"]) == "[{'transition_markers_continuity': []}]":
+    _datapoint["continuity"] = ""
+  else:
+    if BEAUTIFY_JSON:
+      # Format JSON continuity into a compact representation with smaller indentation
+      _datapoint["continuity"] = json.dumps(_datapoint["continuity"], indent=2)
+    else:
+      _datapoint["continuity"] = str(_datapoint["continuity"])
+
+  # Create new row
   _row = [
     _datapoint["id"],
     _datapoint["passage_id"],
@@ -73,11 +91,11 @@ for _datapoint in tqdm(dataset, desc=f"Uploading {len(dataset)} datapoints", tot
     _datapoint["label"],
     _datapoint["annotator"],
     _datapoint["reclass"],
-    str(_datapoint["continuity"])
+    _datapoint["continuity"]
   ]
   new_dataset.append(_row)
 
-write_to_google_sheet(spreadsheet_6, "dataset_2_reclass", new_dataset)
+write_to_google_sheet(spreadsheet_6, "dataset_22_reclass", new_dataset)
 
 print(f"Uploaded dataset: {len(new_dataset)} datapoints")
 
@@ -89,6 +107,10 @@ print()
 print("Class distribution after reclassification")
 print(f"• Continue: {counter['continue']} ({continue_percentage:.2f})")
 print(f"• Not continue: {counter['not_continue']} ({not_continue_percentage:.2f})")
+
+"""#############################################
+Step 2: Anonymize dataset and save to JSONL file
+#############################################"""
 
 for datapoint in tqdm(dataset, desc=f"Anonymizing {len(dataset)} datapoints", total=len(dataset)):
   original_text = datapoint["text"]

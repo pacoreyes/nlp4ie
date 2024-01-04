@@ -1,5 +1,6 @@
 import re
 import random
+# from pprint import pprint
 
 from tqdm import tqdm
 import torch
@@ -97,5 +98,9 @@ def balance_classes_in_dataset(dataset, label1, label2, label_name, seed):
 
   # Concatenate class1 and class2 classes
   balanced_dataset = class1 + class2
+
+  print(f"Balanced dataset: {len(balanced_dataset)} datapoints")
+  print(f"• {label1}: {len(class1)} datapoints")
+  print(f"• {label2}: {len(class2)} datapoints")
 
   return balanced_dataset

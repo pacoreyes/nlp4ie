@@ -8,8 +8,8 @@ https://aclanthology.org/N03-1030.pdf
 from collections import Counter
 
 import spacy
-from spacy.matcher import PhraseMatcher
 from scipy.spatial.distance import cosine
+from spacy.matcher import PhraseMatcher
 
 from lib.lexicons import transition_markers
 
@@ -18,8 +18,10 @@ from lib.lexicons import transition_markers
 # Load English tokenizer, tagger, parser, NER and word vectors
 nlp = spacy.load("en_core_web_lg")
 
-# Load coreference resolution model
+# Load small model for morphological analysis
 nlp_sm_coref = spacy.load("en_core_web_sm")
+
+# Load coreference resolution model
 nlp_coref = spacy.load("en_coreference_web_trf")
 
 nlp_coref.replace_listeners("transformer", "coref", ["model.tok2vec"])
@@ -27,7 +29,6 @@ nlp_coref.replace_listeners("transformer", "span_resolver", ["model.tok2vec"])
 
 nlp_sm_coref.add_pipe("coref", source=nlp_coref)
 nlp_sm_coref.add_pipe("span_resolver", source=nlp_coref)
-
 
 # Initialize PhraseMatchers to match transition markers
 leading_continuity_matcher = PhraseMatcher(nlp.vocab, attr="LOWER")
@@ -100,6 +101,7 @@ def check_syntactic_continuity(_sent1, _sent2):
   :param _sent2:
   :return: dict
   """
+
   def extract_dependency_patterns(doc):
     """
     This function extracts dependency patterns from a sentence.
@@ -141,9 +143,10 @@ def check_semantic_continuity(_sent1, _sent2, similarity_threshold=0.75):
   similarity above a threshold.
   :param _sent1:
   :param _sent2:
-  :param similarity_threshold:
+  :param similarity_threshold: float for the cosine similarity threshold
   :return: dict
   """
+
   def extract_key_semantic_units(doc):
     """
     This function extracts key semantic units from a sentence.
@@ -278,9 +281,8 @@ def check_coreference(sent1, sent2):
   # join 2 sentences and create a new doc
   doc = nlp_sm_coref(sent1 + " " + sent2)
 
-  # check if there are any coreference clusters that link both sentences
-  doc1 = nlp(sent1)
   # Get total number of tokens in sentence1
+  doc1 = nlp(sent1)
   sentence1_end = len(doc1) - 1
 
   clusters = {}
@@ -288,14 +290,13 @@ def check_coreference(sent1, sent2):
 
   # pprint(doc.spans)
 
+  # check if there are any coreference clusters that link both sentences
   for cluster in doc.spans:
     cluster_group = []
     if "head" in cluster:
-      # If all spans are in sentence1 or all spans are sentence2,
-      # which means no coreference between sentences
+      # If all spans are in sentence1 or all spans are in sentence2, which means no coreference between sentences
       if all(span.start < sentence1_end for span in doc.spans[cluster]) or all(
-          span.start > sentence1_end for span in doc.spans[cluster]
-      ):
+          span.start > sentence1_end for span in doc.spans[cluster]):
         continue
       else:
         for coreference in doc.spans[cluster]:
