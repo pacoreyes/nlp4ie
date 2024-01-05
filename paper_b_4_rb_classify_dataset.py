@@ -13,7 +13,7 @@ from lib.continuity_checks import (check_lexical_continuity, check_syntactic_con
 
 
 dataset = read_from_google_sheet(spreadsheet_6, "dataset_2")
-# dataset = dataset[:300]
+# dataset = dataset[:30]
 
 nlp_trf = spacy.load("en_core_web_trf")
 
@@ -45,9 +45,9 @@ for datapoint in tqdm(dataset, desc=f"Reclassifying {len(dataset)} datapoints", 
   if syntactic_continuity['syntactic_continuity'] != set():
     continuity.append(syntactic_continuity)
 
-  semantic_continuity = check_semantic_continuity(sent1, sent2)
+  """semantic_continuity = check_semantic_continuity(sent1, sent2)
   if semantic_continuity['semantic_continuity']:
-    continuity.append(semantic_continuity)
+    continuity.append(semantic_continuity)"""
 
   transition_markers_continuity = check_transition_markers_continuity(sent2)
   if sum(m.get('type') == 'continue' for m in transition_markers_continuity['transition_markers_continuity']) >= 2:
