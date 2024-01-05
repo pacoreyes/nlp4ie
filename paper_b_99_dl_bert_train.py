@@ -473,5 +473,4 @@ Hyperparameters:
 - Number of Epochs: 3
 - Weight Decay: 0.001
 - Dropout Rate: 0.1
-
 """

@@ -137,59 +137,56 @@ def check_syntactic_continuity(_sent1, _sent2):
 
 
 def check_semantic_continuity(_sent1, _sent2, similarity_threshold=0.75):
-  """
-  This function checks if two sentences have semantic continuity, which means that they have at least one common
-  named entity or at least one pair of key semantic units (nouns, verbs, adjectives, adverbs) with a semantic
-  similarity above a threshold.
-  :param _sent1:
-  :param _sent2:
-  :param similarity_threshold: float for the cosine similarity threshold
-  :return: dict
-  """
-
   def extract_key_semantic_units(doc):
-    """
-    This function extracts key semantic units from a sentence.
-    :param doc:
-    :return:
-    """
-    # Extract lemmas of key semantic units
-    return [token.lemma_ for token in doc if token.pos_ in ["NOUN", "VERB", "ADJ", "ADV"]]
+    # Extracting noun chunks and individual key tokens as semantic units
+    return [chunk.text for chunk in doc.noun_chunks] + [token.lemma_ for token in doc if
+                                                        token.pos_ in ["NOUN", "VERB", "ADJ", "ADV"]]
+
+  def vectorize_text(text):
+    # Utilizing Spacy's ability to vectorize larger text chunks
+    return nlp(text).vector
 
   def check_common_entities(_doc1, _doc2):
-    # Check for common named entities
-    entities1 = {ent.lemma_ for ent in _doc1.ents}
-    entities2 = {ent.lemma_ for ent in _doc2.ents}
-    common = entities1.intersection(entities2)
-    return common, len(common) > 0
+    entities1 = {ent.text for ent in _doc1.ents}
+    entities2 = {ent.text for ent in _doc2.ents}
+    return entities1.intersection(entities2)
 
   doc1 = nlp(_sent1)
   doc2 = nlp(_sent2)
 
-  # Extract key semantic units: nouns, verbs, adjectives, adverbs
-  key_units1 = extract_key_semantic_units(doc1)
-  key_units2 = extract_key_semantic_units(doc2)
+  key_units1 = sorted(extract_key_semantic_units(doc1), key=len, reverse=True)
+  key_units2 = sorted(extract_key_semantic_units(doc2), key=len, reverse=True)
 
-  # Calculate semantic similarity for key unit pairs
-  similarities_above_threshold = {}
-  for unit1 in key_units1:
-    for unit2 in key_units2:
-      vec1 = nlp.vocab[unit1].vector
-      vec2 = nlp.vocab[unit2].vector
-      if vec1.any() and vec2.any():  # Check if vectors exist
+  # Remove subphrases and overlapping words preferring longer phrases
+  filtered_units1 = []
+  for phrase in key_units1:
+    if not any(phrase != other and other in phrase for other in filtered_units1):
+      filtered_units1.append(phrase)
+  filtered_units2 = []
+  for phrase in key_units2:
+    if not any(phrase != other and other in phrase for other in filtered_units2):
+      filtered_units2.append(phrase)
+
+  common_semantic_units = []
+  for unit1 in filtered_units1:
+    vec1 = vectorize_text(unit1)
+    for unit2 in filtered_units2:
+      vec2 = vectorize_text(unit2)
+      if vec1.any() and vec2.any():  # Ensuring both vectors are non-zero
         similarity = 1 - cosine(vec1, vec2)
         if similarity >= similarity_threshold:
-          similarities_above_threshold[(unit1, unit2)] = similarity
+          # Check for overlapping terms or entities
+          if not (unit1 in unit2 or unit2 in unit1):
+            common_semantic_units.append((unit1, unit2))
 
-  # Named Entity Recognition: Check for common named entities
-  common_entities, entity_continuity = check_common_entities(doc1, doc2)
+  # Get common entities, filter overlapping ones and add them to the list
+  common_entities = check_common_entities(doc1, doc2)
+  for entity in common_entities:
+    if not any(entity in other[0] or entity in other[1] for other in common_semantic_units):
+      common_semantic_units.append((entity, entity))
 
-  # Evaluate continuity based on semantic analysis
-  # _continuity = bool(similarities_above_threshold) or entity_continuity
-
-  # Construct the result with metadata
   return {
-    "semantic_continuity": list(common_entities)
+    "semantic_continuity": common_semantic_units
   }
 
 
