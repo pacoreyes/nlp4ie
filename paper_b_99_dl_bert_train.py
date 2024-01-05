@@ -32,12 +32,12 @@ MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BER
 SEED = 42  # 42, 1234, 2021
 
 # Hyperparameters
-LEARNING_RATE = 1.9e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
+LEARNING_RATE = 1.95e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
 BATCH_SIZE = 16  # 16, 32
 NUM_EPOCHS = 3  # 2, 3, 4, 5
-WEIGHT_DECAY = 0.001  # 0.01 or 0.001
+WEIGHT_DECAY = 0.002  # 0.01 or 0.001
 DROP_OUT_RATE = 0.1  # 0.1 or 0.2
-WARMUP_STEPS = 400  # 0, 100, 1000, 10000
+WARMUP_STEPS = 390  # 0, 100, 1000, 10000
 
 
 def get_device():
@@ -149,7 +149,7 @@ scheduler = get_linear_schedule_with_warmup(optimizer,
 # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
 
 # Initialize the gradient scaler only if the device is a GPU
-use_cuda = device.type != "cpu"
+use_cuda = device.type == "cuda"
 grad_scaler = None
 if use_cuda:
   grad_scaler = GradScaler()
