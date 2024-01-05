@@ -29,7 +29,6 @@ Step 1: Extract continuity features, reclassify, and save to Google Sheets
 #############################################"""
 
 for datapoint in tqdm(dataset, desc=f"Reclassifying {len(dataset)} datapoints", total=len(dataset)):
-
   # Split the text into two sentences
   sentences = datapoint["text"].split(" [SEP] ")
   sent1 = sentences[0]
@@ -51,7 +50,7 @@ for datapoint in tqdm(dataset, desc=f"Reclassifying {len(dataset)} datapoints", 
     continuity.append(semantic_continuity)
 
   transition_markers_continuity = check_transition_markers_continuity(sent2)
-  if any(m.get('type') == 'continue' for m in transition_markers_continuity['transition_markers_continuity']):
+  if sum(m.get('type') == 'continue' for m in transition_markers_continuity['transition_markers_continuity']) >= 2:
     continuity.append(transition_markers_continuity)
   elif all(m.get('type') == 'shift' for m in transition_markers_continuity['transition_markers_continuity']):
     not_continuity.append(transition_markers_continuity)
