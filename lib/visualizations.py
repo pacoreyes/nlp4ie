@@ -6,7 +6,6 @@ Functions to plot visualizations
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from spacy import displacy
-from bs4 import BeautifulSoup
 
 
 def plot_confusion_matrix(y_true, y_pred,
