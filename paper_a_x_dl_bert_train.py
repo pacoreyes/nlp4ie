@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.optim as optim
-from sklearn.metrics import (confusion_matrix, roc_auc_score, matthews_corrcoef,
-                             accuracy_score, precision_recall_fscore_support)
+from sklearn.metrics import (confusion_matrix, roc_auc_score, matthews_corrcoef, accuracy_score,
+                             precision_recall_fscore_support)
 from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
 from torch.cuda.amp import GradScaler, autocast

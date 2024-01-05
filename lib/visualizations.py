@@ -5,6 +5,8 @@ Functions to plot visualizations
 """
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from spacy import displacy
+from bs4 import BeautifulSoup
 
 
 def plot_confusion_matrix(y_true, y_pred,
@@ -51,3 +53,30 @@ def plot_confusion_matrix(y_true, y_pred,
   # Save the plot to a file
   plt.savefig(f"images/{file_name}", format='png', bbox_inches='tight', dpi=300)
   plt.close()
+
+
+def plot_dependency_visualization(sentence, output_path, nlp):
+
+  # Process the sentence using the model
+  doc = nlp(sentence)
+
+  dep_options = {
+    "bg": False,
+    "collapse_phrases": True,
+    "collapse_punct": True,
+    "distance": 175,
+    "add_lemma": True,
+    "fine_grained": True,
+    "offset_x": 100
+  }
+  # Generate dependency parse using displacy
+  svg = displacy.render(doc, style="dep", options=dep_options, jupyter=False)
+
+  # Save the SVG to a file
+  with open(output_path, "w", encoding="utf-8") as file:
+    file.write(svg)
+
+  # Find and print the ROOT of the sentence
+  for token in doc:
+    if token.dep_ == "ROOT":
+      print(f"ROOT: {token.text} ({token.lemma_}) - POS: {token.pos_}")

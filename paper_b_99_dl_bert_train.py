@@ -16,8 +16,8 @@ from tqdm import tqdm
 from transformers import BertTokenizer, BertForSequenceClassification, get_linear_schedule_with_warmup
 
 from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file
+from lib.utils2 import balance_classes_in_dataset
 from lib.visualizations import plot_confusion_matrix
-
 
 # Initialize label map and class names
 LABEL_MAP = {"continue": 0, "not_continue": 1}
@@ -29,15 +29,15 @@ REVERSED_LABEL_MAP = {0: "continue", 1: "not_continue"}
 
 # Initialize constants
 MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BERT model
-SEED = 14  # 42, 1234, 2021
+SEED = 42  # 42, 1234, 2021
 
 # Hyperparameters
-LEARNING_RATE = 2.4e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
+LEARNING_RATE = 1.9e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
 BATCH_SIZE = 16  # 16, 32
 NUM_EPOCHS = 3  # 2, 3, 4, 5
 WEIGHT_DECAY = 0.001  # 0.01 or 0.001
 DROP_OUT_RATE = 0.1  # 0.1 or 0.2
-WARMUP_STEPS = 556  # 0, 100, 1000, 10000
+WARMUP_STEPS = 400  # 0, 100, 1000, 10000
 
 
 def get_device():
@@ -98,24 +98,10 @@ set_seed(SEED)
 # Load and preprocess the dataset
 dataset = load_jsonl_file(data_file)
 
+# Balance dataset
+dataset = balance_classes_in_dataset(dataset, "continue", "not_continue", "label", SEED)
+
 counter = Counter([item['label'] for item in dataset])
-
-continue_class_counter = counter["continue"]
-not_continue_class_counter = counter["not_continue"]
-print("\nClass distribution:")
-print(f"- continue: {continue_class_counter}")
-print(f"- not_continue: {not_continue_class_counter}")
-
-random.shuffle(dataset)
-continue_class = [item for item in dataset if item['label'] == "continue"]
-not_continue_class = [item for item in dataset if item['label'] == "not_continue"]
-random.shuffle(not_continue_class)
-# trim 50% of continue_class
-continue_class = continue_class[:continue_class_counter // 2]
-
-print(f"continue (after trim) : {len(continue_class)}")
-
-dataset = continue_class + not_continue_class
 
 # Load the BERT tokenizer
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
@@ -128,9 +114,9 @@ labels = [LABEL_MAP[label] for label in labels]
 
 # Convert to pandas DataFrame for stratified splitting
 df = pd.DataFrame({
-    "id": [entry["id"] for entry in dataset],  # Include 'id'
-    "text": sentences,
-    "label": labels
+  "id": [entry["id"] for entry in dataset],  # Include 'id'
+  "text": sentences,
+  "label": labels
 })
 
 # Stratified split of the data to obtain the train and the remaining data
@@ -153,7 +139,6 @@ train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE
 val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=BATCH_SIZE)
 test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=BATCH_SIZE)
 
-
 # Optimizer and Scheduler
 optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
 total_steps = len(train_dataloader) * NUM_EPOCHS
@@ -164,7 +149,7 @@ scheduler = get_linear_schedule_with_warmup(optimizer,
 # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
 
 # Initialize the gradient scaler only if the device is a GPU
-use_cuda = device.type == "cuda"
+use_cuda = device.type != "cpu"
 grad_scaler = None
 if use_cuda:
   grad_scaler = GradScaler()
