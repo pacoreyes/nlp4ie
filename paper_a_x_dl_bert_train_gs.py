@@ -43,12 +43,12 @@ DROP_OUT_RATE = 0.1  # 0.1 or 0.2
 
 # Hyperparameters grid
 hyperparameters_grid = {
-  "learning_rate": [1.5e-5, 2e-5, 2.5e-5, 3e-5, 3.5e-5, 4e-5, 4.5e-5, 5e-5],
-  "batch_size": [16],
-  "warmup_steps": [100, 500, 1000],
-  "num_epochs": [3, 4, 5],
+  "learning_rate": [1.5e-5, 2e-5, 2.5e-5, 3e-5, 3.5e-5],
+  "batch_size": [16, 32],
+  "warmup_steps": [100, 600, 1000],
+  "num_epochs": [2, 3, 4],
   "weight_decay": [0, 1e-2, 1e-3],
-  "drop_out_rate": [0.2, 0.3, 0.4, 0.5]
+  "drop_out_rate": [0.1, 0.2]
 }
 
 
@@ -120,6 +120,8 @@ for hyperparameters in hyperparameters_combinations:
 
   # Load and preprocess the dataset
   dataset = load_jsonl_file(data_file)
+
+  #dataset = dataset[:5]
 
   # Set seed for reproducibility
   set_seed(SEED)
@@ -258,13 +260,28 @@ for hyperparameters in hyperparameters_combinations:
 
     # Log metrics with mlflow or print them out
     mlflow.log_metric("val_accuracy", accuracy)
-    mlflow.log_metric("Learning Rate", LEARNING_RATE)
-    mlflow.log_metric("Batch Size", BATCH_SIZE)
-    mlflow.log_metric("Warmup Steps", WARMUP_STEPS)
     mlflow.log_metric("Seed", SEED)
-    mlflow.log_metric("Number of Epochs", NUM_EPOCHS)
-    mlflow.log_metric("Weight Decay", WEIGHT_DECAY)
-    mlflow.log_metric("Dropout Rate", DROP_OUT_RATE)
+
+    # Log the hyperparameters with MLflow
+    mlflow.log_params({
+      "LEARNING_RATE": LEARNING_RATE,
+      "BATCH_SIZE": BATCH_SIZE,
+      "WARMUP_STEPS": WARMUP_STEPS,
+      "NUM_EPOCHS": NUM_EPOCHS,
+      "WEIGHT_DECAY": WEIGHT_DECAY,
+      "DROP_OUT_RATE": DROP_OUT_RATE
+    })
+
+    """
+    # Log the hyperparameters with MLflow 
+    mlflow.log_params("LEARNING_RATE", LEARNING_RATE)
+    mlflow.log_params("BATCH_SIZE", BATCH_SIZE)
+    mlflow.log_params("WARMUP_STEPS", WARMUP_STEPS)
+    mlflow.log_params("NUM_EPOCHS", NUM_EPOCHS)
+    mlflow.log_params("WEIGHT_DECAY", WEIGHT_DECAY)
+    mlflow.log_params("DROP_OUT_RATE", DROP_OUT_RATE)
+    
+    """
 
     print("\nAccuracy:", accuracy)
     print("Training Class-wise metrics:")
@@ -301,11 +318,17 @@ for hyperparameters in hyperparameters_combinations:
         test_predictions.extend(torch.argmax(logits, dim=1).cpu().numpy())  # Move to CPU before conversion
         test_true_labels.extend(label_ids)
 
+    confusion_matrix_filename = (
+      f"confusion_matrix_"
+      f"lr_{LEARNING_RATE}_batch_{BATCH_SIZE}_warmup_{WARMUP_STEPS}_epochs_{NUM_EPOCHS}"
+      f"_wd_{WEIGHT_DECAY}_dropout_{DROP_OUT_RATE}.png"
+    )
+
     plt.figure()
     plot_confusion_matrix(test_true_labels,
                           test_predictions,
                           class_names,
-                          "paper_b_2_dl_bert_model_confusion_matrix.png",
+                          confusion_matrix_filename,
                           "Confusion Matrix for BERT Model",
                           values_fontsize=22
                           )
@@ -371,6 +394,13 @@ for hyperparameters in hyperparameters_combinations:
     # Optionally, you can also log the model
     mlflow.pytorch.log_model(model, "model")
 
+    # Save losses plot with hyperparameter values in the filename
+    losses_plot_filename = (
+      f"images/losses_plot_"
+      f"lr_{LEARNING_RATE}_batch_{BATCH_SIZE}_warmup_{WARMUP_STEPS}_epochs_{NUM_EPOCHS}"
+      f"_wd_{WEIGHT_DECAY}_dropout_{DROP_OUT_RATE}.png"
+    )
+
     # Make visualization for training and validation losses
     plt.figure()
     plt.plot(range(1, NUM_EPOCHS + 1), train_losses, label="Training Loss", color="green")
@@ -378,8 +408,14 @@ for hyperparameters in hyperparameters_combinations:
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend()
-    plt.savefig("images/paper_b_1_dl_bert_model_losses.png")
+    plt.savefig(losses_plot_filename)
     plt.close()
+
+    # Log the image name with MLflow
+    mlflow.log_params({
+      "Confusion_Matrix": confusion_matrix_filename,
+      "Losses_Plot": losses_plot_filename
+    })
 
 # End MLFlow run
 mlflow.end_run()

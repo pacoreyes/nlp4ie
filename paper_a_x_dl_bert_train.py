@@ -28,10 +28,10 @@ MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BER
 SEED = 1234  # 42, 1234, 2021
 
 # Hyperparameters
-LEARNING_RATE = 1.5e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
+LEARNING_RATE = 1.6e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
 BATCH_SIZE = 16  # 16, 32
-WARMUP_STEPS = 600  # 0, 100, 1000, 10000
-NUM_EPOCHS = 3  # 2, 3, 4, 5
+WARMUP_STEPS = 700  # 0, 100, 1000, 10000
+NUM_EPOCHS = 4  # 2, 3, 4, 5
 WEIGHT_DECAY = 1e-3  # 1e-2 or 1e-3
 DROP_OUT_RATE = 0.2  # 0.1 or 0.2
 
@@ -319,4 +319,29 @@ plt.savefig("images/paper_b_1_dl_bert_model_losses.png")
 plt.close()
 
 """
+Model: BERT
+
+- Accuracy: 0.983
+- Precision: 0.983
+- Recall: 0.983
+- F1 Score: 0.983
+- AUC-ROC: 0.995
+- Matthews Correlation Coefficient (MCC): 0.967
+- Confusion Matrix:
+           monologic  dialogic
+monologic        268         4
+dialogic           5       267
+
+monologic: Precision = 0.97, Recall = 0.95, F1 = 0.96
+dialogic: Precision = 0.95, Recall = 0.97, F1 = 0.96
+
+Hyperparameters:
+- Learning Rate: 1.6e-05
+- Batch Size: 16
+- Warmup Steps: 700
+- Number of Epochs: 4
+- Weight Decay: 0.001
+- Dropout Rate: 0.2
+---
+- Seed: 1234
 """
