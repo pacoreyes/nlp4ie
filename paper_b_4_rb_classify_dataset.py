@@ -13,7 +13,7 @@ from lib.continuity_checks import (check_lexical_continuity, check_syntactic_con
 
 
 dataset = read_from_google_sheet(spreadsheet_6, "dataset_2")
-# dataset = dataset[:30]
+# dataset = dataset[:500]
 
 nlp_trf = spacy.load("en_core_web_trf")
 
@@ -38,19 +38,19 @@ for datapoint in tqdm(dataset, desc=f"Reclassifying {len(dataset)} datapoints", 
   not_continuity = []
 
   lexical_continuity = check_lexical_continuity(sent1, sent2)
-  if lexical_continuity['lexical_continuity'] != {}:
+  if lexical_continuity['lexical_continuity']:
     continuity.append(lexical_continuity)
 
   syntactic_continuity = check_syntactic_continuity(sent1, sent2)
-  if syntactic_continuity['syntactic_continuity'] != set():
+  if syntactic_continuity['syntactic_continuity'] != set({}):
     continuity.append(syntactic_continuity)
 
-  """semantic_continuity = check_semantic_continuity(sent1, sent2)
+  semantic_continuity = check_semantic_continuity(sent1, sent2)
   if semantic_continuity['semantic_continuity']:
-    continuity.append(semantic_continuity)"""
+    continuity.append(semantic_continuity)
 
   transition_markers_continuity = check_transition_markers_continuity(sent2)
-  if sum(m.get('type') == 'continue' for m in transition_markers_continuity['transition_markers_continuity']) >= 2:
+  if any(m.get('type') == 'continue' for m in transition_markers_continuity['transition_markers_continuity']):
     continuity.append(transition_markers_continuity)
   elif all(m.get('type') == 'shift' for m in transition_markers_continuity['transition_markers_continuity']):
     not_continuity.append(transition_markers_continuity)
@@ -73,14 +73,15 @@ BEAUTIFY_JSON = False
 new_dataset = []
 for _datapoint in tqdm(dataset, desc=f"Uploading {len(dataset)} datapoints", total=len(dataset)):
   # Remove empty continuity
-  if str(_datapoint["continuity"]) == "[{'transition_markers_continuity': []}]":
+  continuity = str(_datapoint["continuity"])
+  if continuity == "[{'transition_markers_continuity': []}]" or continuity == "[]":
     _datapoint["continuity"] = ""
   else:
     if BEAUTIFY_JSON:
       # Format JSON continuity into a compact representation with smaller indentation
       _datapoint["continuity"] = json.dumps(_datapoint["continuity"], indent=2)
     else:
-      _datapoint["continuity"] = str(_datapoint["continuity"])
+      _datapoint["continuity"] = continuity
 
   # Create new row
   _row = [

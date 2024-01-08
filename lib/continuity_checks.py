@@ -5,10 +5,9 @@ them as "continue" or "not continue" pairs.
 The rules are based on the paper "A Corpus of Sentence-level Discourse Parsing in English News"
 https://aclanthology.org/N03-1030.pdf
 """
-from collections import Counter
 
 import spacy
-from scipy.spatial.distance import cosine
+# from scipy.spatial.distance import cosine
 from spacy.matcher import PhraseMatcher
 
 from lib.lexicons import transition_markers
@@ -80,16 +79,12 @@ def check_lexical_continuity(_sent1, _sent2):
   tokens1 = extract_key_syntactic_units(doc1)
   tokens2 = extract_key_syntactic_units(doc2)
 
-  # Count occurrences of each token
-  counter1 = Counter(tokens1)
-  counter2 = Counter(tokens2)
-
-  # Find common elements and their counts
-  common_elements = counter1 & counter2
+  common_elements = set(tokens1).intersection(tokens2)
+  common_elements = list(common_elements)
 
   # Construct the result with metadata
   return {
-    "lexical_continuity": dict(common_elements)
+    "lexical_continuity": common_elements
   }
 
 
@@ -119,16 +114,11 @@ def check_syntactic_continuity(_sent1, _sent2):
   dependencies1 = extract_dependency_patterns(doc1)
   dependencies2 = extract_dependency_patterns(doc2)
 
-  """print(dependencies1)
-  print("---")
-  print(dependencies2)"""
-
   # Remove dependencies that are in the ignore list
   dependencies1 = {dep for dep in dependencies1 if dep[2] not in ignore_dependencies}
 
   # Find common dependency patterns
   common_dependencies = dependencies1.intersection(dependencies2)
-  # has_common_dependencies = len(common_dependencies) > 0
 
   # Construct the result with metadata
   return {
@@ -136,10 +126,10 @@ def check_syntactic_continuity(_sent1, _sent2):
   }
 
 
-def check_semantic_continuity(_sent1, _sent2, similarity_threshold=0.75):
+def check_semantic_continuity(_sent1, _sent2, similarity_threshold=0.94):
   """
   This function checks if two sentences have semantic continuity, which means that they have at least one common
-  named entity or at least one pair of key semantic units (nouns, verbs, adjectives, adverbs) with a semantic
+  key semantic unit (noun chunk or individual key token) with a cosine
   similarity above a threshold.
   :param _sent1:
   :param _sent2:
@@ -148,48 +138,66 @@ def check_semantic_continuity(_sent1, _sent2, similarity_threshold=0.75):
   """
 
   def extract_key_semantic_units(doc):
-    """
-    This function extracts key semantic units from a sentence.
-    :param doc:
-    :return:
-    """
-    # Extract lemmas of key semantic units
-    return [token.lemma_ for token in doc if token.pos_ in ["NOUN", "VERB", "ADJ", "ADV"]]
+    # Extracting noun chunks and individual key tokens as semantic units
+    return [chunk.text for chunk in doc.noun_chunks if 'PRON' not in [token.pos_ for token in chunk]] + \
+      [token.lemma_ for token in doc if token.pos_ in ["NOUN", "VERB", "ADJ", "ADV"] and token.pos_ != "PRON"]
 
-  def check_common_entities(_doc1, _doc2):
-    # Check for common named entities
-    entities1 = {ent.lemma_ for ent in _doc1.ents}
-    entities2 = {ent.lemma_ for ent in _doc2.ents}
-    common = entities1.intersection(entities2)
-    return common, len(common) > 0
+  """def vectorize_text(text):
+    # Utilizing Spacy's ability to vectorize larger text chunks
+    return nlp(text).vector"""
+
+  def filter_subsets(tuples):
+    # Remove tuples that are subsets of other tuples
+    filtered_tuples = []
+    for tuple1 in tuples:
+      is_subset = False
+      for tuple2 in tuples:
+        if tuple1 != tuple2 and all(any(word1 in word2 for word1 in tuple1) for word2 in tuple2):
+          # If all elements of tuple1 are subsets of elements in tuple2, set the flag to True
+          is_subset = True
+          break
+      if not is_subset:
+        filtered_tuples.append(tuple1)
+    return filtered_tuples
 
   doc1 = nlp(_sent1)
   doc2 = nlp(_sent2)
 
-  # Extract key semantic units: nouns, verbs, adjectives, adverbs
-  key_units1 = extract_key_semantic_units(doc1)
-  key_units2 = extract_key_semantic_units(doc2)
+  key_units1 = sorted(extract_key_semantic_units(doc1), key=len, reverse=True)
+  key_units2 = sorted(extract_key_semantic_units(doc2), key=len, reverse=True)
 
-  # Calculate semantic similarity for key unit pairs
-  similarities_above_threshold = {}
+  # Remove subphrases and overlapping words preferring longer phrases
+  filtered_units1 = []
+  for phrase in key_units1:
+    if not any(phrase != other and other in phrase for other in filtered_units1):
+      filtered_units1.append(phrase)
+  filtered_units2 = []
+  for phrase in key_units2:
+    if not any(phrase != other and other in phrase for other in filtered_units2):
+      filtered_units2.append(phrase)
+
+  common_semantic_units = []
   for unit1 in key_units1:
+    unit1 = nlp(str(unit1).lower())
     for unit2 in key_units2:
-      vec1 = nlp.vocab[unit1].vector
-      vec2 = nlp.vocab[unit2].vector
-      if vec1.any() and vec2.any():  # Check if vectors exist
-        similarity = 1 - cosine(vec1, vec2)
+      unit2 = nlp(str(unit2).lower())
+      if unit1.has_vector and unit2.has_vector:  # Ensuring both units have vectors
+        similarity = unit1.similarity(unit2)
         if similarity >= similarity_threshold:
-          similarities_above_threshold[(unit1, unit2)] = similarity
+          # Check for overlapping terms, ensuring no unit is part of the other
+          if not (unit1.text in unit2.text or unit2.text in unit1.text) and unit1.text != unit2.text:
+            # Convert units to tokens and remove stop words and punctuation
+            tokens1 = [token.text for token in nlp(unit1.text) if not token.is_stop and token.is_alpha]
+            tokens2 = [token.text for token in nlp(unit2.text) if not token.is_stop and token.is_alpha]
+            # Check if the units have any common tokens to avoid very lexically similar units
+            if not bool(set(tokens1).intersection(tokens2)):
+              common_semantic_units.append((unit1.text, unit2.text))
 
-  # Named Entity Recognition: Check for common named entities
-  common_entities, entity_continuity = check_common_entities(doc1, doc2)
+  # Remove tuples that are subsets of other tuples
+  common_semantic_units = filter_subsets(common_semantic_units)
 
-  # Evaluate continuity based on semantic analysis
-  # _continuity = bool(similarities_above_threshold) or entity_continuity
-
-  # Construct the result with metadata
   return {
-    "semantic_continuity": list(common_entities) + list(similarities_above_threshold)
+    "semantic_continuity": common_semantic_units
   }
 
 
@@ -310,6 +318,9 @@ def check_coreference(sent1, sent2):
             }
             cluster_group.append(coref)
 
+        # Skip coreferences with clusters of 2 elements that refer to the same
+        if len(cluster_group) == 2 and cluster_group[0]["coref"] == cluster_group[1]["coref"]:
+          continue
         clusters[f"coreference_group_{cluster_id}"] = cluster_group
         cluster_id += 1
 

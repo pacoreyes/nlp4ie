@@ -7,7 +7,6 @@ from pprint import pprint
 import pandas as pd
 import numpy as np
 from scipy.stats import skew, kurtosis
-from typing import List
 from gspread_dataframe import set_with_dataframe
 
 from lib.utils import load_jsonl_file
@@ -25,7 +24,7 @@ df_monologic = df[df['discourse_type'] == "monologic"]
 df_dialogic = df[df['discourse_type'] == "dialogic"]
 
 
-def calculate_statistics(column: List[int]) -> dict:
+def calculate_statistics(column):
   """Calculate basic statistics for a given column."""
   stats = {
     'mean': np.mean(column),
