@@ -70,6 +70,9 @@ def preprocess(_texts, _tokenizer, _device, max_length=MAX_LENGTH):
   return inputs["input_ids"].to(_device), inputs["attention_mask"].to(_device)
 
 
+# Set seed for reproducibility
+set_seed(SEED)
+
 # Set device to CUDA, MPS, or CPU
 device = get_device()
 print(f"\nUsing device: {str(device).upper()}\n")
@@ -90,12 +93,8 @@ dataset = load_jsonl_file(data_file)
 # Balance dataset
 dataset = balance_classes_in_dataset(dataset, "monologic", "dialogic", "label", SEED)
 
-# Set seed for reproducibility
-set_seed(SEED)
-# torch.use_deterministic_algorithms(True)
-
 # Load the BERT tokenizer
-tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+tokenizer = BertTokenizer.from_pretrained("bert-large-uncased")
 
 sentences = [entry["text"] for entry in dataset]
 labels = [entry["label"] for entry in dataset]

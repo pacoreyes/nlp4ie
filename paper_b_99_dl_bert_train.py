@@ -1,4 +1,5 @@
 import random
+import os
 from collections import Counter
 
 import matplotlib.pyplot as plt
@@ -40,16 +41,6 @@ DROP_OUT_RATE = 0.25  # 0.1 or 0.2
 WARMUP_STEPS = 100  # 0, 100, 1000, 10000
 
 
-def get_device():
-  """Returns the appropriate device available in the system: CUDA, MPS, or CPU"""
-  if torch.backends.mps.is_available():
-    return torch.device("mps")
-  elif torch.cuda.is_available():
-    return torch.device("cuda")
-  else:
-    return torch.device("cpu")
-
-
 def set_seed(seed_value):
   """Set seed for reproducibility."""
   random.seed(seed_value)
@@ -58,6 +49,17 @@ def set_seed(seed_value):
   torch.cuda.manual_seed_all(seed_value)
   torch.backends.cudnn.deterministic = True
   torch.backends.cudnn.benchmark = False
+  os.environ['PYTHONHASHSEED'] = str(seed_value)
+
+
+def get_device():
+  """Returns the appropriate device available in the system: CUDA, MPS, or CPU"""
+  if torch.backends.mps.is_available():
+    return torch.device("mps")
+  elif torch.cuda.is_available():
+    return torch.device("cuda")
+  else:
+    return torch.device("cpu")
 
 
 def create_dataset(_df):
@@ -76,6 +78,9 @@ def preprocess(_texts, _tokenizer, _device, max_length=MAX_LENGTH):
   return inputs["input_ids"].to(_device), inputs["attention_mask"].to(_device)
 
 
+# Set seed for reproducibility
+set_seed(SEED)
+
 # Set device to CUDA, MPS, or CPU
 device = get_device()
 print(f"\nUsing device: {str(device).upper()}\n")
@@ -90,10 +95,6 @@ model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
                                                       hidden_dropout_prob=DROP_OUT_RATE)
 # Move model to device
 model.to(device)
-
-# Set seed for reproducibility
-set_seed(SEED)
-# torch.use_deterministic_algorithms(True)
 
 # Load and preprocess the dataset
 dataset = load_jsonl_file(data_file)
