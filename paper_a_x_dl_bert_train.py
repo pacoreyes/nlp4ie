@@ -78,7 +78,7 @@ print(f"\nUsing device: {str(device).upper()}\n")
 data_file = "shared_data/dataset_1_4_sliced.jsonl"
 
 # Load BERT model
-model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
+model = BertForSequenceClassification.from_pretrained("bert-large-uncased",
                                                       num_labels=len(LABEL_MAP),
                                                       hidden_dropout_prob=DROP_OUT_RATE)
 # Move model to device
@@ -315,7 +315,7 @@ plt.plot(range(1, NUM_EPOCHS + 1), val_losses, label="Validation Loss", color="b
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.legend()
-plt.savefig("images/paper_b_1_dl_bert_model_losses.png")
+plt.savefig("images/paper_a_1_dl_bert_model_losses.png")
 plt.close()
 
 """

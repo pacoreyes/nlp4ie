@@ -25,3 +25,4 @@ setfit==1.0.1
 sentence-transformers==2.2.2
 datasets==2.15.0
 openai==0.10.0
+# pyarrow==5.0.0
