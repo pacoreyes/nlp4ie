@@ -1,5 +1,6 @@
 import torch
 from transformers import BertTokenizer, BertForSequenceClassification
+import torch.nn.functional as F
 
 # Replace this with your model's name or path if you used a different model
 MODEL_NAME = 'bert-base-uncased'
@@ -27,7 +28,9 @@ def predict(text):
     inputs = preprocess(text)
     with torch.no_grad():
         outputs = model(**inputs)
-    return outputs.logits
+    logits = outputs.logits
+    probabilities = F.softmax(logits, dim=1)
+    return probabilities
 
 
 # Example
