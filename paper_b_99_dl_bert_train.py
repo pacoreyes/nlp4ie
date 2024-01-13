@@ -32,12 +32,12 @@ MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BER
 SEED = 42  # 42, 1234, 2021
 
 # Hyperparameters
-LEARNING_RATE = 1.9e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
+LEARNING_RATE = 2.15e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
 BATCH_SIZE = 16  # 16, 32
 NUM_EPOCHS = 3  # 2, 3, 4, 5
-WEIGHT_DECAY = 0.080  # 0.01 or 0.001
+WEIGHT_DECAY = 0.001  # 0.01 or 0.001
 DROP_OUT_RATE = 0.1  # 0.1 or 0.2
-WARMUP_STEPS = 420  # 0, 100, 1000, 10000
+WARMUP_STEPS = 400  # 0, 100, 1000, 10000
 
 
 def get_device():
@@ -474,28 +474,55 @@ Hyperparameters:
 - Weight Decay: 0.001
 - Dropout Rate: 0.1
 
-------------- Jan 7, 2023 balanced classes -------------
+------------- Jan 5, 2024 with 50% "continue" class -------------
 
 Model: BERT
 
-- Accuracy: 0.825
-- Precision: 0.825
-- Recall: 0.825
-- F1 Score: 0.825
-- AUC-ROC: 0.909
-- Matthews Correlation Coefficient (MCC): 0.650
+- Accuracy: 0.826
+- Precision: 0.826
+- Recall: 0.826
+- F1 Score: 0.826
+- AUC-ROC: 0.893
+- Matthews Correlation Coefficient (MCC): 0.652
 - Confusion Matrix:
               continue  not_continue
-continue           147            27
-not_continue        34           140
+continue           138            29
+not_continue        29           137
 
-continue: Precision = 0.75, Recall = 0.82, F1 = 0.78
-not_continue: Precision = 0.80, Recall = 0.72, F1 = 0.76
+continue: Precision = 0.80, Recall = 0.56, F1 = 0.66
+not_continue: Precision = 0.66, Recall = 0.86, F1 = 0.75
 
 Hyperparameters:
-- Learning Rate: 1.9e-05
+- Learning Rate: 1.95e-05
 - Batch Size: 16
-- Warmup Steps: 420
+- Warmup Steps: 390
+- Number of Epochs: 3
+- Weight Decay: 0.002
+- Dropout Rate: 0.1
+---
+- Seed: 42
+
+
+Model: BERT
+
+- Accuracy: 0.846
+- Precision: 0.849
+- Recall: 0.846
+- F1 Score: 0.845
+- AUC-ROC: 0.903
+- Matthews Correlation Coefficient (MCC): 0.694
+- Confusion Matrix:
+              continue  not_continue
+continue           174            21
+not_continue        39           155
+
+continue: Precision = 0.80, Recall = 0.66, F1 = 0.72
+not_continue: Precision = 0.71, Recall = 0.83, F1 = 0.77
+
+Hyperparameters:
+- Learning Rate: 2.15e-05
+- Batch Size: 16
+- Warmup Steps: 400
 - Number of Epochs: 3
 - Weight Decay: 0.001
 - Dropout Rate: 0.1
