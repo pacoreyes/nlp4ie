@@ -24,7 +24,7 @@ random.seed(SEED)
 # Shuffle dataset
 random.shuffle(dataset)
 
-# nlp_trf = spacy.load("en_core_web_trf")
+nlp = spacy.load("en_core_web_lg")
 
 # Initialize path and name of output JSON-L file
 output_file = "shared_data/dataset_2_6_pair_sentences_gs.jsonl"
@@ -50,7 +50,13 @@ for idx, datapoint in enumerate(tqdm(dataset, desc=f"Generating Gold Standard Da
   if row["label"]:
     new_dataset.append(row)
 
-counter_classes = Counter([datapoint["label"] for datapoint in new_dataset])
+dataset = []
+
+# Anonymize dataset
+for idx, datapoint in enumerate(tqdm(new_dataset, desc=f"Anonymizing dataset")):
+  datapoint["text"] = custom_anonymize_text(datapoint["text"], nlp)
+
+counter_classes = Counter([datapoint["label"] for datapoint in dataset])
 
 save_jsonl_file(new_dataset, output_file)
 

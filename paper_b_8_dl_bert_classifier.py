@@ -1,6 +1,7 @@
 import torch
 from transformers import BertTokenizer, BertForSequenceClassification
 import torch.nn.functional as F
+from lib.utils import load_txt_file
 
 # Replace this with your model's name or path if you used a different model
 MODEL_NAME = 'bert-base-uncased'
@@ -17,6 +18,9 @@ model.eval()
 # 4. Preprocess Input Data
 tokenizer = BertTokenizer.from_pretrained(MODEL_NAME)
 
+file_path = 'new_text.txt'
+with open(file_path, 'r') as file:
+    lines = file.readlines()
 
 def preprocess(text):
     inputs = tokenizer(text, padding=True, truncation=True, max_length=512, return_tensors="pt")
@@ -32,8 +36,13 @@ def predict(text):
     probabilities = F.softmax(logits, dim=1)
     return probabilities
 
+for line in lines:
+    data_point = line.strip()
+    result = predict(data_point)
+    print(result)
 
-# Example
-text = "Your input text here"
+''''# Example
+text = "Tokiyo is reach. [SEP] Yes it is reach"
 prediction = predict(text)
 print(prediction)
+'''

@@ -34,7 +34,7 @@ SEED = 1234  # 42, 1234, 2021
 # Hyperparameters
 LEARNING_RATE = 2e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
 BATCH_SIZE = 16  # 16, 32
-NUM_EPOCHS = 3  # 2, 3, 4, 5
+NUM_EPOCHS = 1  # 2, 3, 4, 5
 WEIGHT_DECAY = 0.001  # 0.01 or 0.001
 DROP_OUT_RATE = 0.25  # 0.1 or 0.2
 WARMUP_STEPS = 100  # 0, 100, 1000, 10000
@@ -139,6 +139,9 @@ class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
 train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE)
 val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=BATCH_SIZE)
 test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=BATCH_SIZE)
+
+print(test_df)
+
 
 # Optimizer and Scheduler
 optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
