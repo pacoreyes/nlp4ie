@@ -243,7 +243,7 @@ all_probabilities = []
 softmax = torch.nn.Softmax(dim=1)
 
 # Initialize JSONL file for misclassified examples
-misclassified_output_file = "shared_data/dataset_2_6_misclassified_examples.jsonl"
+misclassified_output_file = "shared_data/dataset_2_7_misclassified_examples.jsonl"
 empty_json_file(misclassified_output_file)
 
 for i, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
