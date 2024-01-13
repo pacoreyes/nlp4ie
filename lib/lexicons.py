@@ -170,7 +170,6 @@ transition_markers = {
       "in comparison",
       "by contrast",
       "yet",
-      "but then",
       "as opposed to",
       "contrarily",
       "differently",

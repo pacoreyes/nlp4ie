@@ -95,7 +95,7 @@ for _datapoint in tqdm(dataset, desc=f"Uploading {len(dataset)} datapoints", tot
   ]
   new_dataset.append(_row)
 
-write_to_google_sheet(spreadsheet_6, "dataset_22_reclass", new_dataset)
+write_to_google_sheet(spreadsheet_6, "dataset_2_reclass_", new_dataset)
 
 print(f"Uploaded dataset: {len(new_dataset)} datapoints")
 

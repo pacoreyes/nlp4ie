@@ -319,7 +319,7 @@ def check_coreference(sent1, sent2):
             cluster_group.append(coref)
 
         # Skip coreferences with clusters of 2 elements that refer to the same
-        if len(cluster_group) == 2 and cluster_group[0]["coref"] == cluster_group[1]["coref"]:
+        if len(cluster_group) == 2 and cluster_group[0]["coref"].lower() == cluster_group[1]["coref"].lower():
           continue
         clusters[f"coreference_group_{cluster_id}"] = cluster_group
         cluster_id += 1
