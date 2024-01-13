@@ -29,15 +29,15 @@ REVERSED_LABEL_MAP = {0: "continue", 1: "not_continue"}
 
 # Initialize constants
 MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BERT model
-SEED = 42  # 42, 1234, 2021
+SEED = 1234  # 42, 1234, 2021
 
 # Hyperparameters
-LEARNING_RATE = 2.15e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
+LEARNING_RATE = 2e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
 BATCH_SIZE = 16  # 16, 32
 NUM_EPOCHS = 3  # 2, 3, 4, 5
 WEIGHT_DECAY = 0.001  # 0.01 or 0.001
-DROP_OUT_RATE = 0.1  # 0.1 or 0.2
-WARMUP_STEPS = 400  # 0, 100, 1000, 10000
+DROP_OUT_RATE = 0.25  # 0.1 or 0.2
+WARMUP_STEPS = 100  # 0, 100, 1000, 10000
 
 
 def get_device():
@@ -82,7 +82,7 @@ print(f"\nUsing device: {str(device).upper()}\n")
 
 # Load dataset
 # data_file = "shared_data/dataset_2_2_pair_sentences_anonym.jsonl"
-data_file = "shared_data/dataset_2_5_pair_sentences_reclass.jsonl"
+data_file = "shared_data/dataset_2_6_pair_sentences_gs.jsonl"
 
 # Load BERT model
 model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
@@ -116,7 +116,8 @@ labels = [LABEL_MAP[label] for label in labels]
 df = pd.DataFrame({
   "id": [entry["id"] for entry in dataset],  # Include 'id'
   "text": sentences,
-  "label": labels
+  "label": labels,
+  "metadata": [entry["metadata"] for entry in dataset]  # Include 'metadata'
 })
 
 # Stratified split of the data to obtain the train and the remaining data
@@ -278,6 +279,7 @@ for i, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
           "true_label": REVERSED_LABEL_MAP[true],
           "predicted_label": REVERSED_LABEL_MAP[pred],
           "text": dataset[i * BATCH_SIZE + j]["text"],
+          "metadata": dataset[i * BATCH_SIZE + j]["metadata"]
         }, misclassified_output_file)
 
 plt.figure()
@@ -339,6 +341,9 @@ print(f"- Dropout Rate: {DROP_OUT_RATE}")
 print("---")
 print(f"- Seed: {SEED}")
 print()
+
+# Save the model in the 'models' directory
+torch.save(model.state_dict(), 'models/2/paper_b_99_dl_bert_train.pth')
 
 # Make visualization for training and validation losses
 plt.figure()
