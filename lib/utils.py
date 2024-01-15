@@ -5,16 +5,20 @@ from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 
 
 # Save data as JSON file
-def save_json_file(data, filename):
+def save_json_file(data, filename, indent=0):
   """
   Save data as a JSON file.
 
   Args:
       data: The data to be saved.
       filename (str): The filename of the JSON file.
+      indent (int, optional): The indentation level. Defaults to 4.
   """
   with open(filename, 'w') as json_file:
-    json.dump(data, json_file, default=str)
+    if indent > 0:
+      json.dump(data, json_file, indent=indent, default=str)
+    else:
+      json.dump(data, json_file, default=str)
 
 
 # Open the JSON file

@@ -7,7 +7,6 @@ from google.cloud.exceptions import GoogleCloudError
 
 from db import firestore_db, spreadsheet_4
 from lib.issues_matcher import match_issues
-from lib.linguistic_utils import check_minimal_meaning
 from lib.text_utils import preprocess_text
 from lib.utils import read_from_google_sheet, load_txt_file
 
@@ -94,7 +93,7 @@ def check_if_issue_is_main_topic(_issue, _text):
   is_main_topic = False
   if issue_dependencies and main_verb:
     for dep, pos in zip(issue_dependencies, issue_positions):
-      if dep in {"nsubj", "nsubjpass", "dobj", "pobj", "attr", "advcl"} and abs(pos - main_verb.i) <= 5:
+      if dep in {"nsubj", "nsubjpass", "dobj", "pobj", "attr", "advcl"} and abs(pos - main_verb.i) <= 7:
         is_main_topic = True
         break
 
@@ -200,25 +199,30 @@ for _id in all_ids:
     if not sent[0].isupper():
       continue
 
+    # Check if sentence is a question
+    if sent.endswith("?"):
+      continue
+
     # check if sentence has any undesirable leading pattern
     if check_undesirable_leading_patterns(sent):
       continue
 
     # check if sentence has any political issue
-    _matches = match_issues(sent)
-    _matches = list({_match[4] for _match in _matches})
-    if not _matches:
+    matches = match_issues(sent)
+    matches = list({_match[4] for _match in matches})
+    if not matches:
       continue
 
+    # Extract semantic frames from sentence
     extracted_frames = extract_frames(sent)
     if extracted_frames is None:
       continue
 
     # Check if any matched issue is the main topic of the sentence
     issue_is_main_topic = None
-    for match in _matches:
-      valid_sentence = check_if_issue_is_main_topic(match, sent)
-      if valid_sentence:
+    for match in matches:
+      found_issue_as_main_topic = check_if_issue_is_main_topic(match, sent)
+      if found_issue_as_main_topic:
         issue_is_main_topic = match
         break
     if not issue_is_main_topic:
@@ -244,7 +248,9 @@ for _id in all_ids:
         for denotation in denotations:
           for d in denotation:
             # Check if any matched political issue is the argument of the frame
-            if check_if_issue_is_in_string(issue_is_main_topic, d["text"]) and d["role"] == "ARGUMENT":
+            found_issue_as_argument = check_if_issue_is_in_string(issue_is_main_topic, d["text"])
+            if ((found_issue_as_argument and d["role"] == "TARGET") or
+                (found_issue_as_argument and d["role"] == "ARGUMENT")):
               sentences_counter += 1
               sentence_id = id_with_zeros(sentences_counter)
 
