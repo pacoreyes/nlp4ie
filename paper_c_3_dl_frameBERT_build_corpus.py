@@ -1,10 +1,9 @@
 import functools
 import time
 
-from google.cloud.exceptions import GoogleCloudError
 import requests
 import spacy
-from afinn import Afinn
+from google.cloud.exceptions import GoogleCloudError
 
 from db import firestore_db, spreadsheet_4
 from lib.issues_matcher import match_issues
@@ -37,16 +36,13 @@ all_ids = speeches_ids
 rule_frames = read_from_google_sheet(spreadsheet_4, "stance_frames_rules")
 
 # Initialize IP address and port
-IP = "141.43.202.175"
-# IP = "localhost"
-PORT = "5000"
+# IP = "141.43.202.175"
+IP = "localhost"
+PORT = "5001"
 
 # Create a list of dicts with the first 2 columns of the dataframe, "name" and "object"
 rule_frames = [{k: v.split(",") if k == "object" else v for k, v in frame.items()} for frame in rule_frames]
 rule_frame_names = set(frame["name"] for frame in rule_frames)
-
-# Initialize Afinn
-afinn = Afinn()
 
 
 @functools.lru_cache(maxsize=None)
@@ -64,22 +60,12 @@ def preprocess_sentence_cached(sentence):
                          with_final_cleanup=True)
 
 
-def process_sentence(sent):
-  _doc = nlp_trf(sent)
-  minimal_meaning = check_minimal_meaning(_doc)
-  _matches = match_issues(sent)
-  _matches = list({_match[4] for _match in _matches})
-  # print(sent)
-  # pprint(_matches)
+def check_undesirable_leading_patterns(sent):
   leading_patterns = [
     "Q."
   ]
   # check if the sentence start with any leading pattern
-  has_leading_pattern = any(sent.startswith(pattern) for pattern in leading_patterns)
-
-  if sent[0].isupper() and minimal_meaning and _matches and not has_leading_pattern:
-    return _doc, _matches
-  return None, None
+  return any(sent.startswith(pattern) for pattern in leading_patterns)
 
 
 def check_if_issue_is_main_topic(_issue, _text):
@@ -138,23 +124,9 @@ def check_if_issue_is_in_string(issue, string):
       return True
 
 
-def assess_stance(sentence, target_word):
-  _doc = nlp(sentence)
-  sentiment_score = 0
-
-  for token in _doc:
-    # Check for words related to the target word
-    if token.head.lemma_ == target_word or token.lemma_ == target_word:
-      # Add sentiment score of related words
-      sentiment_score += afinn.score(token.text)
-
-  # Determine stance
-  if sentiment_score > 0:
-    return "support"
-  elif sentiment_score < 0:
-    return "oppose"
-  else:
-    return "neutral"
+def get_num_of_clauses(_doc):
+  # Count the number of clauses (roughly estimated by the number of verbs)
+  return sum(1 for token in _doc if token.pos_ == "VERB")
 
 
 def store_record_in_firestore(record, collection_ref, max_retries=5, wait_time=5):
@@ -204,21 +176,38 @@ for _id in all_ids:
   # Convert paragraphs into sentences
   # sentences = [sent.text for para in paragraphs for sent in nlp_trf(para).sents]
   # Filter empty sentences
-  sentences = [(sent, process_sentence(sent)) for sent in sentences
-               if any(token.is_alpha for token in nlp_trf(sent))]
+  """sentences = [(sent, process_sentence(sent)) for sent in sentences
+               if any(token.is_alpha for token in nlp_trf(sent))]"""
 
   print("#####################################################")
   print(rec['id'])
   print("#####################################################\n")
 
-  for sent, (doc, matches) in sentences:
+  for sent in sentences:
 
-    """_doc = nlp(sent)
+    doc = nlp(sent)
+
+    # check if sentence so short or so complex
+    num_clauses = get_num_of_clauses(doc)
+    if num_clauses > 3 or num_clauses == 0:
+      continue
+
     # check if sentence length is longer than 30 tokens
-    if len(_doc) <= 40:
-      continue"""
+    if len(doc) >= 42:
+      continue
 
-    if doc is None:
+    # Check if sentence begins with a capital letter
+    if not sent[0].isupper():
+      continue
+
+    # check if sentence has any undesirable leading pattern
+    if check_undesirable_leading_patterns(sent):
+      continue
+
+    # check if sentence has any political issue
+    _matches = match_issues(sent)
+    _matches = list({_match[4] for _match in _matches})
+    if not _matches:
       continue
 
     extracted_frames = extract_frames(sent)
@@ -226,14 +215,13 @@ for _id in all_ids:
       continue
 
     # Check if any matched issue is the main topic of the sentence
-    found_issue = None
-    for match in matches:
+    issue_is_main_topic = None
+    for match in _matches:
       valid_sentence = check_if_issue_is_main_topic(match, sent)
       if valid_sentence:
-        found_issue = match
+        issue_is_main_topic = match
         break
-
-    if not found_issue:
+    if not issue_is_main_topic:
       continue
 
     # Extract frame names from extracted frames
@@ -256,17 +244,13 @@ for _id in all_ids:
         for denotation in denotations:
           for d in denotation:
             # Check if any matched political issue is the argument of the frame
-            if check_if_issue_is_in_string(found_issue, d["text"]) and d["role"] == "ARGUMENT":
-
+            if check_if_issue_is_in_string(issue_is_main_topic, d["text"]) and d["role"] == "ARGUMENT":
               sentences_counter += 1
               sentence_id = id_with_zeros(sentences_counter)
 
-              stance = assess_stance(sent, found_issue)
-
-              print("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+              print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
               print(f"> Sentence:", sent)
-              print(f"> Issue:", found_issue)
-              print(f"> Stance:", stance)
+              print(f"> Issue:", issue_is_main_topic)
               print()
               # print(d)
               sentence_record = {
@@ -276,10 +260,9 @@ for _id in all_ids:
                 # "matched_frames": matched_frame_names,
                 "semantic_frames": extracted_frame_names,
                 "frameNet_data": extracted_frames,
-                "issue": found_issue,
+                "issue": issue_is_main_topic,
                 "source_url": rec["url"],
                 "source": rec["id"],
-                "stance": stance,
               }
               store_record_in_firestore(sentence_record, dataset3_col_ref)
               sentence_is_about_issue = True
