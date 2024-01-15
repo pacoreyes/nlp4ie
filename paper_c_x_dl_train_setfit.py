@@ -74,6 +74,9 @@ def compute_metrics(y_pred, y_test):
   }
 
 
+# Set seed for reproducibility
+set_seed(SEED)
+
 # Set device to CUDA, MPS, or CPU
 device = get_device()
 print(f"\nUsing device: {str(device).upper()}\n")
@@ -84,9 +87,6 @@ model = SetFitModel.from_pretrained(model_id)
 
 # Move model to device
 model.to(device)
-
-# Set seed for reproducibility
-set_seed(SEED)
 
 # Load dataset
 dataset_route = "shared_data/dataset_3_2_anonym.jsonl"

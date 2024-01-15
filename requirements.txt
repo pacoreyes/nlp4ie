@@ -1,5 +1,6 @@
+requests==2.31.0
 pandas==2.1.4
-transformers==4.36.2
+transformers==4.25.1
 numpy==1.26.2
 torch==2.1.2
 scikit-learn==1.3.2
@@ -26,3 +27,4 @@ sentence-transformers==2.2.2
 datasets==2.15.0
 openai==0.10.0
 # pyarrow==5.0.0
+afinn==0.1

@@ -1,4 +1,5 @@
 import random
+import os
 from collections import Counter
 
 import matplotlib.pyplot as plt
@@ -29,25 +30,15 @@ REVERSED_LABEL_MAP = {0: "continue", 1: "not_continue"}
 
 # Initialize constants
 MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BERT model
-SEED = 42  # 42, 1234, 2021
+SEED = 1234  # 42, 1234, 2021
 
 # Hyperparameters
-LEARNING_RATE = 2.15e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
+LEARNING_RATE = 2e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
 BATCH_SIZE = 16  # 16, 32
-NUM_EPOCHS = 3  # 2, 3, 4, 5
+NUM_EPOCHS = 1  # 2, 3, 4, 5
 WEIGHT_DECAY = 0.001  # 0.01 or 0.001
-DROP_OUT_RATE = 0.1  # 0.1 or 0.2
-WARMUP_STEPS = 400  # 0, 100, 1000, 10000
-
-
-def get_device():
-  """Returns the appropriate device available in the system: CUDA, MPS, or CPU"""
-  if torch.backends.mps.is_available():
-    return torch.device("mps")
-  elif torch.cuda.is_available():
-    return torch.device("cuda")
-  else:
-    return torch.device("cpu")
+DROP_OUT_RATE = 0.25  # 0.1 or 0.2
+WARMUP_STEPS = 100  # 0, 100, 1000, 10000
 
 
 def set_seed(seed_value):
@@ -58,6 +49,17 @@ def set_seed(seed_value):
   torch.cuda.manual_seed_all(seed_value)
   torch.backends.cudnn.deterministic = True
   torch.backends.cudnn.benchmark = False
+  os.environ['PYTHONHASHSEED'] = str(seed_value)
+
+
+def get_device():
+  """Returns the appropriate device available in the system: CUDA, MPS, or CPU"""
+  if torch.backends.mps.is_available():
+    return torch.device("mps")
+  elif torch.cuda.is_available():
+    return torch.device("cuda")
+  else:
+    return torch.device("cpu")
 
 
 def create_dataset(_df):
@@ -76,13 +78,16 @@ def preprocess(_texts, _tokenizer, _device, max_length=MAX_LENGTH):
   return inputs["input_ids"].to(_device), inputs["attention_mask"].to(_device)
 
 
+# Set seed for reproducibility
+set_seed(SEED)
+
 # Set device to CUDA, MPS, or CPU
 device = get_device()
 print(f"\nUsing device: {str(device).upper()}\n")
 
 # Load dataset
 # data_file = "shared_data/dataset_2_2_pair_sentences_anonym.jsonl"
-data_file = "shared_data/dataset_2_5_pair_sentences_reclass.jsonl"
+data_file = "shared_data/dataset_2_6_pair_sentences_gs.jsonl"
 
 # Load BERT model
 model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
@@ -90,10 +95,6 @@ model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
                                                       hidden_dropout_prob=DROP_OUT_RATE)
 # Move model to device
 model.to(device)
-
-# Set seed for reproducibility
-set_seed(SEED)
-# torch.use_deterministic_algorithms(True)
 
 # Load and preprocess the dataset
 dataset = load_jsonl_file(data_file)
@@ -116,7 +117,8 @@ labels = [LABEL_MAP[label] for label in labels]
 df = pd.DataFrame({
   "id": [entry["id"] for entry in dataset],  # Include 'id'
   "text": sentences,
-  "label": labels
+  "label": labels,
+  "metadata": [entry["metadata"] for entry in dataset]  # Include 'metadata'
 })
 
 # Stratified split of the data to obtain the train and the remaining data
@@ -138,6 +140,9 @@ class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
 train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE)
 val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=BATCH_SIZE)
 test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=BATCH_SIZE)
+
+print(test_df)
+
 
 # Optimizer and Scheduler
 optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
@@ -243,7 +248,7 @@ all_probabilities = []
 softmax = torch.nn.Softmax(dim=1)
 
 # Initialize JSONL file for misclassified examples
-misclassified_output_file = "shared_data/dataset_2_6_misclassified_examples.jsonl"
+misclassified_output_file = "shared_data/dataset_2_7_misclassified_examples.jsonl"
 empty_json_file(misclassified_output_file)
 
 for i, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
@@ -278,6 +283,7 @@ for i, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
           "true_label": REVERSED_LABEL_MAP[true],
           "predicted_label": REVERSED_LABEL_MAP[pred],
           "text": dataset[i * BATCH_SIZE + j]["text"],
+          "metadata": dataset[i * BATCH_SIZE + j]["metadata"]
         }, misclassified_output_file)
 
 plt.figure()
@@ -339,6 +345,9 @@ print(f"- Dropout Rate: {DROP_OUT_RATE}")
 print("---")
 print(f"- Seed: {SEED}")
 print()
+
+# Save the model in the 'models' directory
+torch.save(model.state_dict(), 'models/2/paper_b_99_dl_bert_train.pth')
 
 # Make visualization for training and validation losses
 plt.figure()
