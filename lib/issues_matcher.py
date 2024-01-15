@@ -6,8 +6,8 @@ from spacy.tokens import Span
 from spacy.matcher import Matcher, PhraseMatcher
 import pandas as pd
 
-from db import spreadsheet_1, spreadsheet_4
-from utils import read_from_google_sheet
+from db import spreadsheet_1
+from lib.utils import read_from_google_sheet
 
 
 @Language.component("custom_ner")
