@@ -37,9 +37,9 @@ all_ids = speeches_ids
 rule_frames = read_from_google_sheet(spreadsheet_4, "stance_frames_rules")
 
 # Initialize IP address and port
-# IP = "141.43.202.175"
-IP = "localhost"
-PORT = "5001"
+IP = "141.43.202.175"
+# IP = "localhost"
+PORT = "5000"
 
 # Create a list of dicts with the first 2 columns of the dataframe, "name" and "object"
 rule_frames = [{k: v.split(",") if k == "object" else v for k, v in frame.items()} for frame in rule_frames]
