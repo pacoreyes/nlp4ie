@@ -1,7 +1,10 @@
 import functools
+import time
 
+from google.cloud.exceptions import GoogleCloudError
 import requests
 import spacy
+from afinn import Afinn
 
 from db import firestore_db, spreadsheet_4
 from lib.issues_matcher import match_issues
@@ -22,12 +25,13 @@ nlp = spacy.load("en_core_web_sm")
 nlp_trf = spacy.load("en_core_web_trf")
 
 text_col_ref = firestore_db.collection("texts2")
-dataset3_col_ref = firestore_db.collection("dataset3")
+dataset3_col_ref = firestore_db.collection("_dataset3")
 
 speeches_ids = load_txt_file("shared_data/text_ids_speeches.txt")
 interviews_ids = load_txt_file("shared_data/text_ids_interviews.txt")
 
-all_ids = speeches_ids + interviews_ids
+# all_ids = speeches_ids + interviews_ids
+all_ids = speeches_ids
 
 # Get column name from tab "column_name" in the spreadsheet
 rule_frames = read_from_google_sheet(spreadsheet_4, "stance_frames_rules")
@@ -40,6 +44,9 @@ PORT = "5001"
 # Create a list of dicts with the first 2 columns of the dataframe, "name" and "object"
 rule_frames = [{k: v.split(",") if k == "object" else v for k, v in frame.items()} for frame in rule_frames]
 rule_frame_names = set(frame["name"] for frame in rule_frames)
+
+# Initialize Afinn
+afinn = Afinn()
 
 
 @functools.lru_cache(maxsize=None)
@@ -75,6 +82,39 @@ def process_sentence(sent):
   return None, None
 
 
+def check_if_issue_is_main_topic(_issue, _text):
+  _doc = nlp_trf(_text)
+
+  # Initialize variables for analysis
+  issue_dependencies = []
+  issue_positions = []
+
+  # Prepare the lemma of the issue
+  issue_lemma = nlp_trf(_issue)[0].lemma_
+
+  # Iterate through tokens to find all occurrences of the issue based on lemma
+  for token in _doc:
+    if token.lemma_ == issue_lemma:
+      issue_dependencies.append(token.dep_)
+      issue_positions.append(token.i)
+
+  main_verb = None
+  for token in doc:
+    if token.dep_ == "ROOT":
+      main_verb = token
+      break
+
+  # Determine if the issue is a main topic
+  is_main_topic = False
+  if issue_dependencies and main_verb:
+    for dep, pos in zip(issue_dependencies, issue_positions):
+      if dep in {"nsubj", "nsubjpass", "dobj", "pobj", "attr", "advcl"} and abs(pos - main_verb.i) <= 5:
+        is_main_topic = True
+        break
+
+  return is_main_topic
+
+
 def extract_frames(_sentence):
   try:
     response = requests.get(f"http://{IP}:{PORT}/api/extract_frames/{_sentence}").json()
@@ -90,6 +130,60 @@ def id_with_zeros(number):
   return str(number).zfill(10)
 
 
+def check_if_issue_is_in_string(issue, string):
+  # compare the lemma of issue with every token in the string
+  issue_lemma = nlp_trf(issue)[0].lemma_
+  for token in nlp_trf(string):
+    if token.lemma_ == issue_lemma:
+      return True
+
+
+def assess_stance(sentence, target_word):
+  _doc = nlp(sentence)
+  sentiment_score = 0
+
+  for token in _doc:
+    # Check for words related to the target word
+    if token.head.lemma_ == target_word or token.lemma_ == target_word:
+      # Add sentiment score of related words
+      sentiment_score += afinn.score(token.text)
+
+  # Determine stance
+  if sentiment_score > 0:
+    return "support"
+  elif sentiment_score < 0:
+    return "oppose"
+  else:
+    return "neutral"
+
+
+def store_record_in_firestore(record, collection_ref, max_retries=5, wait_time=5):
+  """
+  Tries to store a record in Firestore, with retries on failure.
+
+  Args:
+  - record: The record to store.
+  - collection_ref: Reference to the Firestore collection.
+  - max_retries: Maximum number of retries.
+  - wait_time: Wait time between retries in seconds.
+  """
+  retries = 0
+  while retries < max_retries:
+    try:
+      # Attempt to store the record
+      document_id = record["id"]
+      collection_ref.document(document_id).set(record)
+      print(f"Record stored successfully: {document_id}")
+      return  # Exit the function on success
+    except GoogleCloudError as e:
+      print(f"Error storing record: {e}. Retrying... ({retries + 1}/{max_retries})")
+      time.sleep(wait_time)  # Wait before retrying
+      retries += 1
+
+  print("Failed to store record after multiple retries.")
+
+
+# Initialize counter
 sentences_counter = 0
 print()
 
@@ -118,13 +212,28 @@ for _id in all_ids:
   print("#####################################################\n")
 
   for sent, (doc, matches) in sentences:
+
+    """_doc = nlp(sent)
+    # check if sentence length is longer than 30 tokens
+    if len(_doc) <= 40:
+      continue"""
+
     if doc is None:
       continue
 
-    # print(f"> Sentence", sent)
-
     extracted_frames = extract_frames(sent)
     if extracted_frames is None:
+      continue
+
+    # Check if any matched issue is the main topic of the sentence
+    found_issue = None
+    for match in matches:
+      valid_sentence = check_if_issue_is_main_topic(match, sent)
+      if valid_sentence:
+        found_issue = match
+        break
+
+    if not found_issue:
       continue
 
     # Extract frame names from extracted frames
@@ -132,66 +241,54 @@ for _id in all_ids:
 
     # Find common frame names
     matched_frame_names = rule_frame_names.intersection(extracted_frame_names)
+
     # Extract denotations
     denotations = [frame["denotations"] for frame in extracted_frames]
 
     if matched_frame_names:
+
+      sentence_is_about_issue = False
+
       for frame in extracted_frames:
         frame_name = frame["frame"]
-        if frame_name in matched_frame_names:
-          frame_objects = next((f["object"] for f in rule_frames if f["name"] == frame_name), None)
+        frame_objects = next((f["object"] for f in rule_frames if f["name"] == frame_name), None)
 
-          for denotation in denotations:
-            for d in denotation:
+        for denotation in denotations:
+          for d in denotation:
+            # Check if any matched political issue is the argument of the frame
+            if check_if_issue_is_in_string(found_issue, d["text"]) and d["role"] == "ARGUMENT":
 
-              if d["obj"] in frame_objects:
-                # check if any match is in the denotation span text (denotation["text"])
+              sentences_counter += 1
+              sentence_id = id_with_zeros(sentences_counter)
 
-                sentences_counter += 1
-                sentence_id = id_with_zeros(sentences_counter)
+              stance = assess_stance(sent, found_issue)
 
-                print(f"> Sentence {sentence_id}:", sent)
-                # print("  Matches:", matches)
-                print(f"  frame: {frame_name} / match: {matches}")
-                print()
+              print("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+              print(f"> Sentence:", sent)
+              print(f"> Issue:", found_issue)
+              print(f"> Stance:", stance)
+              print()
+              # print(d)
+              sentence_record = {
+                "id": sentence_id,
+                "text": sent,
+                "main_frame": frame_name,
+                # "matched_frames": matched_frame_names,
+                "semantic_frames": extracted_frame_names,
+                "frameNet_data": extracted_frames,
+                "issue": found_issue,
+                "source_url": rec["url"],
+                "source": rec["id"],
+                "stance": stance,
+              }
+              store_record_in_firestore(sentence_record, dataset3_col_ref)
+              sentence_is_about_issue = True
+              break
 
-                dataset3_col_ref.document(sentence_id).set({
-                  "id": sentence_id,
-                  "text": sent,
-                  "main_frame": frame_name,
-                  "matched_frames": matched_frame_names,
-                  "semantic_frames": extracted_frame_names,
-                  "frameNet_data": extracted_frames,
-                  "issues": matches,
-                  "source_url": rec["url"],
-                  "source": rec["id"],
-                })
+          if sentence_is_about_issue:
+            break
 
-                break
+        if sentence_is_about_issue:
           break
 
-"""
-
-                text_doc = nlp(d["text"])
-                for token in text_doc:
-
-                    if token.text == match:
-                      sentences_counter += 1
-                      sentence_id = id_with_zeros(sentences_counter)
-
-                      print(f"> Sentence {sentence_id}:", sent)
-                      # print("  Matches:", matches)
-                      print(f"  frame: {frame_name} / match: {match}")
-                      print()
-
-                      dataset3_col_ref.document(sentence_id).set({
-                        "id": sentence_id,
-                        "text": sent,
-                        "frame": frame_name,
-                        "frameNetData": extracted_frames,
-                        "issues": matches,
-                        "url": rec["url"],
-                        "source": rec["id"],
-                      })
-                      break
-"""
+      sentence_is_about_issue = False
