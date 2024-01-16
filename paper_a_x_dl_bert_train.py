@@ -273,8 +273,9 @@ for batch in tqdm(test_dataloader, desc="Testing"):
       if pred != true:
         # Access the correct id using the batch index and the offset within the batch
         #example_id = test_ids[i * BATCH_SIZE + j]
+        example_id = dataset[i * BATCH_SIZE + j]["metadata"]["text_id"]
         save_row_to_jsonl_file({
-          #"id": example_id,  # corrected to use the separate ids list
+          "id": example_id,  # corrected to use the separate ids list
           "true_label": REVERSED_LABEL_MAP[true],
           "predicted_label": REVERSED_LABEL_MAP[pred],
           "text": dataset[i * BATCH_SIZE + j]["text"],
