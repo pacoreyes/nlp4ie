@@ -121,9 +121,16 @@ train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.
 val_df, test_df = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5, random_state=SEED)
 
 # Create TensorDatasets
+train_dataset = create_dataset(train_df)
+val_dataset = create_dataset(val_df)
+test_dataset = create_dataset(test_df)
+
+'''
+# Create TensorDatasets
 train_dataset, train_ids = create_dataset(train_df)
 val_dataset, val_ids = create_dataset(val_df)
 test_dataset, test_ids = create_dataset(test_df)
+'''
 
 # Calculate class weights
 class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(labels), y=labels)
@@ -265,9 +272,9 @@ for batch in tqdm(test_dataloader, desc="Testing"):
     for j, (pred, true) in enumerate(zip(predictions, label_ids)):  # no _id in zip
       if pred != true:
         # Access the correct id using the batch index and the offset within the batch
-        example_id = test_ids[i * BATCH_SIZE + j]
+        #example_id = test_ids[i * BATCH_SIZE + j]
         save_row_to_jsonl_file({
-          "id": example_id,  # corrected to use the separate ids list
+          #"id": example_id,  # corrected to use the separate ids list
           "true_label": REVERSED_LABEL_MAP[true],
           "predicted_label": REVERSED_LABEL_MAP[pred],
           "text": dataset[i * BATCH_SIZE + j]["text"],
