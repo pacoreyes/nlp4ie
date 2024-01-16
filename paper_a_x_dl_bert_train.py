@@ -29,7 +29,7 @@ SEED = 1234  # 42, 1234, 2021
 
 # Hyperparameters
 LEARNING_RATE = 1.6e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
-BATCH_SIZE = 16  # 16, 32
+BATCH_SIZE = 8  # 16, 32
 WARMUP_STEPS = 700  # 0, 100, 1000, 10000
 NUM_EPOCHS = 4  # 2, 3, 4, 5
 WEIGHT_DECAY = 1e-3  # 1e-2 or 1e-3
