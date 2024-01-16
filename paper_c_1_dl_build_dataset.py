@@ -12,8 +12,6 @@ from lib.utils import load_txt_file, read_from_google_sheet
 
 # from pprint import pprint
 
-# from pprint import pprint
-
 """
 This script extracts sentences with support/oppose stances from texts to create a corpus of sentences.
 The script uses a fine-tuned BERT model to predict the the support/oppose stance of a sentence.
@@ -260,8 +258,10 @@ for _id in all_ids:
             for d in denotation:
               # Check if any matched political issue is the argument of the frame
               found_issue_as_argument = check_if_issue_is_in_string(issue_is_main_topic, d["text"])
-              if ((found_issue_as_argument and d["role"] == "TARGET") or
-                  (found_issue_as_argument and d["role"] == "ARGUMENT")):
+              found_issue_is_target = found_issue_as_argument and d["role"] == "TARGET"
+              found_issue_is_argument = found_issue_as_argument and d["role"] == "ARGUMENT"
+
+              if found_issue_is_target or found_issue_is_argument:
                 sentences_counter += 1
                 sentence_id = id_with_zeros(sentences_counter)
 
