@@ -35,9 +35,9 @@ all_ids = speeches_ids
 rule_frames = read_from_google_sheet(spreadsheet_4, "stance_frames_rules")
 
 # Initialize IP address and port
-# IP = "141.43.202.175"
-IP = "localhost"
-PORT = "5001"
+IP = "141.43.202.175"
+# IP = "localhost"
+PORT = "5000"
 
 # Create a list of dicts with the first 2 columns of the dataframe, "name" and "object"
 rule_frames = [{k: v.split(",") if k == "object" else v for k, v in frame.items()} for frame in rule_frames]
@@ -144,10 +144,10 @@ def store_record_in_firestore(record, collection_ref, max_retries=5, wait_time=5
       # Attempt to store the record
       document_id = record["id"]
       collection_ref.document(document_id).set(record)
-      print(f"Record stored successfully: {document_id}")
+      print(f"Record stored successfully: {document_id}\n")
       return  # Exit the function on success
     except GoogleCloudError as e:
-      print(f"Error storing record: {e}. Retrying... ({retries + 1}/{max_retries})")
+      print(f"Error storing record: {e}. Retrying... ({retries + 1}/{max_retries})\n")
       time.sleep(wait_time)  # Wait before retrying
       retries += 1
 
@@ -192,7 +192,7 @@ for _id in all_ids:
       continue
 
     # check if sentence length is longer than 30 tokens
-    if len(doc) >= 42:
+    if len(doc) >= 46:
       continue
 
     # Check if sentence begins with a capital letter
@@ -257,7 +257,7 @@ for _id in all_ids:
               print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
               print(f"> Sentence:", sent)
               print(f"> Issue:", issue_is_main_topic)
-              print()
+              # print()
               # print(d)
               sentence_record = {
                 "id": sentence_id,
