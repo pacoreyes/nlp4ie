@@ -188,11 +188,11 @@ for _id in all_ids:
 
     # check if sentence so short or so complex
     num_clauses = get_num_of_clauses(doc)
-    if num_clauses > 3 or num_clauses == 0:
+    if num_clauses > 4 or num_clauses == 0:
       continue
 
     # check if sentence length is longer than 30 tokens
-    if len(doc) >= 46:
+    if len(doc) > 50:
       continue
 
     # Check if sentence begins with a capital letter
