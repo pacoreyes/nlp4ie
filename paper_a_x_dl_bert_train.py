@@ -116,7 +116,7 @@ train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.
 val_df, test_df = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5, random_state=SEED)
 
 # Create TensorDatasets
-train_dataset, train_ids  = create_dataset(train_df)
+train_dataset = create_dataset(train_df)
 val_dataset, val_ids = create_dataset(val_df)
 test_dataset, test_ids = create_dataset(test_df)
 
@@ -233,7 +233,7 @@ all_probabilities = []
 softmax = torch.nn.Softmax(dim=1)
 
 # Initialize JSONL file for misclassified examples
-misclassified_output_file = "shared_data/paper_a_x_dl_bert_train_misclassified_examples.jsonl"
+misclassified_output_file = "shared_data/dataset_1_4_sliced__misclassified_examples.jsonl"
 empty_json_file(misclassified_output_file)
 
 for batch in tqdm(test_dataloader, desc="Testing"):
