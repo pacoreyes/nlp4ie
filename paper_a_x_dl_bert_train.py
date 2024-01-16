@@ -266,6 +266,7 @@ for batch in tqdm(test_dataloader, desc="Testing"):
           "true_label": REVERSED_LABEL_MAP[true],
           "predicted_label": REVERSED_LABEL_MAP[pred],
           "text": dataset[i * BATCH_SIZE + j]["text"],
+          "metadata": dataset[i * BATCH_SIZE + j]["metadata"]
         }, misclassified_output_file)
 
 plt.figure()
