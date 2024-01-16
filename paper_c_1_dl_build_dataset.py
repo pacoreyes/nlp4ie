@@ -1,16 +1,14 @@
 import functools
 import time
 
-from google.cloud.exceptions import GoogleCloudError
 import requests
 import spacy
-from afinn import Afinn
+from google.cloud.exceptions import GoogleCloudError
 
 from db import firestore_db, spreadsheet_4
 from lib.issues_matcher import match_issues
-from lib.linguistic_utils import check_minimal_meaning
 from lib.text_utils import preprocess_text
-from lib.utils import read_from_google_sheet, load_txt_file
+from lib.utils import load_txt_file, read_from_google_sheet
 
 # from pprint import pprint
 
@@ -25,7 +23,7 @@ nlp = spacy.load("en_core_web_sm")
 nlp_trf = spacy.load("en_core_web_trf")
 
 text_col_ref = firestore_db.collection("texts2")
-dataset3_col_ref = firestore_db.collection("_dataset3")
+sentences_col_ref = firestore_db.collection("sentences")
 
 speeches_ids = load_txt_file("shared_data/text_ids_speeches.txt")
 interviews_ids = load_txt_file("shared_data/text_ids_interviews.txt")
@@ -35,18 +33,14 @@ all_ids = speeches_ids
 
 # Get column name from tab "column_name" in the spreadsheet
 rule_frames = read_from_google_sheet(spreadsheet_4, "stance_frames_rules")
-
-# Initialize IP address and port
-# IP = "141.43.202.175"
-IP = "localhost"
-PORT = "5001"
-
 # Create a list of dicts with the first 2 columns of the dataframe, "name" and "object"
 rule_frames = [{k: v.split(",") if k == "object" else v for k, v in frame.items()} for frame in rule_frames]
 rule_frame_names = set(frame["name"] for frame in rule_frames)
 
-# Initialize Afinn
-afinn = Afinn()
+# define IP address and port
+IP = "141.43.202.175"
+# IP = "localhost"
+PORT = "5000"
 
 
 @functools.lru_cache(maxsize=None)
@@ -64,22 +58,12 @@ def preprocess_sentence_cached(sentence):
                          with_final_cleanup=True)
 
 
-def process_sentence(sent):
-  _doc = nlp_trf(sent)
-  minimal_meaning = check_minimal_meaning(_doc)
-  _matches = match_issues(sent)
-  _matches = list({_match[4] for _match in _matches})
-  # print(sent)
-  # pprint(_matches)
+def check_undesirable_leading_patterns(sent):
   leading_patterns = [
     "Q."
   ]
   # check if the sentence start with any leading pattern
-  has_leading_pattern = any(sent.startswith(pattern) for pattern in leading_patterns)
-
-  if sent[0].isupper() and minimal_meaning and _matches and not has_leading_pattern:
-    return _doc, _matches
-  return None, None
+  return any(sent.startswith(pattern) for pattern in leading_patterns)
 
 
 def check_if_issue_is_main_topic(_issue, _text):
@@ -108,21 +92,11 @@ def check_if_issue_is_main_topic(_issue, _text):
   is_main_topic = False
   if issue_dependencies and main_verb:
     for dep, pos in zip(issue_dependencies, issue_positions):
-      if dep in {"nsubj", "nsubjpass", "dobj", "pobj", "attr", "advcl"} and abs(pos - main_verb.i) <= 5:
+      if dep in {"nsubj", "nsubjpass", "dobj", "pobj", "attr", "advcl"} and abs(pos - main_verb.i) <= 7:
         is_main_topic = True
         break
 
   return is_main_topic
-
-
-def extract_frames(_sentence):
-  try:
-    response = requests.get(f"http://{IP}:{PORT}/api/extract_frames/{_sentence}").json()
-    _extracted_frames = response["frames"]["textae"]
-    return _extracted_frames
-  except requests.RequestException:
-    print("Network error...")
-    return None
 
 
 # Fill ID number with zeros
@@ -138,23 +112,19 @@ def check_if_issue_is_in_string(issue, string):
       return True
 
 
-def assess_stance(sentence, target_word):
-  _doc = nlp(sentence)
-  sentiment_score = 0
+def get_num_of_clauses(_doc):
+  # Count the number of clauses (roughly estimated by the number of verbs)
+  return sum(1 for token in _doc if token.pos_ == "VERB")
 
-  for token in _doc:
-    # Check for words related to the target word
-    if token.head.lemma_ == target_word or token.lemma_ == target_word:
-      # Add sentiment score of related words
-      sentiment_score += afinn.score(token.text)
 
-  # Determine stance
-  if sentiment_score > 0:
-    return "support"
-  elif sentiment_score < 0:
-    return "oppose"
-  else:
-    return "neutral"
+def extract_frames(_sentence):
+  try:
+    response = requests.get(f"http://{IP}:{PORT}/api/extract_frames/{_sentence}").json()
+    _extracted_frames = response["frames"]["textae"]
+    return _extracted_frames
+  except requests.RequestException:
+    print("Network error...")
+    return None
 
 
 def store_record_in_firestore(record, collection_ref, max_retries=5, wait_time=5):
@@ -173,10 +143,10 @@ def store_record_in_firestore(record, collection_ref, max_retries=5, wait_time=5
       # Attempt to store the record
       document_id = record["id"]
       collection_ref.document(document_id).set(record)
-      print(f"Record stored successfully: {document_id}")
+      print(f"Record stored successfully: {document_id}\n")
       return  # Exit the function on success
     except GoogleCloudError as e:
-      print(f"Error storing record: {e}. Retrying... ({retries + 1}/{max_retries})")
+      print(f"Error storing record: {e}. Retrying... ({retries + 1}/{max_retries})\n")
       time.sleep(wait_time)  # Wait before retrying
       retries += 1
 
@@ -201,94 +171,107 @@ for _id in all_ids:
 
   # Preprocess each paragraph
   sentences = [preprocess_sentence_cached(sent) for sent in text]
-  # Convert paragraphs into sentences
-  # sentences = [sent.text for para in paragraphs for sent in nlp_trf(para).sents]
-  # Filter empty sentences
-  sentences = [(sent, process_sentence(sent)) for sent in sentences
-               if any(token.is_alpha for token in nlp_trf(sent))]
 
   print("#####################################################")
   print(rec['id'])
   print("#####################################################\n")
 
-  for sent, (doc, matches) in sentences:
+  for sent in sentences:
 
-    """_doc = nlp(sent)
-    # check if sentence length is longer than 30 tokens
-    if len(_doc) <= 40:
-      continue"""
+    doc = nlp(sent)
 
-    if doc is None:
+    # check if sentence so short or so complex
+    num_clauses = get_num_of_clauses(doc)
+    if num_clauses > 3 or num_clauses == 0:
       continue
 
-    extracted_frames = extract_frames(sent)
-    if extracted_frames is None:
+    # check if sentence length is longer than 30 tokens
+    if len(doc) >= 46:
+      continue
+
+    # Check if sentence begins with a capital letter
+    if not sent[0].isupper():
+      continue
+
+    # Check if sentence is a question
+    if sent.endswith("?"):
+      continue
+
+    # check if sentence has any undesirable leading pattern
+    if check_undesirable_leading_patterns(sent):
+      continue
+
+    # check if sentence has any political issue
+    matches = match_issues(sent)
+    matches = list({_match[4] for _match in matches})
+    if not matches:
       continue
 
     # Check if any matched issue is the main topic of the sentence
-    found_issue = None
+    issue_is_main_topic = None
     for match in matches:
-      valid_sentence = check_if_issue_is_main_topic(match, sent)
-      if valid_sentence:
-        found_issue = match
+      found_issue_as_main_topic = check_if_issue_is_main_topic(match, sent)
+      if found_issue_as_main_topic:
+        issue_is_main_topic = match
         break
-
-    if not found_issue:
+    if not issue_is_main_topic:
       continue
 
-    # Extract frame names from extracted frames
-    extracted_frame_names = {frame["frame"] for frame in extracted_frames}
+    # Extract semantic frames from sentence
+    extracted_frames = extract_frames(sent)
+    if extracted_frames:
 
-    # Find common frame names
-    matched_frame_names = rule_frame_names.intersection(extracted_frame_names)
+      # Extract frame names from extracted frames
+      extracted_frame_names = {frame["frame"] for frame in extracted_frames}
 
-    # Extract denotations
-    denotations = [frame["denotations"] for frame in extracted_frames]
+      # Find common frame names
+      matched_frame_names = rule_frame_names.intersection(extracted_frame_names)
 
-    if matched_frame_names:
+      # Extract denotations
+      denotations = [frame["denotations"] for frame in extracted_frames]
 
-      sentence_is_about_issue = False
+      if matched_frame_names:
 
-      for frame in extracted_frames:
-        frame_name = frame["frame"]
-        frame_objects = next((f["object"] for f in rule_frames if f["name"] == frame_name), None)
+        sentence_is_about_issue = False
 
-        for denotation in denotations:
-          for d in denotation:
-            # Check if any matched political issue is the argument of the frame
-            if check_if_issue_is_in_string(found_issue, d["text"]) and d["role"] == "ARGUMENT":
+        for frame in extracted_frames:
+          frame_name = frame["frame"]
+          frame_objects = next((f["object"] for f in rule_frames if f["name"] == frame_name), None)
 
-              sentences_counter += 1
-              sentence_id = id_with_zeros(sentences_counter)
+          for denotation in denotations:
+            for d in denotation:
+              # Check if any matched political issue is the argument of the frame
+              found_issue_as_argument = check_if_issue_is_in_string(issue_is_main_topic, d["text"])
+              found_issue_is_target = found_issue_as_argument and d["role"] == "TARGET"
+              found_issue_is_argument = found_issue_as_argument and d["role"] == "ARGUMENT"
 
-              stance = assess_stance(sent, found_issue)
+              if found_issue_is_target or found_issue_is_argument:
+                sentences_counter += 1
+                sentence_id = id_with_zeros(sentences_counter)
 
-              print("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-              print(f"> Sentence:", sent)
-              print(f"> Issue:", found_issue)
-              print(f"> Stance:", stance)
-              print()
-              # print(d)
-              sentence_record = {
-                "id": sentence_id,
-                "text": sent,
-                "main_frame": frame_name,
-                # "matched_frames": matched_frame_names,
-                "semantic_frames": extracted_frame_names,
-                "frameNet_data": extracted_frames,
-                "issue": found_issue,
-                "source_url": rec["url"],
-                "source": rec["id"],
-                "stance": stance,
-              }
-              store_record_in_firestore(sentence_record, dataset3_col_ref)
-              sentence_is_about_issue = True
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                print(f"> Sentence:", sent)
+                print(f"> Issue:", issue_is_main_topic)
+                # print()
+                # print(d)
+                sentence_record = {
+                  "id": sentence_id,
+                  "text": sent,
+                  "main_frame": frame_name,
+                  "semantic_frames": extracted_frame_names,
+                  "frameNet_data": extracted_frames,
+                  "issue": issue_is_main_topic,
+                  "source_url": rec["url"],
+                  "source": rec["id"],
+                }
+                store_record_in_firestore(sentence_record, sentences_col_ref)
+                sentence_is_about_issue = True
+                break
+
+            if sentence_is_about_issue:
               break
 
           if sentence_is_about_issue:
             break
 
-        if sentence_is_about_issue:
-          break
-
-      sentence_is_about_issue = False
+        sentence_is_about_issue = False
