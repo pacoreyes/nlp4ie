@@ -221,22 +221,6 @@ for _id in all_ids:
     extracted_frames = extract_frames(sent)
     if extracted_frames:
 
-      """# Save sentence
-      sentences_counter += 1
-      sentence_id = id_with_zeros(sentences_counter)
-  
-      print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-      print(f"> Sentence:", sent)
-      print(f"> Issue:", issue_is_main_topic)
-      sentence_record = {
-        "id": sentence_id,
-        "text": sent,
-        "issue": issue_is_main_topic,
-        "source_url": rec["url"],
-        "source": rec["id"],
-      }
-      store_record_in_firestore(sentence_record, sentences_col_ref)"""
-
       # Extract frame names from extracted frames
       extracted_frame_names = {frame["frame"] for frame in extracted_frames}
 
