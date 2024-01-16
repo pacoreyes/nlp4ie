@@ -1,5 +1,5 @@
 import random
-from collections import Counter
+# from collections import Counter
 # from pprint import pprint
 
 import matplotlib.pyplot as plt
@@ -11,17 +11,18 @@ from setfit import SetFitModel, Trainer, TrainingArguments
 from sklearn.manifold import TSNE
 from sklearn.metrics import (precision_recall_fscore_support,
                              accuracy_score, roc_auc_score, matthews_corrcoef, confusion_matrix)
-from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import label_binarize
+# from sklearn.model_selection import train_test_split
 from transformers import TrainerCallback
 
 from lib.utils import load_jsonl_file
 
 # Initialize label map and class names
-LABEL_MAP = {"support": 0, "oppose": 1}
+LABEL_MAP = {"support": 0, "oppose": 1, "neutral": 2}
 class_names = list(LABEL_MAP.keys())
 
 # Reversed Label Map
-REVERSED_LABEL_MAP = {0: "support", 1: "oppose"}
+REVERSED_LABEL_MAP = {0: "support", 1: "oppose", 2: "neutral"}
 
 # Initialize constants
 SEED = 42
@@ -55,11 +56,9 @@ def set_seed(seed_value):
 
 
 def compute_metrics(y_pred, y_test):
-  """print(f"\nPredictions: {y_pred}")
-  print(f"Labels: {y_test}\n")"""
   accuracy = accuracy_score(y_test, y_pred)
-  precision, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred, average='binary')
-  auc = roc_auc_score(y_test, y_pred)
+  precision, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred, average='micro')
+  # auc = roc_auc_score(y_test, y_pred, multi_class='ovo')
   mcc = matthews_corrcoef(y_test, y_pred)
   cm = confusion_matrix(y_test, y_pred)
 
@@ -68,7 +67,7 @@ def compute_metrics(y_pred, y_test):
     'precision': precision,
     'recall': recall,
     'f1': f1,
-    'auc': auc,
+    # 'auc': auc,
     'mcc': mcc,
     'confusion_matrix': cm
   }
@@ -81,55 +80,68 @@ set_seed(SEED)
 device = get_device()
 print(f"\nUsing device: {str(device).upper()}\n")
 
-model_id = "sentence-transformers/all-mpnet-base-v2"
-# model_id = "BAAI/bge-small-en-v1.5"
-model = SetFitModel.from_pretrained(model_id)
+# model_id = "sentence-transformers/all-mpnet-base-v2"
+model_id = "BAAI/bge-small-en-v1.5"
+model = SetFitModel.from_pretrained(
+  model_id,
+  # multi_target_strategy="multi-output",
+)
 
 # Move model to device
 model.to(device)
 
-# Load dataset
-dataset_route = "shared_data/dataset_3_2_anonym.jsonl"
-dataset = load_jsonl_file(dataset_route)
+# Load datasets
+dataset_training_route = "shared_data/dataset_3_4_training_anonym.jsonl"
+dataset_validation_route = "shared_data/dataset_3_5_validation_anonym.jsonl"
+dataset_test_route = "shared_data/dataset_3_6_test_anonym.jsonl"
+dataset_training = load_jsonl_file(dataset_training_route)
+dataset_validation = load_jsonl_file(dataset_validation_route)
+dataset_test = load_jsonl_file(dataset_test_route)
 
 # Reverse label map from string to integer
-dataset = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text"]} for datapoint in dataset]
+dataset_training = [{"label": LABEL_MAP[datapoint["completion"]], "text": datapoint["prompt"]}
+                    for datapoint in dataset_training]
+dataset_validation = [{"label": LABEL_MAP[datapoint["completion"]], "text": datapoint["prompt"]}
+                      for datapoint in dataset_validation]
+dataset_test = [{"label": LABEL_MAP[datapoint["completion"]], "text": datapoint["prompt"]}
+                for datapoint in dataset_test]
 
 # Count and print class distribution
-counter = Counter([item['label'] for item in dataset])
+# counter = Counter([item['label'] for item in dataset])
 print("\nClass distribution:")
-print(f"- support: {counter[0]}")
-print(f"- oppose: {counter[1]}")
+print(f"- support: {len(dataset_training)}")
+print(f"- oppose: {len(dataset_validation)}")
+print(f"- neutral: {len(dataset_test)}")
 
 # sentences = [entry["text"] for entry in dataset]
-labels = [entry["label"] for entry in dataset]
+# labels = [entry["label"] for entry in dataset]
 
-# First split: 80% training, 20% temporary test
+"""# First split: 80% training, 20% temporary test
 train_data, temp_test_data, train_labels, temp_test_labels = train_test_split(
   dataset, labels, test_size=0.2, random_state=SEED, stratify=labels)
 
 # Second split of the temporary test data into validation and test sets (each 10% of the original)
 validation_data, test_data, validation_labels, test_labels = train_test_split(
   temp_test_data, temp_test_labels, test_size=0.5, random_state=SEED, stratify=temp_test_labels)
-
+"""
 # pprint(test_data)
 
-num_support_test = len([item for item in test_data if item["label"] == 0])
-num_oppose_test = len([item for item in test_data if item["label"] == 1])
+num_support_test = len([item for item in dataset_test if item["label"] == 0])
+num_oppose_test = len([item for item in dataset_test if item["label"] == 1])
 print(f"\nTest set class distribution:")
 print(f"- support: {num_support_test}")
 print(f"- oppose: {num_oppose_test}")
 
 # Convert training data into a Dataset object
-train_columns = {key: [dic[key] for dic in train_data] for key in train_data[0]}
+train_columns = {key: [dic[key] for dic in dataset_training] for key in dataset_training[0]}
 train_dataset = Dataset.from_dict(train_columns)
 
 # Convert validation data into a Dataset object
-val_columns = {key: [dic[key] for dic in validation_data] for key in validation_data[0]}
+val_columns = {key: [dic[key] for dic in dataset_validation] for key in dataset_validation[0]}
 validation_dataset = Dataset.from_dict(val_columns)
 
 # Convert test data into Dataset object
-test_columns = {key: [dic[key] for dic in test_data] for key in test_data[0]}
+test_columns = {key: [dic[key] for dic in dataset_test] for key in dataset_test[0]}
 test_dataset = Dataset.from_dict(test_columns)
 
 # print(len(train_dataset))
@@ -220,7 +232,7 @@ print(f"- Accuracy: {metrics['accuracy']:.3f}")
 print(f"- Precision: {np.mean(metrics['precision']):.3f}")
 print(f"- Recall: {np.mean(metrics['recall']):.3f}")
 print(f"- F1 Score: {np.mean(metrics['f1']):.3f}")
-print(f"- AUC-ROC: {metrics['auc']:.3f}")
+# print(f"- AUC-ROC: {metrics['auc']:.3f}")
 print(f"- Matthews Correlation Coefficient (MCC): {metrics['mcc']:.3f}")
 print(f"- Confusion Matrix:")
 print(df_cm)
@@ -233,7 +245,7 @@ plt.plot(range(1, NUM_EPOCHS + 1), loss_plot_callback.eval_losses, label="Valida
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.legend()
-plt.savefig("images/losses.png")
+plt.savefig("images/paper_c_losses.png")
 plt.close()
 
 print()
@@ -249,25 +261,29 @@ print()
 
 
 """
-Model: SetFit (sentence-transformers/all-mpnet-base-v2)
+------------- Jan 16, 24 -------------
 
-- Accuracy: 1.000
-- Precision: 1.000
-- Recall: 1.000
-- F1 Score: 1.000
-- AUC-ROC: 1.000
-- Matthews Correlation Coefficient (MCC): 1.000
+Model: SetFit (BAAI/bge-small-en-v1.5)
+
+- Accuracy: 0.944
+- Precision: 0.944
+- Recall: 0.944
+- F1 Score: 0.944
+- Matthews Correlation Coefficient (MCC): 0.921
 - Confusion Matrix:
-         support  oppose
-support        5       0
-oppose         0       6
+         support  oppose  neutral
+support        6       0        0
+oppose         0       5        1
+neutral        0       0        6
+
 
 Hyperparameters:
-- Body Learning Rate: 5e-06
-- Head Learning Rate: 0.002
-- Batch Size: 16
+- Body Learning Rate: 1e-06
+- Head Learning Rate: 0.005
+- Batch Size: 32
 - Number of Epochs: 3
 - L2 Weight: 0.01
 ---
-- Seed: 46
+- Seed: 42
+
 """

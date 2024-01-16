@@ -18,7 +18,7 @@ def set_seed(seed_value):
   torch.backends.cudnn.benchmark = False
 
 
-def remove_duplicated_datapoints(dataset):
+def remove_duplicated_datapoints(dataset, verbose=False):
   unique_texts = set()
   processed_dataset = []
   
@@ -26,6 +26,9 @@ def remove_duplicated_datapoints(dataset):
     if item['text'] not in unique_texts:
       unique_texts.add(item['text'])
       processed_dataset.append(item)
+    else:
+      if verbose:
+        print(f"Duplicate found: {item['id']}")
   
   print(
     f"Dataset after duplicate removal: {len(dataset) - len(processed_dataset)}  = {len(processed_dataset)}\n")
