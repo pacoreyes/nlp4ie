@@ -85,7 +85,7 @@ print(f"\nUsing device: {str(device).upper()}\n")
 data_file = "shared_data/dataset_1_4_sliced.jsonl"
 
 # Load BERT model
-model = BertForSequenceClassification.from_pretrained("bert-large-uncased",
+model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
                                                       num_labels=len(LABEL_MAP),
                                                       hidden_dropout_prob=DROP_OUT_RATE)
 # Move model to device
@@ -98,7 +98,7 @@ dataset = load_jsonl_file(data_file)
 dataset = balance_classes_in_dataset(dataset, "monologic", "dialogic", "label", SEED)
 
 # Load the BERT tokenizer
-tokenizer = BertTokenizer.from_pretrained("bert-large-uncased")
+tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
 sentences = [entry["text"] for entry in dataset]
 labels = [entry["label"] for entry in dataset]
@@ -107,7 +107,12 @@ labels = [entry["label"] for entry in dataset]
 labels = [LABEL_MAP[label] for label in labels]
 
 # Convert to pandas DataFrame for stratified splitting
-df = pd.DataFrame({"text": sentences, "label": labels})
+df = pd.DataFrame({
+  "id": [entry["id"] for entry in dataset],  # Include 'id'
+  "text": sentences,
+  "label": labels,
+  "metadata": [entry["metadata"] for entry in dataset]  # Include 'metadata'
+})
 
 # Stratified split of the data to obtain the train and the remaining data
 train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.2, random_state=SEED)
@@ -116,7 +121,7 @@ train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.
 val_df, test_df = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5, random_state=SEED)
 
 # Create TensorDatasets
-train_dataset = create_dataset(train_df)
+train_dataset, train_ids = create_dataset(train_df)
 val_dataset, val_ids = create_dataset(val_df)
 test_dataset, test_ids = create_dataset(test_df)
 
