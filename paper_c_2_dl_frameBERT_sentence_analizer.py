@@ -17,12 +17,6 @@ IP = "141.43.202.175"
 PORT = "5000"
 
 
-def find_dict_by_key_value(dict_list, key, value):
-  for d in dict_list:
-    if d.get(key) == value:
-      return d
-
-
 def get_frames(sent):
   print("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
   pprint(match_issues(sent))
