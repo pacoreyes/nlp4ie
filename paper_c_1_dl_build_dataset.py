@@ -1,13 +1,16 @@
 import functools
 import time
 
+import requests
 import spacy
 from google.cloud.exceptions import GoogleCloudError
 
-from db import firestore_db
+from db import firestore_db, spreadsheet_4
 from lib.issues_matcher import match_issues
 from lib.text_utils import preprocess_text
-from lib.utils import load_txt_file
+from lib.utils import load_txt_file, read_from_google_sheet
+
+# from pprint import pprint
 
 # from pprint import pprint
 
@@ -29,6 +32,17 @@ interviews_ids = load_txt_file("shared_data/text_ids_interviews.txt")
 
 # all_ids = speeches_ids + interviews_ids
 all_ids = speeches_ids
+
+# Get column name from tab "column_name" in the spreadsheet
+rule_frames = read_from_google_sheet(spreadsheet_4, "stance_frames_rules")
+# Create a list of dicts with the first 2 columns of the dataframe, "name" and "object"
+rule_frames = [{k: v.split(",") if k == "object" else v for k, v in frame.items()} for frame in rule_frames]
+rule_frame_names = set(frame["name"] for frame in rule_frames)
+
+# define IP address and port
+IP = "141.43.202.175"
+# IP = "localhost"
+PORT = "5000"
 
 
 @functools.lru_cache(maxsize=None)
@@ -103,6 +117,16 @@ def check_if_issue_is_in_string(issue, string):
 def get_num_of_clauses(_doc):
   # Count the number of clauses (roughly estimated by the number of verbs)
   return sum(1 for token in _doc if token.pos_ == "VERB")
+
+
+def extract_frames(_sentence):
+  try:
+    response = requests.get(f"http://{IP}:{PORT}/api/extract_frames/{_sentence}").json()
+    _extracted_frames = response["frames"]["textae"]
+    return _extracted_frames
+  except requests.RequestException:
+    print("Network error...")
+    return None
 
 
 def store_record_in_firestore(record, collection_ref, max_retries=5, wait_time=5):
@@ -195,18 +219,75 @@ for _id in all_ids:
     if not issue_is_main_topic:
       continue
 
-    # Save sentence
-    sentences_counter += 1
-    sentence_id = id_with_zeros(sentences_counter)
+    # Extract semantic frames from sentence
+    extracted_frames = extract_frames(sent)
+    if extracted_frames:
 
-    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-    print(f"> Sentence:", sent)
-    print(f"> Issue:", issue_is_main_topic)
-    sentence_record = {
-      "id": sentence_id,
-      "text": sent,
-      "issue": issue_is_main_topic,
-      "source_url": rec["url"],
-      "source": rec["id"],
-    }
-    store_record_in_firestore(sentence_record, sentences_col_ref)
+      """# Save sentence
+      sentences_counter += 1
+      sentence_id = id_with_zeros(sentences_counter)
+  
+      print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+      print(f"> Sentence:", sent)
+      print(f"> Issue:", issue_is_main_topic)
+      sentence_record = {
+        "id": sentence_id,
+        "text": sent,
+        "issue": issue_is_main_topic,
+        "source_url": rec["url"],
+        "source": rec["id"],
+      }
+      store_record_in_firestore(sentence_record, sentences_col_ref)"""
+
+      # Extract frame names from extracted frames
+      extracted_frame_names = {frame["frame"] for frame in extracted_frames}
+
+      # Find common frame names
+      matched_frame_names = rule_frame_names.intersection(extracted_frame_names)
+
+      # Extract denotations
+      denotations = [frame["denotations"] for frame in extracted_frames]
+
+      if matched_frame_names:
+
+        sentence_is_about_issue = False
+
+        for frame in extracted_frames:
+          frame_name = frame["frame"]
+          frame_objects = next((f["object"] for f in rule_frames if f["name"] == frame_name), None)
+
+          for denotation in denotations:
+            for d in denotation:
+              # Check if any matched political issue is the argument of the frame
+              found_issue_as_argument = check_if_issue_is_in_string(issue_is_main_topic, d["text"])
+              if ((found_issue_as_argument and d["role"] == "TARGET") or
+                  (found_issue_as_argument and d["role"] == "ARGUMENT")):
+                sentences_counter += 1
+                sentence_id = id_with_zeros(sentences_counter)
+
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                print(f"> Sentence:", sent)
+                print(f"> Issue:", issue_is_main_topic)
+                # print()
+                # print(d)
+                sentence_record = {
+                  "id": sentence_id,
+                  "text": sent,
+                  "main_frame": frame_name,
+                  "semantic_frames": extracted_frame_names,
+                  "frameNet_data": extracted_frames,
+                  "issue": issue_is_main_topic,
+                  "source_url": rec["url"],
+                  "source": rec["id"],
+                }
+                store_record_in_firestore(sentence_record, sentences_col_ref)
+                sentence_is_about_issue = True
+                break
+
+            if sentence_is_about_issue:
+              break
+
+          if sentence_is_about_issue:
+            break
+
+        sentence_is_about_issue = False
