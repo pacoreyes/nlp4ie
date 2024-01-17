@@ -1,4 +1,5 @@
 import random
+import os
 # from collections import Counter
 # from pprint import pprint
 
@@ -11,7 +12,7 @@ from setfit import SetFitModel, Trainer, TrainingArguments
 from sklearn.manifold import TSNE
 from sklearn.metrics import (precision_recall_fscore_support,
                              accuracy_score, roc_auc_score, matthews_corrcoef, confusion_matrix)
-from sklearn.preprocessing import label_binarize
+# from sklearn.preprocessing import label_binarize
 # from sklearn.model_selection import train_test_split
 from transformers import TrainerCallback
 
@@ -25,13 +26,13 @@ class_names = list(LABEL_MAP.keys())
 REVERSED_LABEL_MAP = {0: "support", 1: "oppose", 2: "neutral"}
 
 # Initialize constants
-SEED = 1234
+SEED = 42
 
 # Hyperparameters
 BODY_LEARNING_RATE = 1e-6
 HEAD_LEARNING_RATE = 0.005
-BATCH_SIZE = 32
-NUM_EPOCHS = 3
+BATCH_SIZE = 16
+NUM_EPOCHS = 2
 L2_WEIGHT = 0.01
 
 
@@ -48,11 +49,12 @@ def get_device():
 def set_seed(seed_value):
   """Set seed for reproducibility."""
   random.seed(seed_value)
-  # np.random.seed(seed_value)
+  np.random.seed(seed_value)
   torch.manual_seed(seed_value)
   torch.cuda.manual_seed_all(seed_value)
   torch.backends.cudnn.deterministic = True
   torch.backends.cudnn.benchmark = False
+  os.environ['PYTHONHASHSEED'] = str(seed_value)
 
 
 def compute_metrics(y_pred, y_test):
