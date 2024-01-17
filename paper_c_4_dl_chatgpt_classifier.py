@@ -16,7 +16,7 @@ from tqdm import tqdm
 # https://www.pure.ed.ac.uk/ws/portalfiles/portal/205831185/Stance_detection_ALDAYEL_DOA20032021_AFV.pdf
 
 # The ID of your ChatGPT fine-tuned model
-model_id = "ft:babbage-002:paco::8hisYxxI"  # anonymized
+model_id = "ft:davinci-002:paco::8i5qbJFA"  # anonymized BEST model
 # model_id = "ft:davinci-002:paco::8fbaMxVv"  # non-anonymized
 
 # -------------------------------------------------------------------------------------
