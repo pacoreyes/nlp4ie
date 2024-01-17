@@ -26,14 +26,14 @@ class_names = list(LABEL_MAP.keys())
 REVERSED_LABEL_MAP = {0: "support", 1: "oppose", 2: "neutral"}
 
 # Initialize constants
-SEED = 42
+SEED = 38
 
 # Hyperparameters
-BODY_LEARNING_RATE = 1e-6
-HEAD_LEARNING_RATE = 0.005
-BATCH_SIZE = 16
-NUM_EPOCHS = 2
-L2_WEIGHT = 0.01
+BODY_LEARNING_RATE = 4.8499780025281356e-05
+# HEAD_LEARNING_RATE = 0.005
+BATCH_SIZE = 64
+NUM_EPOCHS = 1
+# L2_WEIGHT = 0.01
 
 
 def get_device():
@@ -199,13 +199,14 @@ class EmbeddingPlotCallback(TrainerCallback):
 arguments = TrainingArguments(
   batch_size=BATCH_SIZE,
   num_epochs=NUM_EPOCHS,
-  end_to_end=True,
+  # end_to_end=True,
   body_learning_rate=BODY_LEARNING_RATE,
-  head_learning_rate=HEAD_LEARNING_RATE,
-  l2_weight=L2_WEIGHT,
+  # head_learning_rate=HEAD_LEARNING_RATE,
+  # l2_weight=L2_WEIGHT,
   evaluation_strategy="epoch",
-  eval_steps=100,
-  num_iterations=20,
+  eval_steps=20,
+  num_iterations=50,
+  seed=SEED,
 )
 
 # Initialize callbacks
@@ -254,10 +255,10 @@ plt.close()
 print()
 print("Hyperparameters:")
 print(f"- Body Learning Rate: {BODY_LEARNING_RATE}")
-print(f"- Head Learning Rate: {HEAD_LEARNING_RATE}")
+# print(f"- Head Learning Rate: {HEAD_LEARNING_RATE}")
 print(f"- Batch Size: {BATCH_SIZE}")
 print(f"- Number of Epochs: {NUM_EPOCHS}")
-print(f"- L2 Weight: {L2_WEIGHT}")
+# print(f"- L2 Weight: {L2_WEIGHT}")
 print("---")
 print(f"- Seed: {SEED}")
 print()

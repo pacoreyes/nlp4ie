@@ -57,8 +57,8 @@ def model_init(params: Dict[str, Any]) -> SetFitModel:
 def hp_space(trial: Trial) -> Dict[str, Union[float, int, str]]:
   return {
     "body_learning_rate": trial.suggest_float("body_learning_rate", 1e-6, 1e-3, log=True),
-    "num_epochs": trial.suggest_int("num_epochs", 1, 3),
-    "batch_size": trial.suggest_categorical("batch_size", [16, 32, 64]),
+    "num_epochs": trial.suggest_int("num_epochs", 1, 1),
+    "batch_size": trial.suggest_categorical("batch_size", [64]),
     "seed": trial.suggest_int("seed", 1, 40),
     "max_iter": trial.suggest_int("max_iter", 50, 300),
     "solver": trial.suggest_categorical("solver", ["newton-cg", "lbfgs", "liblinear"]),

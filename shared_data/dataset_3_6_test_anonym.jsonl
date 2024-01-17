@@ -10,7 +10,7 @@
 {"prompt": "In my opinion they concern the life and death of democracy.", "completion": "oppose"}
 {"prompt": "This depression made itself felt in an enormous increase of bank failures in the agricultural districts.", "completion": "oppose"}
 {"prompt": "[GPE] is engulfed in a civil war and a refugee crisis now threatens the [LOC].", "completion": "oppose"}
-{"prompt": "Environmental policy is increasingly focusing on sustainable energy sources, with discussions about balancing economic development and environmental protection.", "completion": "neutral"}
+{"prompt": "[GPE] has a range of energy policies, some of which include considerations for renewable energy sources.", "completion": "neutral"}
 {"prompt": "One hundred and thirty-eight persons are under orders of deportation on grounds involving communism.", "completion": "neutral"}
 {"prompt": "It will define whether it will be a democracy of [NORP] and for [NORP] - for all.", "completion": "neutral"}
 {"prompt": "For [DATE] now, [PERSON] has neither commanded an [ENTITY] nor led a nation.", "completion": "neutral"}
