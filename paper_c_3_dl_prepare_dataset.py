@@ -2,7 +2,7 @@ import random
 
 import spacy
 from tqdm import tqdm
-from pprint import pprint
+# from pprint import pprint
 
 from db import spreadsheet_4
 # from lib.ner_processing import custom_anonymize_text
@@ -10,7 +10,7 @@ from lib.utils2 import anonymize_text
 from lib.utils import (read_from_google_sheet, save_row_to_jsonl_file, empty_json_file)
 from lib.utils2 import remove_duplicated_datapoints
 
-SEED = 42
+SEED = 4242
 FOR_OPEN_AI = True
 
 # Set seed for reproducibility
@@ -196,145 +196,3 @@ for datapoint in tqdm(dataset_test, desc=f"Processing {len(dataset_test)} datapo
   # Save datapoint to JSONL files
   save_row_to_jsonl_file(row, output_dataset_test)
   save_row_to_jsonl_file(row_anonym, output_dataset_test_anonym)
-
-
-"""# Save class 2 to test dataset
-for datapoint in tqdm(class_2, desc=f"Processing {len(class_2)} datapoints"):
-  row = {
-    "id": datapoint["id"],
-    "text": datapoint["text"],
-    "label": datapoint["class"]
-  }
-  row_anonym = {
-    "id": datapoint["id"],
-    "text": anonymize_text(datapoint["text"], nlp_trf),
-    "label": datapoint["class"]
-  }
-  if FOR_OPEN_AI:
-    row = {"prompt": row["text"], "completion": row["label"]}
-    row_anonym = {"prompt": row_anonym["text"], "completion": row_anonym["label"]}
-
-  # Save datapoint to JSONL files
-  save_row_to_jsonl_file(row, output_dataset_test)
-  save_row_to_jsonl_file(row_anonym, output_dataset_test_anonym)
-"""
-
-"""# Order dataset by label
-dataset = sorted(dataset_remapped, key=lambda k: k['class'])"""
-
-# print("• Filtered datapoints")
-
-""" #############################################
-Step 3: Shuffle dataset
-############################################# """
-
-# random.shuffle(dataset)
-
-""" #############################################
-Step 4: Create dataset in JSONL file and Google Sheets
-############################################# """
-
-"""print("\nCreating dataset...")
-
-dataset_no_anonym = []
-
-for datapoint in tqdm(dataset, desc=f"Processing {len(dataset)} datapoints"):
-  row_for_json = {
-    "id": datapoint["id"],
-    "text": datapoint["text"],
-    "label": LABEL_MAP[datapoint["class"]]
-  }
-  row_for_gsheets = [
-    datapoint["id"],
-    datapoint["text"],
-    LABEL_MAP[datapoint["class"]]
-  ]
-  # Save datapoint to JSONL file
-  save_row_to_jsonl_file(row_for_json, output_dataset)
-  # Add datapoint to Google Sheets dataset
-  dataset_no_anonym.append(row_for_gsheets)
-
-# Save dataset to Google Sheets
-write_to_google_sheet(spreadsheet_4, output_spreadsheet, dataset_no_anonym)
-print("• Saved non-anonymized dataset to spreadsheet")
-
-dataset_no_anonym = load_jsonl_file(output_dataset)
-
-# Balance classes
-if WITH_BALANCE:
-  dataset_no_anonym = balance_classes_in_dataset(dataset_no_anonym, LABEL_CLASS_1, LABEL_CLASS_2, "label", SEED)
-
-save_jsonl_file(dataset_no_anonym, output_dataset)"""
-
-# print("• Saved dataset to JSONL file")
-
-""" #############################################
-Step 5: Create anonymized version of the dataset, in JSONL file and Google Sheets
-############################################# """
-
-# print("\nCreating anonymized version of the dataset...")
-
-"""dataset_anonym = []
-
-for datapoint in tqdm(dataset, desc=f"Processing {len(dataset)} datapoints"):
-  datapoint["text"] = anonymize_text(datapoint["text"], nlp_trf)
-  row_for_json = {
-    "id": datapoint["id"],
-    "text": datapoint["text"],
-    "label": LABEL_MAP[datapoint["class"]]
-  }
-  row_for_gsheets = [
-    datapoint["id"],
-    datapoint["text"],
-    LABEL_MAP[datapoint["class"]]
-  ]
-  # Save anonymized datapoint to JSONL file
-  save_row_to_jsonl_file(row_for_json, output_anonym_dataset)
-  # Add anonymized datapoint to Google Sheets dataset
-  dataset_anonym.append(row_for_gsheets)
-
-# Save anonymized dataset to Google Sheets
-write_to_google_sheet(spreadsheet_4, output_anonym_spreadsheet, dataset_anonym)
-print("• Saved anonymized dataset to spreadsheet")
-
-dataset_anonym = load_jsonl_file(output_anonym_dataset)
-
-# Balance classes
-if WITH_BALANCE:
-  dataset_anonym = balance_classes_in_dataset(dataset_anonym, LABEL_CLASS_1, LABEL_CLASS_2, "label", SEED)
-
-save_jsonl_file(dataset_anonym, output_anonym_dataset)"""
-
-# print("• Saved anonymized dataset to JSONL file")
-
-""" #############################################
-Step 6: Create dataset for Open AI in JSONL file
-############################################# """
-
-# print("\nCreating dataset for Open AI...")
-
-"""dataset = load_jsonl_file(output_dataset)
-
-# Balance classes
-if WITH_BALANCE:
-  dataset = balance_classes_in_dataset(dataset, LABEL_CLASS_1, LABEL_CLASS_2, "label", SEED)
-
-class1_length = len([item for item in dataset if item["label"] == LABEL_CLASS_1])
-class2_length = len([item for item in dataset if item["label"] == LABEL_CLASS_2])
-
-# remap attribute names output_openai_dataset
-dataset = [{"prompt": item["text"], "completion": item["label"]} for item in dataset]
-save_jsonl_file(dataset, output_openai_dataset)
-
-print("• Saved dataset for Open AI to JSONL file")
-print(f"• Class 1: {class1_length}")
-print(f"• Class 2: {class2_length}")
-
-# Create anonymized version of the dataset for Open AI
-for datapoint in tqdm(dataset, desc=f"Processing {len(dataset)} datapoints"):
-  row_for_json = {
-    "prompt": anonymize_text(datapoint["prompt"], nlp_trf),
-    "completion": datapoint["completion"]
-  }
-  # Save datapoint to JSONL file
-  save_row_to_jsonl_file(row_for_json, output_anonym_openai_dataset)"""

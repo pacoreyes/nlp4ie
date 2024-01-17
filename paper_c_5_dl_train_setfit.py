@@ -25,7 +25,7 @@ class_names = list(LABEL_MAP.keys())
 REVERSED_LABEL_MAP = {0: "support", 1: "oppose", 2: "neutral"}
 
 # Initialize constants
-SEED = 42
+SEED = 1234
 
 # Hyperparameters
 BODY_LEARNING_RATE = 1e-6
@@ -81,7 +81,8 @@ device = get_device()
 print(f"\nUsing device: {str(device).upper()}\n")
 
 # model_id = "sentence-transformers/all-mpnet-base-v2"
-model_id = "BAAI/bge-small-en-v1.5"
+model_id = "sentence-transformers/paraphrase-mpnet-base-v2"
+# model_id = "BAAI/bge-small-en-v1.5"
 model = SetFitModel.from_pretrained(
   model_id,
   # multi_target_strategy="multi-output",
