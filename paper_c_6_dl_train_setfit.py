@@ -319,9 +319,9 @@ print()
 
 
 """
-------------- Jan 16, 24 -------------
+------------- Jan 18, 24 -------------
 
-Model: SetFit (BAAI/bge-small-en-v1.5)
+Model: SetFit (sentence-transformers/all-mpnet-base-v2)
 
 - Accuracy: 0.944
 - Precision: 0.944
@@ -331,17 +331,14 @@ Model: SetFit (BAAI/bge-small-en-v1.5)
 - Confusion Matrix:
          support  oppose  neutral
 support        6       0        0
-oppose         0       5        1
-neutral        0       0        6
+oppose         0       6        0
+neutral        0       1        5
 
 
 Hyperparameters:
-- Body Learning Rate: 1e-06
-- Head Learning Rate: 0.005
+- Body Learning Rate: 0.00010214746757835319
 - Batch Size: 32
-- Number of Epochs: 3
-- L2 Weight: 0.01
+- Number of Epochs: 2
 ---
 - Seed: 42
-
 """
