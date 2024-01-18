@@ -58,7 +58,7 @@ def hp_space(trial: Trial) -> Dict[str, Union[float, int, str]]:
   return {
     "body_learning_rate": trial.suggest_float("body_learning_rate", 1e-6, 1e-3, log=True),
     "num_epochs": trial.suggest_int("num_epochs", 1, 3),
-    "batch_size": trial.suggest_categorical("batch_size", [16,32,64]),
+    "batch_size": trial.suggest_categorical("batch_size", [16, 32, 64]),
     "seed": trial.suggest_int("seed", 1, 40),
     "max_iter": trial.suggest_int("max_iter", 50, 300),
     "solver": trial.suggest_categorical("solver", ["newton-cg", "lbfgs", "liblinear"]),
@@ -73,8 +73,8 @@ device = get_device()
 print(f"\nUsing device: {str(device).upper()}\n")
 
 # Initialize model
-# model_id = "sentence-transformers/all-mpnet-base-v2"
-model_id = "sentence-transformers/paraphrase-mpnet-base-v2"
+model_id = "sentence-transformers/all-mpnet-base-v2"
+# model_id = "sentence-transformers/paraphrase-mpnet-base-v2"
 # model_id = "BAAI/bge-small-en-v1.5"
 
 
@@ -119,4 +119,13 @@ trainer = Trainer(
     eval_dataset=test_dataset,
     model_init=model_init,
 )
-best_run = trainer.hyperparameter_search(direction="maximize", hp_space=hp_space, n_trials=10)
+best_run = trainer.hyperparameter_search(direction="maximize", hp_space=hp_space, n_trials=20)
+
+"""
+model = "sentence-transformers/paraphrase-mpnet-base-v2"
+Trial 7 finished with value: 0.9444444444444444 and parameters: {'body_learning_rate': 0.00034263549807707024, 'num_epochs': 2, 'batch_size': 64, 'seed': 33, 'max_iter': 117, 'solver': 'lbfgs'}.
+Trial 5 finished with value: 0.9444444444444444 and parameters: {'body_learning_rate': 3.874530126359833e-06, 'num_epochs': 3, 'batch_size': 64, 'seed': 31, 'max_iter': 207, 'solver': 'lbfgs'}.
+
+model = "sentence-transformers/all-mpnet-base-v2"
+Trial 13 finished with value: 1.0 and parameters: {'body_learning_rate': 0.00010214746757835319, 'num_epochs': 2, 'batch_size': 32, 'seed': 35, 'max_iter': 191, 'solver': 'liblinear'}. Best is trial 13 with value: 1.0.
+"""

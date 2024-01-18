@@ -1,6 +1,5 @@
 import random
 import os
-# from collections import Counter
 # from pprint import pprint
 
 import matplotlib.pyplot as plt
@@ -22,28 +21,18 @@ from lib.utils import load_jsonl_file
 LABEL_MAP = {"support": 0, "oppose": 1, "neutral": 2}
 class_names = list(LABEL_MAP.keys())
 
-# Reversed Label Map
-REVERSED_LABEL_MAP = {0: "support", 1: "oppose", 2: "neutral"}
-
 # Initialize constants
-SEED = 38
+SEED = 42
+MODEL_SEED = 1234
 
 # Hyperparameters
-BODY_LEARNING_RATE = 4.8499780025281356e-05
-# HEAD_LEARNING_RATE = 0.005
-BATCH_SIZE = 64
-NUM_EPOCHS = 1
-# L2_WEIGHT = 0.01
-
-
-def get_device():
-  """Returns the appropriate device available in the system: CUDA, MPS, or CPU"""
-  if torch.backends.mps.is_available():
-    return torch.device("mps")
-  elif torch.cuda.is_available():
-    return torch.device("cuda")
-  else:
-    return torch.device("cpu")
+BODY_LEARNING_RATE = 0.00010214746757835319
+HEAD_LEARNING_RATE = 0.005
+BATCH_SIZE = 32
+NUM_EPOCHS = 2
+MAX_ITER = 191
+L2_WEIGHT = 0.01
+SOLVER = "liblinear"
 
 
 def set_seed(seed_value):
@@ -55,6 +44,20 @@ def set_seed(seed_value):
   torch.backends.cudnn.deterministic = True
   torch.backends.cudnn.benchmark = False
   os.environ['PYTHONHASHSEED'] = str(seed_value)
+
+
+# Set seed for reproducibility
+set_seed(SEED)
+
+
+def get_device():
+  """Returns the appropriate device available in the system: CUDA, MPS, or CPU"""
+  if torch.backends.mps.is_available():
+    return torch.device("mps")
+  elif torch.cuda.is_available():
+    return torch.device("cuda")
+  else:
+    return torch.device("cpu")
 
 
 def compute_metrics(y_pred, y_test):
@@ -75,19 +78,27 @@ def compute_metrics(y_pred, y_test):
   }
 
 
-# Set seed for reproducibility
-set_seed(SEED)
+def model_init():
+  params = {
+    "head_params": {
+      "max_iter": MAX_ITER,
+      "solver": SOLVER,
+    }
+  }
+  _model = SetFitModel.from_pretrained(model_id, **params)
+  _model.to(device)
+  return _model
+
 
 # Set device to CUDA, MPS, or CPU
 device = get_device()
 print(f"\nUsing device: {str(device).upper()}\n")
 
-# model_id = "sentence-transformers/all-mpnet-base-v2"
-model_id = "sentence-transformers/paraphrase-mpnet-base-v2"
+model_id = "sentence-transformers/all-mpnet-base-v2"
+# model_id = "sentence-transformers/paraphrase-mpnet-base-v2"
 # model_id = "BAAI/bge-small-en-v1.5"
 model = SetFitModel.from_pretrained(
   model_id,
-  # multi_target_strategy="multi-output",
 )
 
 # Move model to device
@@ -111,10 +122,10 @@ dataset_test = [{"label": LABEL_MAP[datapoint["completion"]], "text": datapoint[
 
 # Count and print class distribution
 # counter = Counter([item['label'] for item in dataset])
-print("\nClass distribution:")
-print(f"- support: {len(dataset_training)}")
-print(f"- oppose: {len(dataset_validation)}")
-print(f"- neutral: {len(dataset_test)}")
+print("\nDataset:")
+print(f"- training: {len(dataset_training)}")
+print(f"- validation: {len(dataset_validation)}")
+print(f"- test: {len(dataset_test)}")
 
 # sentences = [entry["text"] for entry in dataset]
 # labels = [entry["label"] for entry in dataset]
@@ -127,13 +138,15 @@ train_data, temp_test_data, train_labels, temp_test_labels = train_test_split(
 validation_data, test_data, validation_labels, test_labels = train_test_split(
   temp_test_data, temp_test_labels, test_size=0.5, random_state=SEED, stratify=temp_test_labels)
 """
-# pprint(test_data)
 
 num_support_test = len([item for item in dataset_test if item["label"] == 0])
 num_oppose_test = len([item for item in dataset_test if item["label"] == 1])
+num_neutral_test = len([item for item in dataset_test if item["label"] == 2])
+
 print(f"\nTest set class distribution:")
 print(f"- support: {num_support_test}")
 print(f"- oppose: {num_oppose_test}")
+print(f"- neutral: {num_neutral_test}")
 
 # Convert training data into a Dataset object
 train_columns = {key: [dic[key] for dic in dataset_training] for key in dataset_training[0]}
@@ -146,8 +159,6 @@ validation_dataset = Dataset.from_dict(val_columns)
 # Convert test data into Dataset object
 test_columns = {key: [dic[key] for dic in dataset_test] for key in dataset_test[0]}
 test_dataset = Dataset.from_dict(test_columns)
-
-# print(len(train_dataset))
 
 
 class LossPlotCallback(TrainerCallback):
@@ -170,11 +181,11 @@ class LossPlotCallback(TrainerCallback):
     print(f"Average Validation Loss after Epoch {state.epoch}: {eval_loss}")
 
 
-class EmbeddingPlotCallback(TrainerCallback):
-  """ Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
-  throughout training."""
+# class EmbeddingPlotCallback(TrainerCallback):
+  # Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
+  # throughout training."""
 
-  def on_evaluate(self, args, state, control, **kwargs):
+"""  def on_evaluate(self, args, state, control, **kwargs):
     train_embeddings = model.encode(train_dataset["text"])
     eval_embeddings = model.encode(validation_dataset["text"])
 
@@ -193,20 +204,62 @@ class EmbeddingPlotCallback(TrainerCallback):
     eval_ax.set_title("Evaluation embeddings")
 
     fig.suptitle(f"tSNE of training and evaluation embeddings at step {state.global_step} of {state.max_steps}.")
+    fig.savefig(f"images/step_{state.global_step}.png")"""
+
+
+class EmbeddingPlotCallback(TrainerCallback):
+  """Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
+  # throughout training."""
+
+  def on_evaluate(self, args, state, control, **kwargs):
+    train_embeddings = model.encode(train_dataset["text"])
+    eval_embeddings = model.encode(validation_dataset["text"])
+
+    # Determine dataset size to adjust perplexity
+    eval_dataset_size = len(validation_dataset["text"])
+    perplexity_value = min(30, max(5, int(eval_dataset_size / 2)))
+
+    # Define a color map for different classes
+    color_map = {0: 'red', 1: 'blue', 2: 'green'}  # Update this with your class colors
+
+    # Create subplots
+    fig, (train_ax, eval_ax) = plt.subplots(ncols=2)
+
+    # Plot training embeddings
+    train_x = TSNE(n_components=2, perplexity=perplexity_value).fit_transform(train_embeddings)
+    scatter = train_ax.scatter(*train_x.T, c=[color_map[label] for label in train_dataset["label"]])
+    train_ax.set_title("Training embeddings")
+    train_ax.set_xlabel("Component 1")
+    train_ax.set_ylabel("Component 2")
+
+    # Plot evaluation embeddings
+    eval_x = TSNE(n_components=2, perplexity=perplexity_value).fit_transform(eval_embeddings)
+    scatter = eval_ax.scatter(*eval_x.T, c=[color_map[label] for label in validation_dataset["label"]])
+    eval_ax.set_title("Evaluation embeddings")
+    eval_ax.set_xlabel("Component 1")
+    eval_ax.set_ylabel("Component 2")
+
+    # Add a legend
+    handles = [plt.Line2D([0], [0], marker='o', color='w', label=class_name,
+                          markerfacecolor=color, markersize=10) for class_name, color in color_map.items()]
+    fig.legend(handles=handles, loc='upper right')
+
+    # Add overall title and save the figure
+    fig.suptitle(f"tSNE of training and evaluation embeddings at step {state.global_step} of {state.max_steps}.")
     fig.savefig(f"images/step_{state.global_step}.png")
 
 
 arguments = TrainingArguments(
   batch_size=BATCH_SIZE,
   num_epochs=NUM_EPOCHS,
-  # end_to_end=True,
+  end_to_end=True,
   body_learning_rate=BODY_LEARNING_RATE,
-  # head_learning_rate=HEAD_LEARNING_RATE,
-  # l2_weight=L2_WEIGHT,
+  head_learning_rate=HEAD_LEARNING_RATE,
+  l2_weight=L2_WEIGHT,
   evaluation_strategy="epoch",
   eval_steps=20,
   num_iterations=50,
-  seed=SEED,
+  seed=MODEL_SEED,
 )
 
 # Initialize callbacks
@@ -216,7 +269,8 @@ loss_plot_callback = LossPlotCallback()
 
 # Training Loop
 trainer = Trainer(
-  model=model,
+  # model=model,
+  model_init=model_init,
   args=arguments,
   train_dataset=train_dataset,
   eval_dataset=validation_dataset,
