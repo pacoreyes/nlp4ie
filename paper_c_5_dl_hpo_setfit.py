@@ -119,7 +119,7 @@ trainer = Trainer(
     eval_dataset=test_dataset,
     model_init=model_init,
 )
-best_run = trainer.hyperparameter_search(direction="maximize", hp_space=hp_space, n_trials=12)
+best_run = trainer.hyperparameter_search(direction="maximize", hp_space=hp_space, n_trials=20)
 
 # Print best run
 pprint(f"\nBest run: {best_run}")
@@ -134,19 +134,3 @@ pprint(f"\nMetrics: {metrics}")
 # Save model
 trainer.model.save_pretrained("models/3")
 
-# Note: the following code is not working
-"""
-on Mac MPS
-model = "sentence-transformers/paraphrase-mpnet-base-v2"
-Trial 7 finished with value: 0.9444444444444444 and parameters: {'body_learning_rate': 0.00034263549807707024, 'num_epochs': 2, 'batch_size': 64, 'seed': 33, 'max_iter': 117, 'solver': 'lbfgs'}.
-Trial 5 finished with value: 0.9444444444444444 and parameters: {'body_learning_rate': 3.874530126359833e-06, 'num_epochs': 3, 'batch_size': 64, 'seed': 31, 'max_iter': 207, 'solver': 'lbfgs'}.
-
-model = "sentence-transformers/all-mpnet-base-v2"
-Trial 13 finished with value: 1.0 and parameters: {'body_learning_rate': 0.00010214746757835319, 'num_epochs': 2, 'batch_size': 32, 'seed': 35, 'max_iter': 191, 'solver': 'liblinear'}. Best is trial 13 with value: 1.0.
-"""
-
-"""
-on PC CUDA
-model = "sentence-transformers/paraphrase-mpnet-base-v2"
- Trial 6 finished with value: 0.9444444444444444 and parameters: {'body_learning_rate': 0.0001649715020819536, 'num_epochs': 3, 'batch_size': 16, 'seed': 16, 'max_iter': 162, 'solver': 'lbfgs'}.
-"""
