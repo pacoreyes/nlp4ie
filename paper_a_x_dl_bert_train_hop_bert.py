@@ -52,6 +52,8 @@ def get_device():
   else:
     return torch.device("cpu")
 
+device = get_device()
+print(f"\nUsing device: {str(device).upper()}\n")
 
 def set_seed(seed_value):
   """Set seed for reproducibility."""
@@ -62,6 +64,50 @@ def set_seed(seed_value):
   torch.backends.cudnn.deterministic = True
   torch.backends.cudnn.benchmark = False
 
+# Set seed for reproducibility
+set_seed(SEED)
+
+# Load BERT model
+model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
+                                                        num_labels=len(LABEL_MAP),
+                                                        hidden_dropout_prob=0.2)
+# Move model to device
+model.to(device)
+
+# Load dataset
+data_file = "shared_data/dataset_1_4_sliced.jsonl"
+
+# Load and preprocess the dataset
+dataset = load_jsonl_file(data_file)
+
+# Balance dataset
+dataset = balance_classes_in_dataset(dataset, "monologic", "dialogic", "label", SEED)
+
+# Load the BERT tokenizer
+tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+
+'''
+# Convert to pandas DataFrame for stratified splitting
+df = pd.DataFrame({
+  "id": [entry["id"] for entry in dataset],  # Include 'id'
+  "text": sentences,
+  "label": labels,
+  "metadata": [entry["metadata"] for entry in dataset]  # Include 'metadata'
+})
+'''
+# Convert to pandas DataFrame for stratified splitting
+df = pd.DataFrame({
+    "id": [entry["id"] for entry in dataset],
+    "text": [entry["text"] for entry in dataset],
+    "label": [LABEL_MAP[entry["label"]] for entry in dataset],
+    "metadata": [entry["metadata"] for entry in dataset]
+})
+
+# Stratified split of the data to obtain the train and the remaining data
+train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.2, random_state=SEED)
+
+# Split the remaining data equally to get a validation set and a test set
+val_df, test_df = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5, random_state=SEED)
 
 def create_dataset(_df, tokenizer, device):
   _texts = _df['text'].tolist()
@@ -76,8 +122,22 @@ def preprocess(_texts, _tokenizer, _device, max_length=MAX_LENGTH):
   inputs = _tokenizer(_texts, return_tensors="pt", truncation=True, padding=True, max_length=max_length)
   return inputs["input_ids"].to(_device), inputs["attention_mask"].to(_device)
 
+# Create TensorDatasets
+train_dataset = create_dataset(train_df, tokenizer, device)
+val_dataset = create_dataset(val_df, tokenizer, device)
+test_dataset = create_dataset(test_df, tokenizer, device)
+
+# Calculate class weights
+labels = df["label"].tolist()
+class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(labels), y=labels)
+class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
+
+# Create DataLoaders
+train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=16)
+val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=16)
+test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=16)
+
 def objective(trial):
-  try:
     LEARNING_RATE = trial.suggest_float("learning_rate", 1e-6, 1e-2, log=True)
     BATCH_SIZE = trial.suggest_int("batch_size", 4, 32, log=True)
     WARMUP_STEPS = trial.suggest_int("warmup_steps", 0, 1000)
@@ -85,290 +145,218 @@ def objective(trial):
     WEIGHT_DECAY = trial.suggest_float("weight_decay", 1e-5, 1e-3, log=True)
     DROP_OUT_RATE = trial.suggest_float("dropout_rate", 0.1, 0.3)
 
-    print("Trial Parameters:", trial.params)
+    # Initialize optimizer and scheduler
+    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE)
+    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=WARMUP_STEPS,
+                                                num_training_steps=len(train_dataloader) * NUM_EPOCHS)
 
-  except Exception as e:
-    print(f"Error in trial {trial.number}: {str(e)}")
-    study.set_trial_state(trial, optuna.trial.TrialState.FAIL)
 
+    # Initialize the gradient scaler only if the device is a GPU
+    use_cuda = device.type == "cuda"
+    grad_scaler = None
+    if use_cuda:
+        grad_scaler = GradScaler()
 
-  # Set seed for reproducibility
-  set_seed(SEED)
+    train_losses = []
+    val_losses = []
+    predictions, true_labels = [], []
+    '''
+    # Create TensorDatasets
+    train_dataset, train_ids = create_dataset(train_df)
+    val_dataset, val_ids = create_dataset(val_df)
+    test_dataset, test_ids = create_dataset(test_df)
+    '''
 
-  # Set device to CUDA, MPS, or CPU
-  device = get_device()
-  print(f"\nUsing device: {str(device).upper()}\n")
+    # Training Loop
+    for epoch in range(NUM_EPOCHS):
+      model.train()
+      total_train_loss = 0
+      loss_fct = torch.nn.CrossEntropyLoss(weight=class_weights)
 
-  # Load dataset
-  data_file = "shared_data/dataset_1_4_sliced.jsonl"
+      print()
+      for batch in tqdm(train_dataloader, desc=f"Training Epoch {epoch + 1}/{NUM_EPOCHS}"):
+        b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
+        # Clear gradients
+        model.zero_grad()
 
-  # Load BERT model
-  model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
-                                                        num_labels=len(LABEL_MAP),
-                                                        hidden_dropout_prob=DROP_OUT_RATE)
-  # Move model to device
-  model.to(device)
+        # Forward and backward passes
+        if use_cuda:
+          with autocast():
+            outputs = model(b_input_ids, attention_mask=b_attention_mask)
+            loss = loss_fct(outputs.logits.view(-1, len(LABEL_MAP)), b_labels.view(-1))
+          grad_scaler.scale(loss).backward()
+          grad_scaler.step(optimizer)
+          grad_scaler.update()
+        else:
+          outputs = model(b_input_ids, attention_mask=b_attention_mask, labels=b_labels)
+          loss = outputs.loss
+          loss.backward()
+          optimizer.step()
 
-  # Load and preprocess the dataset
-  dataset = load_jsonl_file(data_file)
+        scheduler.step()
+        total_train_loss += loss.item()
 
-  # Balance dataset
-  dataset = balance_classes_in_dataset(dataset, "monologic", "dialogic", "label", SEED)
+      # Calculate average training loss for this epoch
+      avg_train_loss = total_train_loss / len(train_dataloader)
+      train_losses.append(avg_train_loss)
 
-  # Load the BERT tokenizer
-  tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+      # Validation Loop
+      model.eval()
+      total_val_loss = 0
 
-  sentences = [entry["text"] for entry in dataset]
-  labels = [entry["label"] for entry in dataset]
+      for batch in tqdm(val_dataloader, desc="Validating"):
+        with torch.no_grad():
+          b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
 
-  # Convert labels from string to int
-  labels = [LABEL_MAP[label] for label in labels]
+          # Forward pass
+          outputs = model(b_input_ids, attention_mask=b_attention_mask, labels=b_labels)
+          loss = outputs.loss
+          total_val_loss += loss.item()
 
-  # Convert to pandas DataFrame for stratified splitting
-  df = pd.DataFrame({
-    "id": [entry["id"] for entry in dataset],  # Include 'id'
-    "text": sentences,
-    "label": labels,
-    "metadata": [entry["metadata"] for entry in dataset]  # Include 'metadata'
-  })
+          logits = outputs.logits
+          logits = logits.detach().cpu().numpy()
+          label_ids = b_labels.to("cpu").numpy()
 
-  # Stratified split of the data to obtain the train and the remaining data
-  train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.2, random_state=SEED)
+          # Store predictions and true labels
+          predictions.extend(np.argmax(logits, axis=1).flatten())
+          true_labels.extend(label_ids.flatten())
 
-  # Split the remaining data equally to get a validation set and a test set
-  val_df, test_df = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5, random_state=SEED)
+      # Calculate average validation loss
+      avg_val_loss = total_val_loss / len(val_dataloader)
+      val_losses.append(avg_val_loss)
 
-  # Create TensorDatasets
-  train_dataset = create_dataset(train_df, tokenizer, device)
-  val_dataset = create_dataset(val_df, tokenizer, device)
-  test_dataset = create_dataset(test_df, tokenizer, device)
+      # Update the learning rate
+      # scheduler.step()
 
-  '''
-  # Create TensorDatasets
-  train_dataset, train_ids = create_dataset(train_df)
-  val_dataset, val_ids = create_dataset(val_df)
-  test_dataset, test_ids = create_dataset(test_df)
-  '''
+      # Print average losses for this epoch
+      print(f"* Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}")
 
-  # Calculate class weights
-  class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(labels), y=labels)
-  class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
+    """ END of training /validation loop ------------------- """
 
-  # Create DataLoaders
-  train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE)
-  val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=BATCH_SIZE)
-  test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=BATCH_SIZE)
+    # Evaluate and log metrics
+    accuracy = accuracy_score(true_labels, predictions)
+    precision, recall, f1, _ = precision_recall_fscore_support(true_labels, predictions)
 
-  # Optimizer and Scheduler
-  optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
-  total_steps = len(train_dataloader) * NUM_EPOCHS
-  scheduler = get_linear_schedule_with_warmup(optimizer,
-                                              num_warmup_steps=WARMUP_STEPS,
-                                              num_training_steps=total_steps)
+    print("\nAccuracy:", accuracy)
+    print("Training Class-wise metrics:")
+    for i, class_name in enumerate(class_names):
+      print(f"{class_name}: Precision = {precision[i]:.2f}, Recall = {recall[i]:.2f}, F1 = {f1[i]:.2f}")
 
-  # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
-
-  # Initialize the gradient scaler only if the device is a GPU
-  use_cuda = device.type == "cuda"
-  grad_scaler = None
-  if use_cuda:
-    grad_scaler = GradScaler()
-
-  train_losses = []
-  val_losses = []
-
-  predictions, true_labels = [], []
-
-  # Training Loop
-  for epoch in range(NUM_EPOCHS):
-    model.train()
-    total_train_loss = 0
-    loss_fct = torch.nn.CrossEntropyLoss(weight=class_weights)
-
-    print()
-    for batch in tqdm(train_dataloader, desc=f"Training Epoch {epoch + 1}/{NUM_EPOCHS}"):
-      b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
-      # Clear gradients
-      model.zero_grad()
-
-      # Forward and backward passes
-      if use_cuda:
-        with autocast():
-          outputs = model(b_input_ids, attention_mask=b_attention_mask)
-          loss = loss_fct(outputs.logits.view(-1, len(LABEL_MAP)), b_labels.view(-1))
-        grad_scaler.scale(loss).backward()
-        grad_scaler.step(optimizer)
-        grad_scaler.update()
-      else:
-        outputs = model(b_input_ids, attention_mask=b_attention_mask, labels=b_labels)
-        loss = outputs.loss
-        loss.backward()
-        optimizer.step()
-
-      scheduler.step()
-      total_train_loss += loss.item()
-
-    # Calculate average training loss for this epoch
-    avg_train_loss = total_train_loss / len(train_dataloader)
-    train_losses.append(avg_train_loss)
-
-    # Validation Loop
+    # Test Loop
     model.eval()
-    total_val_loss = 0
+    total_test_loss = 0
+    test_predictions, test_true_labels = [], []
+    all_probabilities = []
 
-    for batch in tqdm(val_dataloader, desc="Validating"):
+    softmax = torch.nn.Softmax(dim=1)
+
+    # Initialize JSONL file for misclassified examples
+    misclassified_output_file = "shared_data/dataset_1_5_misclassified_examples.jsonl"
+    empty_json_file(misclassified_output_file)
+
+    for batch in tqdm(test_dataloader, desc="Testing"):
       with torch.no_grad():
         b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
 
         # Forward pass
         outputs = model(b_input_ids, attention_mask=b_attention_mask, labels=b_labels)
         loss = outputs.loss
-        total_val_loss += loss.item()
+        total_test_loss += loss.item()
 
         logits = outputs.logits
-        logits = logits.detach().cpu().numpy()
-        label_ids = b_labels.to("cpu").numpy()
+        probabilities = softmax(logits)
+        all_probabilities.append(probabilities.cpu().numpy())  # Move to CPU before conversion
+
+        label_ids = b_labels.cpu().numpy()  # Move to CPU before conversion
 
         # Store predictions and true labels
-        predictions.extend(np.argmax(logits, axis=1).flatten())
-        true_labels.extend(label_ids.flatten())
+        test_predictions.extend(torch.argmax(logits, dim=1).cpu().numpy())  # Move to CPU before conversion
+        test_true_labels.extend(label_ids)
 
-    # Calculate average validation loss
-    avg_val_loss = total_val_loss / len(val_dataloader)
-    val_losses.append(avg_val_loss)
+        # Identifying and saving misclassified examples
+        predictions = torch.argmax(logits, dim=1).cpu().numpy()
+        for j, (pred, true) in enumerate(zip(predictions, label_ids)):  # no _id in zip
+          if pred != true:
+            # Access the correct id using the batch index and the offset within the batch
+            #example_id = test_ids[i * BATCH_SIZE + j]
+            example_id = dataset[i * BATCH_SIZE + j]["metadata"]["text_id"]
+            save_row_to_jsonl_file({
+              "id": example_id,  # corrected to use the separate ids list
+              "true_label": REVERSED_LABEL_MAP[true],
+              "predicted_label": REVERSED_LABEL_MAP[pred],
+              "text": dataset[i * BATCH_SIZE + j]["text"],
+              "metadata": dataset[i * BATCH_SIZE + j]["metadata"]
+            }, misclassified_output_file)
 
-    # Update the learning rate
-    # scheduler.step()
+    plt.figure()
+    plot_confusion_matrix(test_true_labels,
+                          test_predictions,
+                          class_names,
+                          "paper_b_2_dl_bert_model_confusion_matrix.png",
+                          "Confusion Matrix for BERT Model",
+                          values_fontsize=22
+                          )
 
-    # Print average losses for this epoch
-    print(f"* Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}")
+    # Concatenate all probabilities
+    all_probabilities = np.concatenate(all_probabilities, axis=0)
 
-  """ END of training /validation loop ------------------- """
+    # Calculate average test loss
+    avg_test_loss = total_test_loss / len(test_dataloader)
+    print(f"Average test loss: {avg_test_loss}")
 
-  # Evaluate and log metrics
-  accuracy = accuracy_score(true_labels, predictions)
-  precision, recall, f1, _ = precision_recall_fscore_support(true_labels, predictions)
+    # Convert logits to probabilities
+    probabilities = softmax(torch.Tensor(logits))
 
-  print("\nAccuracy:", accuracy)
-  print("Training Class-wise metrics:")
-  for i, class_name in enumerate(class_names):
-    print(f"{class_name}: Precision = {precision[i]:.2f}, Recall = {recall[i]:.2f}, F1 = {f1[i]:.2f}")
+    # Evaluate metrics for the test set
+    test_accuracy = accuracy_score(test_true_labels, test_predictions)
+    test_precision, test_recall, test_f1, _ = precision_recall_fscore_support(
+      test_true_labels, test_predictions, zero_division=0)
 
-  # Test Loop
-  model.eval()
-  total_test_loss = 0
-  test_predictions, test_true_labels = [], []
-  all_probabilities = []
+    # Get AUC ROC score
+    roc_auc = roc_auc_score(test_true_labels, all_probabilities[:, 1])
 
-  softmax = torch.nn.Softmax(dim=1)
+    # Get MCC score
+    mcc = matthews_corrcoef(test_true_labels, test_predictions)
+    # Make confusion matrix
+    cm = confusion_matrix(test_true_labels, test_predictions)
+    df_cm = pd.DataFrame(cm, index=class_names, columns=class_names)
 
-  # Initialize JSONL file for misclassified examples
-  misclassified_output_file = "shared_data/dataset_1_5_misclassified_examples.jsonl"
-  empty_json_file(misclassified_output_file)
+    print("\nModel: BERT\n")
+    print(f"- Accuracy: {test_accuracy:.3f}")
+    print(f"- Precision: {np.mean(test_precision):.3f}")
+    print(f"- Recall: {np.mean(test_recall):.3f}")
+    print(f"- F1 Score: {np.mean(test_f1):.3f}")
+    print(f"- AUC-ROC: {roc_auc:.3f}")
+    print(f"- Matthews Correlation Coefficient (MCC): {mcc:.3f}")
+    print(f"- Confusion Matrix:")
+    print(df_cm)
+    print()
 
-  for batch in tqdm(test_dataloader, desc="Testing"):
-    with torch.no_grad():
-      b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
+    # print("Test Class-wise metrics:")
+    for i, class_name in enumerate(class_names):
+      print(f"{class_name}: Precision = {precision[i]:.2f}, Recall = {recall[i]:.2f}, F1 = {f1[i]:.2f}")
 
-      # Forward pass
-      outputs = model(b_input_ids, attention_mask=b_attention_mask, labels=b_labels)
-      loss = outputs.loss
-      total_test_loss += loss.item()
+    print()
+    print("Hyperparameters:")
+    print(f"- Learning Rate: {LEARNING_RATE}")
+    print(f"- Batch Size: {BATCH_SIZE}")
+    print(f"- Warmup Steps: {WARMUP_STEPS}")
+    print(f"- Number of Epochs: {NUM_EPOCHS}")
+    print(f"- Weight Decay: {WEIGHT_DECAY}")
+    print(f"- Dropout Rate: {DROP_OUT_RATE}")
+    print("---")
+    print(f"- Seed: {SEED}")
+    print()
 
-      logits = outputs.logits
-      probabilities = softmax(logits)
-      all_probabilities.append(probabilities.cpu().numpy())  # Move to CPU before conversion
-
-      label_ids = b_labels.cpu().numpy()  # Move to CPU before conversion
-
-      # Store predictions and true labels
-      test_predictions.extend(torch.argmax(logits, dim=1).cpu().numpy())  # Move to CPU before conversion
-      test_true_labels.extend(label_ids)
-
-      # Identifying and saving misclassified examples
-      predictions = torch.argmax(logits, dim=1).cpu().numpy()
-      for j, (pred, true) in enumerate(zip(predictions, label_ids)):  # no _id in zip
-        if pred != true:
-          # Access the correct id using the batch index and the offset within the batch
-          #example_id = test_ids[i * BATCH_SIZE + j]
-          example_id = dataset[i * BATCH_SIZE + j]["metadata"]["text_id"]
-          save_row_to_jsonl_file({
-            "id": example_id,  # corrected to use the separate ids list
-            "true_label": REVERSED_LABEL_MAP[true],
-            "predicted_label": REVERSED_LABEL_MAP[pred],
-            "text": dataset[i * BATCH_SIZE + j]["text"],
-            "metadata": dataset[i * BATCH_SIZE + j]["metadata"]
-          }, misclassified_output_file)
-
-  plt.figure()
-  plot_confusion_matrix(test_true_labels,
-                        test_predictions,
-                        class_names,
-                        "paper_b_2_dl_bert_model_confusion_matrix.png",
-                        "Confusion Matrix for BERT Model",
-                        values_fontsize=22
-                        )
-
-  # Concatenate all probabilities
-  all_probabilities = np.concatenate(all_probabilities, axis=0)
-
-  # Calculate average test loss
-  avg_test_loss = total_test_loss / len(test_dataloader)
-  print(f"Average test loss: {avg_test_loss}")
-
-  # Convert logits to probabilities
-  probabilities = softmax(torch.Tensor(logits))
-
-  # Evaluate metrics for the test set
-  test_accuracy = accuracy_score(test_true_labels, test_predictions)
-  test_precision, test_recall, test_f1, _ = precision_recall_fscore_support(
-    test_true_labels, test_predictions, zero_division=0)
-
-  # Get AUC ROC score
-  roc_auc = roc_auc_score(test_true_labels, all_probabilities[:, 1])
-
-  # Get MCC score
-  mcc = matthews_corrcoef(test_true_labels, test_predictions)
-  # Make confusion matrix
-  cm = confusion_matrix(test_true_labels, test_predictions)
-  df_cm = pd.DataFrame(cm, index=class_names, columns=class_names)
-
-  print("\nModel: BERT\n")
-  print(f"- Accuracy: {test_accuracy:.3f}")
-  print(f"- Precision: {np.mean(test_precision):.3f}")
-  print(f"- Recall: {np.mean(test_recall):.3f}")
-  print(f"- F1 Score: {np.mean(test_f1):.3f}")
-  print(f"- AUC-ROC: {roc_auc:.3f}")
-  print(f"- Matthews Correlation Coefficient (MCC): {mcc:.3f}")
-  print(f"- Confusion Matrix:")
-  print(df_cm)
-  print()
-
-  # print("Test Class-wise metrics:")
-  for i, class_name in enumerate(class_names):
-    print(f"{class_name}: Precision = {precision[i]:.2f}, Recall = {recall[i]:.2f}, F1 = {f1[i]:.2f}")
-
-  print()
-  print("Hyperparameters:")
-  print(f"- Learning Rate: {LEARNING_RATE}")
-  print(f"- Batch Size: {BATCH_SIZE}")
-  print(f"- Warmup Steps: {WARMUP_STEPS}")
-  print(f"- Number of Epochs: {NUM_EPOCHS}")
-  print(f"- Weight Decay: {WEIGHT_DECAY}")
-  print(f"- Dropout Rate: {DROP_OUT_RATE}")
-  print("---")
-  print(f"- Seed: {SEED}")
-  print()
-
-  # Make visualization for training and validation losses
-  plt.figure()
-  plt.plot(range(1, NUM_EPOCHS + 1), train_losses, label="Training Loss", color="green")
-  plt.plot(range(1, NUM_EPOCHS + 1), val_losses, label="Validation Loss", color="black")
-  plt.xlabel("Epoch")
-  plt.ylabel("Loss")
-  plt.legend()
-  plt.savefig("images/paper_a_1_dl_bert_model_losses.png")
-  plt.close()
+    # Make visualization for training and validation losses
+    plt.figure()
+    plt.plot(range(1, NUM_EPOCHS + 1), train_losses, label="Training Loss", color="green")
+    plt.plot(range(1, NUM_EPOCHS + 1), val_losses, label="Validation Loss", color="black")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.savefig("images/paper_a_1_dl_bert_model_losses.png")
+    plt.close()
 
 # Create an Optuna study
 study = create_study(direction="maximize")  # or "minimize" depending on your metric
@@ -376,17 +364,15 @@ study = create_study(direction="maximize")  # or "minimize" depending on your me
 # Optimize the study
 study.optimize(objective, n_trials=10)  # Adjust the number of trials as needed
 
-# Access the best hyperparameters
-best_params = study.best_params
-print("Best Hyperparameters:", best_params)
+# Print best trial results
+print("Number of finished trials: ", len(study.trials))
+print("Best trial:")
+trial = study.best_trial
 
-# Train BERT model with the best hyperparameters
-LEARNING_RATE = best_params["learning_rate"]
-BATCH_SIZE = best_params["batch_size"]
-WARMUP_STEPS = best_params["warmup_steps"]
-NUM_EPOCHS = best_params["num_epochs"]
-WEIGHT_DECAY = best_params["weight_decay"]
-DROP_OUT_RATE = best_params["dropout_rate"]
+print("Value: ", trial.value)
+print("Params: ")
+for key, value in trial.params.items():
+    print(f"    {key}: {value}")
 
 """
 Model: BERT
