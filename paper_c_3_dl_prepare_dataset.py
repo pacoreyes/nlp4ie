@@ -10,7 +10,7 @@ from lib.utils2 import anonymize_text
 from lib.utils import (read_from_google_sheet, save_row_to_jsonl_file, empty_json_file)
 from lib.utils2 import remove_duplicated_datapoints
 
-SEED = 42
+SEED = 1234
 FOR_OPEN_AI = True
 
 # Set seed for reproducibility
