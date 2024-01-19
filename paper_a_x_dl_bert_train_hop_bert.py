@@ -122,6 +122,7 @@ def preprocess(_texts, _tokenizer, _device, max_length=MAX_LENGTH):
   inputs = _tokenizer(_texts, return_tensors="pt", truncation=True, padding=True, max_length=max_length)
   return inputs["input_ids"].to(_device), inputs["attention_mask"].to(_device)
 
+
 # Create TensorDatasets
 train_dataset = create_dataset(train_df, tokenizer, device)
 val_dataset = create_dataset(val_df, tokenizer, device)
@@ -132,11 +133,6 @@ labels = df["label"].tolist()
 class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(labels), y=labels)
 class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
 
-# Create DataLoaders
-train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=16)
-val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=16)
-test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=16)
-
 def objective(trial):
     LEARNING_RATE = trial.suggest_float("learning_rate", 1e-6, 1e-2, log=True)
     BATCH_SIZE = trial.suggest_int("batch_size", 4, 32, log=True)
@@ -144,6 +140,11 @@ def objective(trial):
     NUM_EPOCHS = trial.suggest_int("num_epochs", 1, 5)
     WEIGHT_DECAY = trial.suggest_float("weight_decay", 1e-5, 1e-3, log=True)
     DROP_OUT_RATE = trial.suggest_float("dropout_rate", 0.1, 0.3)
+
+    # Create DataLoaders
+    train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE)
+    val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=BATCH_SIZE)
+    test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=BATCH_SIZE)
 
     # Initialize optimizer and scheduler
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE)
@@ -358,11 +359,13 @@ def objective(trial):
     plt.savefig("images/paper_a_1_dl_bert_model_losses.png")
     plt.close()
 
+    return accuracy  # Return the metric we want to optimize (accuracy in this case)
+
 # Create an Optuna study
 study = create_study(direction="maximize")  # or "minimize" depending on your metric
 
 # Optimize the study
-study.optimize(objective, n_trials=10)  # Adjust the number of trials as needed
+study.optimize(objective, n_trials=2)  # Adjust the number of trials as needed
 
 # Print best trial results
 print("Number of finished trials: ", len(study.trials))
