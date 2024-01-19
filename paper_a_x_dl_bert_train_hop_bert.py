@@ -77,12 +77,19 @@ def preprocess(_texts, _tokenizer, _device, max_length=MAX_LENGTH):
   return inputs["input_ids"].to(_device), inputs["attention_mask"].to(_device)
 
 def objective(trial):
-  LEARNING_RATE = trial.suggest_float("learning_rate", 1e-6, 1e-2, log=True)
-  BATCH_SIZE = trial.suggest_int("batch_size", 4, 32, log=True)
-  WARMUP_STEPS = trial.suggest_int("warmup_steps", 0, 1000)
-  NUM_EPOCHS = trial.suggest_int("num_epochs", 1, 5)
-  WEIGHT_DECAY = trial.suggest_float("weight_decay", 1e-5, 1e-3, log=True)
-  DROP_OUT_RATE = trial.suggest_float("dropout_rate", 0.1, 0.3)
+  try:
+    LEARNING_RATE = trial.suggest_float("learning_rate", 1e-6, 1e-2, log=True)
+    BATCH_SIZE = trial.suggest_int("batch_size", 4, 32, log=True)
+    WARMUP_STEPS = trial.suggest_int("warmup_steps", 0, 1000)
+    NUM_EPOCHS = trial.suggest_int("num_epochs", 1, 5)
+    WEIGHT_DECAY = trial.suggest_float("weight_decay", 1e-5, 1e-3, log=True)
+    DROP_OUT_RATE = trial.suggest_float("dropout_rate", 0.1, 0.3)
+
+    print("Trial Parameters:", trial.params)
+
+  except Exception as e:
+    print(f"Error in trial {trial.number}: {str(e)}")
+    study.set_trial_state(trial, optuna.trial.TrialState.FAIL)
 
 
   # Set seed for reproducibility
