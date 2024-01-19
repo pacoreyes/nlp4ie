@@ -47,8 +47,13 @@ for idx, text_doc in tqdm.tqdm(enumerate(dataset), desc=f"Processing {len(datase
       # Join the sentences in the current window to form a single text, and add it to the new dataset
       new_text = " ".join(window)
       datapoint_id += 1  # Increment the unique id for each new datapoint
-      datapoint = {'id': datapoint_id, 'text_id': text_doc["id"], 'text': new_text,
-                   'label': text_doc['discourse_type'], 'metadata': text_doc['metadata']}
+      datapoint = {
+        'id': datapoint_id,
+        # 'text_id': text_doc["id"],
+        'text': new_text,
+        'label': text_doc['discourse_type'],
+        'metadata': text_doc['metadata']
+      }
       save_row_to_jsonl_file(datapoint, output_file)
       if datapoint['label'] == 0:
         monologic_counter += 1
@@ -61,8 +66,13 @@ for idx, text_doc in tqdm.tqdm(enumerate(dataset), desc=f"Processing {len(datase
   if window and len(tokenizer.tokenize(" ".join(window))) >= 450:
     new_text = " ".join(window)
     datapoint_id += 1  # Increment the unique id for each new datapoint
-    datapoint = {'id': datapoint_id, 'text_id': text_doc["id"], 'text': new_text,
-                 'label': text_doc['discourse_type'], 'metadata': text_doc['metadata']}
+    datapoint = {
+      'id': datapoint_id,
+      # 'text_id': text_doc["id"],
+      'text': new_text,
+      'label': text_doc['discourse_type'],
+      'metadata': text_doc['metadata']
+    }
     save_row_to_jsonl_file(datapoint, output_file)
     if datapoint['label'] == 0:
       monologic_counter += 1
