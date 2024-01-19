@@ -11,6 +11,8 @@ from setfit import SetFitModel, Trainer, TrainingArguments
 from sklearn.manifold import TSNE
 from sklearn.metrics import (precision_recall_fscore_support,
                              accuracy_score, roc_auc_score, matthews_corrcoef, confusion_matrix)
+# from sklearn.preprocessing import label_binarize
+# from sklearn.model_selection import train_test_split
 from transformers import TrainerCallback
 
 from lib.utils import load_jsonl_file
@@ -25,7 +27,7 @@ MODEL_SEED = 19
 
 # Hyperparameters
 BODY_LEARNING_RATE = 6.125082727886936e-05
-# HEAD_LEARNING_RATE = 0.005
+HEAD_LEARNING_RATE = 0.005
 BATCH_SIZE = 32
 NUM_EPOCHS = 2
 MAX_ITER = 249
@@ -58,21 +60,9 @@ def get_device():
     return torch.device("cpu")
 
 
-def model_init():
-  params = {
-    "head_params": {
-      "max_iter": MAX_ITER,
-      "solver": SOLVER,
-    }
-  }
-  _model = SetFitModel.from_pretrained(model_id, **params)
-  _model.to(device)
-  return _model
-
-
 def compute_metrics(y_pred, y_test):
   accuracy = accuracy_score(y_test, y_pred)
-  precision, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred, average='macro')
+  precision, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred, average='micro')
   # auc = roc_auc_score(y_test, y_pred, multi_class='ovo')
   mcc = matthews_corrcoef(y_test, y_pred)
   cm = confusion_matrix(y_test, y_pred)
@@ -88,6 +78,18 @@ def compute_metrics(y_pred, y_test):
   }
 
 
+def model_init():
+  params = {
+    "head_params": {
+      "max_iter": MAX_ITER,
+      "solver": SOLVER,
+    }
+  }
+  _model = SetFitModel.from_pretrained(model_id, **params)
+  _model.to(device)
+  return _model
+
+
 # Set device to CUDA, MPS, or CPU
 device = get_device()
 print(f"\nUsing device: {str(device).upper()}\n")
@@ -95,6 +97,12 @@ print(f"\nUsing device: {str(device).upper()}\n")
 # model_id = "sentence-transformers/all-mpnet-base-v2"
 model_id = "sentence-transformers/paraphrase-mpnet-base-v2"
 # model_id = "BAAI/bge-small-en-v1.5"
+model = SetFitModel.from_pretrained(
+  model_id,
+)
+
+# Move model to device
+model.to(device)
 
 # Load datasets
 dataset_training_route = "shared_data/dataset_3_4_training_anonym.jsonl"
@@ -113,11 +121,23 @@ dataset_test = [{"label": LABEL_MAP[datapoint["completion"]], "text": datapoint[
                 for datapoint in dataset_test]
 
 # Count and print class distribution
+# counter = Counter([item['label'] for item in dataset])
 print("\nDataset:")
 print(f"- training: {len(dataset_training)}")
 print(f"- validation: {len(dataset_validation)}")
 print(f"- test: {len(dataset_test)}")
 
+# sentences = [entry["text"] for entry in dataset]
+# labels = [entry["label"] for entry in dataset]
+
+"""# First split: 80% training, 20% temporary test
+train_data, temp_test_data, train_labels, temp_test_labels = train_test_split(
+  dataset, labels, test_size=0.2, random_state=SEED, stratify=labels)
+
+# Second split of the temporary test data into validation and test sets (each 10% of the original)
+validation_data, test_data, validation_labels, test_labels = train_test_split(
+  temp_test_data, temp_test_labels, test_size=0.5, random_state=SEED, stratify=temp_test_labels)
+"""
 
 num_support_test = len([item for item in dataset_test if item["label"] == 0])
 num_oppose_test = len([item for item in dataset_test if item["label"] == 1])
@@ -230,17 +250,22 @@ class EmbeddingPlotCallback(TrainerCallback):
 
 
 arguments = TrainingArguments(
-  body_learning_rate=BODY_LEARNING_RATE,
-  num_epochs=NUM_EPOCHS,
   batch_size=BATCH_SIZE,
-  seed=MODEL_SEED,
+  num_epochs=NUM_EPOCHS,
   # end_to_end=True,
+  body_learning_rate=BODY_LEARNING_RATE,
   # head_learning_rate=HEAD_LEARNING_RATE,
   # l2_weight=L2_WEIGHT,
-  # evaluation_strategy="epoch",
-  # eval_steps=20,
+  evaluation_strategy="epoch",
+  eval_steps=20,
   # num_iterations=20,
+  seed=MODEL_SEED,
 )
+
+# Initialize callbacks
+embedding_plot_callback = EmbeddingPlotCallback()
+loss_plot_callback = LossPlotCallback()
+
 
 # Training Loop
 trainer = Trainer(
@@ -249,13 +274,14 @@ trainer = Trainer(
   args=arguments,
   train_dataset=train_dataset,
   eval_dataset=validation_dataset,
-  # callbacks=[embedding_plot_callback, loss_plot_callback],
+  callbacks=[embedding_plot_callback, loss_plot_callback],
   metric=compute_metrics,
 )
 
 trainer.train()
 
 metrics = trainer.evaluate(test_dataset)
+# print(metrics)
 
 df_cm = pd.DataFrame(metrics['confusion_matrix'], index=class_names, columns=class_names)
 
@@ -264,22 +290,34 @@ print(f"- Accuracy: {metrics['accuracy']:.3f}")
 print(f"- Precision: {np.mean(metrics['precision']):.3f}")
 print(f"- Recall: {np.mean(metrics['recall']):.3f}")
 print(f"- F1 Score: {np.mean(metrics['f1']):.3f}")
+# print(f"- AUC-ROC: {metrics['auc']:.3f}")
 print(f"- Matthews Correlation Coefficient (MCC): {metrics['mcc']:.3f}")
 print(f"- Confusion Matrix:")
 print(df_cm)
 print()
 
-
+# Make visualization for training and validation losses
+plt.figure()
+plt.plot(range(1, NUM_EPOCHS + 1), loss_plot_callback.train_losses, label="Training Loss", color="green")
+plt.plot(range(1, NUM_EPOCHS + 1), loss_plot_callback.eval_losses, label="Validation Loss", color="black")
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.legend()
+plt.savefig("images/paper_c_losses.png")
+plt.close()
 
 print()
 print("Hyperparameters:")
 print(f"- Body Learning Rate: {BODY_LEARNING_RATE}")
+# print(f"- Head Learning Rate: {HEAD_LEARNING_RATE}")
 print(f"- Batch Size: {BATCH_SIZE}")
 print(f"- Number of Epochs: {NUM_EPOCHS}")
+# print(f"- L2 Weight: {L2_WEIGHT}")
 print(f"- Max Iterations: {MAX_ITER}")
 print(f"- Solver: {SOLVER}")
 print("---")
 print(f"- Seed: {SEED}")
+print(f"- Model Seed: {MODEL_SEED}")
 print()
 
 
