@@ -134,7 +134,7 @@ pprint(f"\nMetrics: {metrics}")
 # Save model
 trainer.model.save_pretrained("models/3")
 
-
+# Note: the following code is not working
 """
 on Mac MPS
 model = "sentence-transformers/paraphrase-mpnet-base-v2"
