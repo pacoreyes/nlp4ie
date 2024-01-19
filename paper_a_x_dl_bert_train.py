@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 from transformers import BertTokenizer, BertForSequenceClassification, get_linear_schedule_with_warmup
 
+from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file
 from lib.utils import load_jsonl_file
 from lib.utils2 import balance_classes_in_dataset
 from lib.visualizations import plot_confusion_matrix
@@ -23,13 +24,16 @@ from lib.visualizations import plot_confusion_matrix
 LABEL_MAP = {"monologic": 0, "dialogic": 1}
 class_names = list(LABEL_MAP.keys())
 
+# REVERSED_LABEL_MAP = {v: k for k, v in LABEL_MAP.items()}
+REVERSED_LABEL_MAP = {0: "monologic", 1: "dialogic"}
+
 # Initialize constants
 MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BERT model
 SEED = 1234  # 42, 1234, 2021
 
 # Hyperparameters
 LEARNING_RATE = 1.6e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
-BATCH_SIZE = 16  # 16, 32
+BATCH_SIZE = 8  # 16, 32
 WARMUP_STEPS = 700  # 0, 100, 1000, 10000
 NUM_EPOCHS = 4  # 2, 3, 4, 5
 WEIGHT_DECAY = 1e-3  # 1e-2 or 1e-3
@@ -81,7 +85,7 @@ print(f"\nUsing device: {str(device).upper()}\n")
 data_file = "shared_data/dataset_1_4_sliced.jsonl"
 
 # Load BERT model
-model = BertForSequenceClassification.from_pretrained("bert-large-uncased",
+model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
                                                       num_labels=len(LABEL_MAP),
                                                       hidden_dropout_prob=DROP_OUT_RATE)
 # Move model to device
@@ -94,7 +98,7 @@ dataset = load_jsonl_file(data_file)
 dataset = balance_classes_in_dataset(dataset, "monologic", "dialogic", "label", SEED)
 
 # Load the BERT tokenizer
-tokenizer = BertTokenizer.from_pretrained("bert-large-uncased")
+tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
 sentences = [entry["text"] for entry in dataset]
 labels = [entry["label"] for entry in dataset]
@@ -103,7 +107,12 @@ labels = [entry["label"] for entry in dataset]
 labels = [LABEL_MAP[label] for label in labels]
 
 # Convert to pandas DataFrame for stratified splitting
-df = pd.DataFrame({"text": sentences, "label": labels})
+df = pd.DataFrame({
+  "id": [entry["id"] for entry in dataset],  # Include 'id'
+  "text": sentences,
+  "label": labels,
+  "metadata": [entry["metadata"] for entry in dataset]  # Include 'metadata'
+})
 
 # Stratified split of the data to obtain the train and the remaining data
 train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.2, random_state=SEED)
@@ -115,6 +124,13 @@ val_df, test_df = train_test_split(remaining_df, stratify=remaining_df["label"],
 train_dataset = create_dataset(train_df)
 val_dataset = create_dataset(val_df)
 test_dataset = create_dataset(test_df)
+
+'''
+# Create TensorDatasets
+train_dataset, train_ids = create_dataset(train_df)
+val_dataset, val_ids = create_dataset(val_df)
+test_dataset, test_ids = create_dataset(test_df)
+'''
 
 # Calculate class weights
 class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(labels), y=labels)
@@ -228,6 +244,10 @@ all_probabilities = []
 
 softmax = torch.nn.Softmax(dim=1)
 
+# Initialize JSONL file for misclassified examples
+misclassified_output_file = "shared_data/dataset_1_5_misclassified_examples.jsonl"
+empty_json_file(misclassified_output_file)
+
 for batch in tqdm(test_dataloader, desc="Testing"):
   with torch.no_grad():
     b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
@@ -246,6 +266,21 @@ for batch in tqdm(test_dataloader, desc="Testing"):
     # Store predictions and true labels
     test_predictions.extend(torch.argmax(logits, dim=1).cpu().numpy())  # Move to CPU before conversion
     test_true_labels.extend(label_ids)
+
+    # Identifying and saving misclassified examples
+    predictions = torch.argmax(logits, dim=1).cpu().numpy()
+    for j, (pred, true) in enumerate(zip(predictions, label_ids)):  # no _id in zip
+      if pred != true:
+        # Access the correct id using the batch index and the offset within the batch
+        #example_id = test_ids[i * BATCH_SIZE + j]
+        example_id = dataset[i * BATCH_SIZE + j]["metadata"]["text_id"]
+        save_row_to_jsonl_file({
+          "id": example_id,  # corrected to use the separate ids list
+          "true_label": REVERSED_LABEL_MAP[true],
+          "predicted_label": REVERSED_LABEL_MAP[pred],
+          "text": dataset[i * BATCH_SIZE + j]["text"],
+          "metadata": dataset[i * BATCH_SIZE + j]["metadata"]
+        }, misclassified_output_file)
 
 plt.figure()
 plot_confusion_matrix(test_true_labels,
