@@ -365,7 +365,7 @@ def objective(trial):
 study = create_study(direction="maximize")  # or "minimize" depending on your metric
 
 # Optimize the study
-study.optimize(objective, n_trials=20)  # Adjust the number of trials as needed
+study.optimize(objective, n_trials=30)  # Adjust the number of trials as needed
 
 # Print best trial results
 print("Number of finished trials: ", len(study.trials))
