@@ -1,17 +1,12 @@
-import random
-import os
 # from pprint import pprint
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
 from datasets import Dataset
 from setfit import SetFitModel, Trainer, TrainingArguments
-from sklearn.manifold import TSNE
 from sklearn.metrics import (precision_recall_fscore_support,
                              accuracy_score, roc_auc_score, matthews_corrcoef, confusion_matrix)
-from transformers import TrainerCallback
 
 from lib.utils import load_jsonl_file
 
@@ -19,33 +14,14 @@ from lib.utils import load_jsonl_file
 LABEL_MAP = {"support": 0, "oppose": 1, "neutral": 2}
 class_names = list(LABEL_MAP.keys())
 
-# Initialize constants
-SEED = 42
-MODEL_SEED = 19
 
 # Hyperparameters
 BODY_LEARNING_RATE = 6.125082727886936e-05
-# HEAD_LEARNING_RATE = 0.005
 BATCH_SIZE = 32
 NUM_EPOCHS = 2
 MAX_ITER = 249
-# L2_WEIGHT = 0.01
+MODEL_SEED = 19
 SOLVER = "liblinear"
-
-
-def set_seed(seed_value):
-  """Set seed for reproducibility."""
-  random.seed(seed_value)
-  np.random.seed(seed_value)
-  torch.manual_seed(seed_value)
-  torch.cuda.manual_seed_all(seed_value)
-  torch.backends.cudnn.deterministic = True
-  torch.backends.cudnn.benchmark = False
-  os.environ['PYTHONHASHSEED'] = str(seed_value)
-
-
-# Set seed for reproducibility
-set_seed(SEED)
 
 
 def get_device():
@@ -140,116 +116,21 @@ validation_dataset = Dataset.from_dict(val_columns)
 test_columns = {key: [dic[key] for dic in dataset_test] for key in dataset_test[0]}
 test_dataset = Dataset.from_dict(test_columns)
 
-
-class LossPlotCallback(TrainerCallback):
-  """Callback that records and prints loss after each epoch for plotting later."""
-
-  def __init__(self):
-    self.train_losses = []
-    self.eval_losses = []
-
-  def on_epoch_end(self, args, state, control, **kwargs):
-    # Compute average training loss over the epoch
-    train_loss = np.mean(state.log_history[-1]['embedding_loss'])
-    self.train_losses.append(train_loss)
-    print(f"Average Training Loss for Epoch {state.epoch}: {train_loss}")
-
-  def on_evaluate(self, args, state, control, **kwargs):
-    # Assuming eval loss is recorded at the end of each evaluation in the log_history
-    eval_loss = state.log_history[-1]['eval_embedding_loss']
-    self.eval_losses.append(eval_loss)
-    print(f"Average Validation Loss after Epoch {state.epoch}: {eval_loss}")
-
-
-# class EmbeddingPlotCallback(TrainerCallback):
-  # Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
-  # throughout training."""
-
-"""  def on_evaluate(self, args, state, control, **kwargs):
-    train_embeddings = model.encode(train_dataset["text"])
-    eval_embeddings = model.encode(validation_dataset["text"])
-
-    # Determine dataset size to adjust perplexity
-    eval_dataset_size = len(validation_dataset["text"])
-    perplexity_value = min(30, max(5, int(eval_dataset_size / 2)))
-
-    fig, (train_ax, eval_ax) = plt.subplots(ncols=2)
-
-    train_x = TSNE(n_components=2, perplexity=perplexity_value).fit_transform(train_embeddings)
-    train_ax.scatter(*train_x.T, c=train_dataset["label"], label=train_dataset["label"])
-    train_ax.set_title("Training embeddings")
-
-    eval_x = TSNE(n_components=2, perplexity=perplexity_value).fit_transform(eval_embeddings)
-    eval_ax.scatter(*eval_x.T, c=validation_dataset["label"], label=validation_dataset["label"])
-    eval_ax.set_title("Evaluation embeddings")
-
-    fig.suptitle(f"tSNE of training and evaluation embeddings at step {state.global_step} of {state.max_steps}.")
-    fig.savefig(f"images/step_{state.global_step}.png")"""
-
-
-class EmbeddingPlotCallback(TrainerCallback):
-  """Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
-  # throughout training."""
-
-  def on_evaluate(self, args, state, control, **kwargs):
-    train_embeddings = model.encode(train_dataset["text"])
-    eval_embeddings = model.encode(validation_dataset["text"])
-
-    # Determine dataset size to adjust perplexity
-    eval_dataset_size = len(validation_dataset["text"])
-    perplexity_value = min(30, max(5, int(eval_dataset_size / 2)))
-
-    # Define a color map for different classes
-    color_map = {0: 'red', 1: 'blue', 2: 'green'}  # Update this with your class colors
-
-    # Create subplots
-    fig, (train_ax, eval_ax) = plt.subplots(ncols=2)
-
-    # Plot training embeddings
-    train_x = TSNE(n_components=2, perplexity=perplexity_value).fit_transform(train_embeddings)
-    scatter = train_ax.scatter(*train_x.T, c=[color_map[label] for label in train_dataset["label"]])
-    train_ax.set_title("Training embeddings")
-    train_ax.set_xlabel("Component 1")
-    train_ax.set_ylabel("Component 2")
-
-    # Plot evaluation embeddings
-    eval_x = TSNE(n_components=2, perplexity=perplexity_value).fit_transform(eval_embeddings)
-    scatter = eval_ax.scatter(*eval_x.T, c=[color_map[label] for label in validation_dataset["label"]])
-    eval_ax.set_title("Evaluation embeddings")
-    eval_ax.set_xlabel("Component 1")
-    eval_ax.set_ylabel("Component 2")
-
-    # Add a legend
-    handles = [plt.Line2D([0], [0], marker='o', color='w', label=class_name,
-                          markerfacecolor=color, markersize=10) for class_name, color in color_map.items()]
-    fig.legend(handles=handles, loc='upper right')
-
-    # Add overall title and save the figure
-    fig.suptitle(f"tSNE of training and evaluation embeddings at step {state.global_step} of {state.max_steps}.")
-    fig.savefig(f"images/step_{state.global_step}.png")
-
-
+# Initialize model parameters
 arguments = TrainingArguments(
   body_learning_rate=BODY_LEARNING_RATE,
   num_epochs=NUM_EPOCHS,
   batch_size=BATCH_SIZE,
   seed=MODEL_SEED,
-  # end_to_end=True,
-  # head_learning_rate=HEAD_LEARNING_RATE,
-  # l2_weight=L2_WEIGHT,
-  # evaluation_strategy="epoch",
-  # eval_steps=20,
-  # num_iterations=20,
+  num_iterations=20,
 )
 
 # Training Loop
 trainer = Trainer(
-  # model=model,
   model_init=model_init,
   args=arguments,
   train_dataset=train_dataset,
   eval_dataset=validation_dataset,
-  # callbacks=[embedding_plot_callback, loss_plot_callback],
   metric=compute_metrics,
 )
 
@@ -269,9 +150,6 @@ print(f"- Confusion Matrix:")
 print(df_cm)
 print()
 
-
-
-print()
 print("Hyperparameters:")
 print(f"- Body Learning Rate: {BODY_LEARNING_RATE}")
 print(f"- Batch Size: {BATCH_SIZE}")
@@ -279,7 +157,7 @@ print(f"- Number of Epochs: {NUM_EPOCHS}")
 print(f"- Max Iterations: {MAX_ITER}")
 print(f"- Solver: {SOLVER}")
 print("---")
-print(f"- Seed: {SEED}")
+print(f"- Seed: {MODEL_SEED}")
 print()
 
 

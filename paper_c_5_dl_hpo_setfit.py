@@ -1,6 +1,6 @@
 import random
 import os
-# from pprint import pprint
+from pprint import pprint
 
 import numpy as np
 import torch
@@ -119,7 +119,21 @@ trainer = Trainer(
     eval_dataset=test_dataset,
     model_init=model_init,
 )
-best_run = trainer.hyperparameter_search(direction="maximize", hp_space=hp_space, n_trials=20)
+best_run = trainer.hyperparameter_search(direction="maximize", hp_space=hp_space, n_trials=12)
+
+# Print best run
+pprint(f"\nBest run: {best_run}")
+
+trainer.apply_hyperparameters(best_run.hyperparameters, final_model=True)
+trainer.train()
+
+# Evaluate model
+metrics = trainer.evaluate()
+pprint(f"\nMetrics: {metrics}")
+
+# Save model
+trainer.model.save_pretrained("models/3")
+
 
 """
 on Mac MPS
