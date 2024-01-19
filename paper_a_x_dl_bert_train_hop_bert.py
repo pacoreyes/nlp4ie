@@ -135,9 +135,9 @@ class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
 
 def objective(trial):
     LEARNING_RATE = trial.suggest_float("learning_rate", 1e-6, 1e-2, log=True)
-    BATCH_SIZE = trial.suggest_int("batch_size", 4, 32, log=True)
+    BATCH_SIZE = trial.suggest_int("batch_size", 16, 34, log=True)
     WARMUP_STEPS = trial.suggest_int("warmup_steps", 0, 1000)
-    NUM_EPOCHS = trial.suggest_int("num_epochs", 1, 5)
+    NUM_EPOCHS = trial.suggest_int("num_epochs", 3, 4)
     WEIGHT_DECAY = trial.suggest_float("weight_decay", 1e-5, 1e-3, log=True)
     DROP_OUT_RATE = trial.suggest_float("dropout_rate", 0.1, 0.3)
 
@@ -365,7 +365,7 @@ def objective(trial):
 study = create_study(direction="maximize")  # or "minimize" depending on your metric
 
 # Optimize the study
-study.optimize(objective, n_trials=2)  # Adjust the number of trials as needed
+study.optimize(objective, n_trials=20)  # Adjust the number of trials as needed
 
 # Print best trial results
 print("Number of finished trials: ", len(study.trials))
