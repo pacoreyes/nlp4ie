@@ -136,17 +136,28 @@ trainer.model.save_pretrained("models/3")
 
 # Note: the following code is not working
 """
-on Mac MPS
-model = "sentence-transformers/paraphrase-mpnet-base-v2"
-Trial 7 finished with value: 0.9444444444444444 and parameters: {'body_learning_rate': 0.00034263549807707024, 'num_epochs': 2, 'batch_size': 64, 'seed': 33, 'max_iter': 117, 'solver': 'lbfgs'}.
-Trial 5 finished with value: 0.9444444444444444 and parameters: {'body_learning_rate': 3.874530126359833e-06, 'num_epochs': 3, 'batch_size': 64, 'seed': 31, 'max_iter': 207, 'solver': 'lbfgs'}.
-
-model = "sentence-transformers/all-mpnet-base-v2"
-Trial 13 finished with value: 1.0 and parameters: {'body_learning_rate': 0.00010214746757835319, 'num_epochs': 2, 'batch_size': 32, 'seed': 35, 'max_iter': 191, 'solver': 'liblinear'}. Best is trial 13 with value: 1.0.
-"""
-
-"""
-on PC CUDA
-model = "sentence-transformers/paraphrase-mpnet-base-v2"
- Trial 6 finished with value: 0.9444444444444444 and parameters: {'body_learning_rate': 0.0001649715020819536, 'num_epochs': 3, 'batch_size': 16, 'seed': 16, 'max_iter': 162, 'solver': 'lbfgs'}.
+"Best run: BestRun(run_id='15', objective=1.0, "
+ "hyperparameters={'body_learning_rate': 5.285687481760766e-05, 'num_epochs': "
+ "2, 'batch_size': 64, 'seed': 17, 'max_iter': 181, 'solver': 'newton-cg'}, "
+ 'backend=<optuna.study.study.Study object at 0x000002999CE6EA70>)')
+model_head.pkl not found on HuggingFace Hub, initialising classification head with random weights. You should TRAIN this model on a downstream task to use it for predictions and inference.
+***** Running training *****
+  Num examples = 216
+  Num epochs = 2
+  Total optimization steps = 432
+  Total train batch size = 64
+  0%|                                                                                                                                                                      | 0/432 [00:00<?, ?it/s] 
+{'embedding_loss': 0.2964, 'learning_rate': 1.2012926094910833e-06, 'epoch': 0.0}                                                                                          | 0/432 [00:00<?, ?it/s] 
+{'embedding_loss': 0.0008, 'learning_rate': 5.203950046475806e-05, 'epoch': 0.23}
+{'embedding_loss': 0.0087, 'learning_rate': 4.52280475243447e-05, 'epoch': 0.46}
+{'embedding_loss': 0.0001, 'learning_rate': 3.841659458393134e-05, 'epoch': 0.69}
+{'embedding_loss': 0.0001, 'learning_rate': 3.160514164351798e-05, 'epoch': 0.93}
+{'embedding_loss': 0.0001, 'learning_rate': 2.4793688703104624e-05, 'epoch': 1.16}
+{'embedding_loss': 0.0001, 'learning_rate': 1.7982235762691266e-05, 'epoch': 1.39}
+{'embedding_loss': 0.0001, 'learning_rate': 1.1170782822277907e-05, 'epoch': 1.62}
+{'embedding_loss': 0.0001, 'learning_rate': 4.359329881864549e-06, 'epoch': 1.85}
+{'train_runtime': 255.5587, 'train_samples_per_second': 108.186, 'train_steps_per_second': 1.69, 'epoch': 2.0}
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 432/432 [04:15<00:00,  1.69it/s] 
+***** Running evaluation *****███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 432/432 [04:15<00:00,  1.79it/s] 
+"\nMetrics: {'accuracy': 1.0}"
 """
