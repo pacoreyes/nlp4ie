@@ -23,7 +23,7 @@ class_names = list(LABEL_MAP.keys())
 
 # Initialize constants
 SEED = 42
-MODEL_SEED = 1234
+MODEL_SEED = 42
 
 # Hyperparameters
 BODY_LEARNING_RATE = 0.00010214746757835319
@@ -254,11 +254,11 @@ arguments = TrainingArguments(
   num_epochs=NUM_EPOCHS,
   end_to_end=True,
   body_learning_rate=BODY_LEARNING_RATE,
-  head_learning_rate=HEAD_LEARNING_RATE,
-  l2_weight=L2_WEIGHT,
+  # head_learning_rate=HEAD_LEARNING_RATE,
+  # l2_weight=L2_WEIGHT,
   evaluation_strategy="epoch",
   eval_steps=20,
-  num_iterations=50,
+  # num_iterations=20,
   seed=MODEL_SEED,
 )
 
@@ -313,8 +313,11 @@ print(f"- Body Learning Rate: {BODY_LEARNING_RATE}")
 print(f"- Batch Size: {BATCH_SIZE}")
 print(f"- Number of Epochs: {NUM_EPOCHS}")
 # print(f"- L2 Weight: {L2_WEIGHT}")
+print(f"- Max Iterations: {MAX_ITER}")
+print(f"- Solver: {SOLVER}")
 print("---")
 print(f"- Seed: {SEED}")
+print(f"- Model Seed: {MODEL_SEED}")
 print()
 
 
