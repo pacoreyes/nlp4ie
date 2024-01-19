@@ -1,4 +1,5 @@
 import random
+from pprint import pprint
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -119,6 +120,9 @@ train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.
 
 # Split the remaining data equally to get a validation set and a test set
 val_df, test_df = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5, random_state=SEED)
+
+pprint(test_df)
+
 
 # Create TensorDatasets
 train_dataset = create_dataset(train_df)

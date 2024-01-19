@@ -119,7 +119,7 @@ trainer = Trainer(
     eval_dataset=test_dataset,
     model_init=model_init,
 )
-best_run = trainer.hyperparameter_search(direction="maximize", hp_space=hp_space, n_trials=20)
+best_run = trainer.hyperparameter_search(direction="maximize", hp_space=hp_space, n_trials=1)
 
 # Print best run
 pprint(f"\nBest run: {best_run}")
@@ -132,5 +132,5 @@ metrics = trainer.evaluate()
 pprint(f"\nMetrics: {metrics}")
 
 # Save model
-trainer.model.save_pretrained("models/3")
-
+# trainer.model.save_pretrained("models/3")
+trainer.tokenizer.save_pretrained("tokenizers/3")
