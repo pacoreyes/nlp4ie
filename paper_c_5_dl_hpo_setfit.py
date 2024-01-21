@@ -2,13 +2,20 @@ import random
 import os
 from pprint import pprint
 from collections import Counter
+import json
 
 import numpy as np
-import torch
 from datasets import Dataset
 from setfit import SetFitModel, Trainer
 
 from lib.utils import load_jsonl_file
+
+# Set the max_split_size_mb parameter
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:21'
+os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+
+import torch
+
 
 # Initialize label map and class names
 LABEL_MAP = {"support": 0, "oppose": 1}
@@ -61,11 +68,25 @@ def hp_space(trial):
   return {
     "body_learning_rate": trial.suggest_float("body_learning_rate", 1e-6, 1e-3, log=True),
     "num_epochs": trial.suggest_int("num_epochs", 1, 3),
-    "batch_size": trial.suggest_categorical("batch_size", [16, 32, 64]),
+    "batch_size": trial.suggest_categorical("batch_size", [16, 32]),
     "seed": trial.suggest_int("seed", 1, 40),
-    "max_iter": trial.suggest_int("max_iter", 50, 300),
+    "max_iter": trial.suggest_int("max_iter", 50, 100),
     "solver": trial.suggest_categorical("solver", ["newton-cg", "lbfgs", "liblinear"]),
   }
+
+
+"""def load_data_lazy(file_path):
+  # Lazy loading of data from a JSONL file.
+  with open(file_path, "r", encoding="utf-8") as file:
+    for line in file:
+      yield json.loads(line)
+
+
+def process_data_lazy(data_generator):
+  # Process data in a memory-efficient manner.
+  for data in data_generator:
+    if data["completion"] != "neutral":
+      yield {"label": LABEL_MAP[data["completion"]], "text": data["prompt"]}"""
 
 
 # Set device to CUDA, MPS, or CPU
@@ -114,6 +135,35 @@ print("\nClass distribution in training dataset:", train_label_counts)
 print("Class distribution in validation dataset:", val_label_counts)
 print("Class distribution in test dataset:", test_label_counts)
 
+"""
+# Replace your training dataset loading with lazy loading
+dataset_training_generator = load_data_lazy(dataset_training_route)
+dataset_training_processed = process_data_lazy(dataset_training_generator)
+
+# Convert the generator to a list before creating a Dataset object for the training data
+dataset_training_list = list(dataset_training_processed)
+train_columns = {key: [dic[key] for dic in dataset_training_list] for key in dataset_training_list[0]}
+train_dataset = Dataset.from_dict(train_columns)
+
+# Replace your validation dataset loading with lazy loading
+dataset_validation_generator = load_data_lazy(dataset_validation_route)
+dataset_validation_processed = process_data_lazy(dataset_validation_generator)
+
+# Convert the generator to a list before creating a Dataset object for the validation data
+dataset_validation_list = list(dataset_validation_processed)
+val_columns = {key: [dic[key] for dic in dataset_validation_list] for key in dataset_validation_list[0]}
+validation_dataset = Dataset.from_dict(val_columns)
+
+# Replace your test dataset loading with lazy loading
+dataset_test_generator = load_data_lazy(dataset_test_route)
+dataset_test_processed = process_data_lazy(dataset_test_generator)
+
+# Convert the generator to a list before creating a Dataset object for the test data
+dataset_test_list = list(dataset_test_processed)
+test_columns = {key: [dic[key] for dic in dataset_test_list] for key in dataset_test_list[0]}
+test_dataset = Dataset.from_dict(test_columns)
+"""
+
 # Convert training data into a Dataset object
 train_columns = {key: [dic[key] for dic in dataset_training] for key in dataset_training[0]}
 train_dataset = Dataset.from_dict(train_columns)
@@ -152,5 +202,5 @@ trainer.model.save_pretrained("models/3")
 # Mac
 # export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
 #
-# Windows
-# set PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
+# set CUDA_LAUNCH_BLOCKING=1
+
