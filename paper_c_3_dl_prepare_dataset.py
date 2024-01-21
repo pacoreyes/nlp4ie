@@ -137,6 +137,9 @@ dataset_test_anonym = []
 # Create dataset for training
 print("\nCreating dataset for training...")
 for datapoint in tqdm(dataset_training, desc=f"Processing {len(dataset_training)} datapoints"):
+  # Anonymize target
+  target = datapoint["target"]
+  datapoint["text"] = datapoint["text"].replace(target, "[TARGET]")
   row = {
     "id": datapoint["id"],
     "text": datapoint["text"],
@@ -158,6 +161,9 @@ for datapoint in tqdm(dataset_training, desc=f"Processing {len(dataset_training)
 # Create dataset for validation
 print("\nCreating dataset for validation...")
 for datapoint in tqdm(dataset_validation, desc=f"Processing {len(dataset_validation)} datapoints"):
+  # Anonymize target
+  target = datapoint["target"]
+  datapoint["text"] = datapoint["text"].replace(target, "[TARGET]")
   row = {
     "id": datapoint["id"],
     "text": datapoint["text"],
@@ -179,6 +185,9 @@ for datapoint in tqdm(dataset_validation, desc=f"Processing {len(dataset_validat
 # Create dataset for test
 print("\nCreating dataset for test...")
 for datapoint in tqdm(dataset_test, desc=f"Processing {len(dataset_test)} datapoints"):
+  # Anonymize target
+  target = datapoint["target"]
+  datapoint["text"] = datapoint["text"].replace(target, "[TARGET]")
   row = {
     "id": datapoint["id"],
     "text": datapoint["text"],

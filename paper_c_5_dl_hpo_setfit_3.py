@@ -1,20 +1,31 @@
 import random
 import os
 from pprint import pprint
-from collections import Counter
 
 import numpy as np
 import torch
 from datasets import Dataset
 from setfit import SetFitModel, Trainer
+from typing import Dict, Any, Union
+from optuna import Trial
 
 from lib.utils import load_jsonl_file
 
 # Initialize label map and class names
-LABEL_MAP = {"support": 0, "oppose": 1}
+LABEL_MAP = {"support": 0, "oppose": 1, "neutral": 2}
 
 # Initialize constants
 SEED = 42
+
+
+def get_device():
+  """Returns the appropriate device available in the system: CUDA, MPS, or CPU"""
+  if torch.backends.mps.is_available():
+    return torch.device("mps")
+  elif torch.cuda.is_available():
+    return torch.device("cuda")
+  else:
+    return torch.device("cpu")
 
 
 def set_seed(seed_value):
@@ -28,21 +39,7 @@ def set_seed(seed_value):
   os.environ['PYTHONHASHSEED'] = str(seed_value)
 
 
-# Set seed for reproducibility
-set_seed(SEED)
-
-
-def get_device():
-  """Returns the appropriate device available in the system: CUDA, MPS, or CPU"""
-  if torch.backends.mps.is_available():
-    return torch.device("mps")
-  elif torch.cuda.is_available():
-    return torch.device("cuda")
-  else:
-    return torch.device("cpu")
-
-
-def model_init(params):
+def model_init(params: Dict[str, Any]) -> SetFitModel:
   params = params or {}
   max_iter = params.get("max_iter", 100)
   solver = params.get("solver", "liblinear")
@@ -57,7 +54,7 @@ def model_init(params):
   return model
 
 
-def hp_space(trial):
+def hp_space(trial: Trial) -> Dict[str, Union[float, int, str]]:
   return {
     "body_learning_rate": trial.suggest_float("body_learning_rate", 1e-6, 1e-3, log=True),
     "num_epochs": trial.suggest_int("num_epochs", 1, 3),
@@ -67,6 +64,9 @@ def hp_space(trial):
     "solver": trial.suggest_categorical("solver", ["newton-cg", "lbfgs", "liblinear"]),
   }
 
+
+# Set seed for reproducibility
+set_seed(SEED)
 
 # Set device to CUDA, MPS, or CPU
 device = get_device()
@@ -86,17 +86,6 @@ dataset_training = load_jsonl_file(dataset_training_route)
 dataset_validation = load_jsonl_file(dataset_validation_route)
 dataset_test = load_jsonl_file(dataset_test_route)
 
-
-""" ###############################################################
-Remove the "neutral" class from the three datasets
-############################################################### """
-dataset_training = [datapoint for datapoint in dataset_training if datapoint["completion"] != "neutral"]
-dataset_validation = [datapoint for datapoint in dataset_validation if datapoint["completion"] != "neutral"]
-dataset_test = [datapoint for datapoint in dataset_test if datapoint["completion"] != "neutral"]
-
-dataset_test = dataset_test + dataset_validation
-""" ############################################################ """
-
 # Reverse label map from string to integer
 dataset_training = [{"label": LABEL_MAP[datapoint["completion"]], "text": datapoint["prompt"]}
                     for datapoint in dataset_training]
@@ -106,13 +95,10 @@ dataset_test = [{"label": LABEL_MAP[datapoint["completion"]], "text": datapoint[
                 for datapoint in dataset_test]
 
 # Count and print class distribution
-train_label_counts = Counter([datapoint['label'] for datapoint in dataset_training])
-val_label_counts = Counter([datapoint['label'] for datapoint in dataset_validation])
-test_label_counts = Counter([datapoint['label'] for datapoint in dataset_test])
-
-print("\nClass distribution in training dataset:", train_label_counts)
-print("Class distribution in validation dataset:", val_label_counts)
-print("Class distribution in test dataset:", test_label_counts)
+print("\nClass distribution:")
+print(f"- support: {len(dataset_training)}")
+print(f"- oppose: {len(dataset_validation)}")
+print(f"- neutral: {len(dataset_test)}")
 
 # Convert training data into a Dataset object
 train_columns = {key: [dic[key] for dic in dataset_training] for key in dataset_training[0]}
@@ -133,7 +119,7 @@ trainer = Trainer(
     eval_dataset=test_dataset,
     model_init=model_init,
 )
-best_run = trainer.hyperparameter_search(direction="maximize", hp_space=hp_space, n_trials=20)
+best_run = trainer.hyperparameter_search(direction="maximize", hp_space=hp_space, n_trials=1)
 
 # Print best run
 pprint(f"\nBest run: {best_run}")
@@ -147,10 +133,3 @@ pprint(f"\nMetrics: {metrics}")
 
 # Save model
 trainer.model.save_pretrained("models/3")
-
-# Run on the terminal before running this script:
-# Mac
-# export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
-#
-# Windows
-# set PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
