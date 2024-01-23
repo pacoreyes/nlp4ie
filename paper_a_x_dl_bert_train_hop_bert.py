@@ -134,12 +134,12 @@ class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(
 class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
 
 def objective(trial):
-    LEARNING_RATE = trial.suggest_float("learning_rate", 1e-6, 1e-2, log=True)
-    BATCH_SIZE = trial.suggest_int("batch_size", 16, 34, log=True)
+    LEARNING_RATE = trial.suggest_float("learning_rate", 1.2e-5, 2e-5, log=True)
+    BATCH_SIZE = trial.suggest_categorical("batch_size", [16, 32])
     WARMUP_STEPS = trial.suggest_int("warmup_steps", 0, 1000)
     NUM_EPOCHS = trial.suggest_int("num_epochs", 3, 4)
-    WEIGHT_DECAY = trial.suggest_float("weight_decay", 1e-5, 1e-3, log=True)
-    DROP_OUT_RATE = trial.suggest_float("dropout_rate", 0.1, 0.3)
+    #WEIGHT_DECAY = trial.suggest_float("weight_decay", 1e-5, 1e-3, log=True)
+    #DROP_OUT_RATE = trial.suggest_float("dropout_rate", 0.1, 0.3)
 
     # Create DataLoaders
     train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE)
@@ -167,6 +167,16 @@ def objective(trial):
     val_dataset, val_ids = create_dataset(val_df)
     test_dataset, test_ids = create_dataset(test_df)
     '''
+
+    print("Hyperparameters:")
+    print(f"- Learning Rate: {LEARNING_RATE}")
+    print(f"- Batch Size: {BATCH_SIZE}")
+    print(f"- Warmup Steps: {WARMUP_STEPS}")
+    print(f"- Number of Epochs: {NUM_EPOCHS}")
+    # print(f"- Weight Decay: {WEIGHT_DECAY}")
+    # print(f"- Dropout Rate: {DROP_OUT_RATE}")
+    print("---")
+    print(f"- Seed: {SEED}")
 
     # Training Loop
     for epoch in range(NUM_EPOCHS):
@@ -255,9 +265,13 @@ def objective(trial):
     misclassified_output_file = "shared_data/dataset_1_5_misclassified_examples.jsonl"
     empty_json_file(misclassified_output_file)
 
-    for batch in tqdm(test_dataloader, desc="Testing"):
+    for i,batch in enumerate(tqdm(test_dataloader, desc="Testing")):
       with torch.no_grad():
-        b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
+        #b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
+        # Unpack batch data without ids
+        b_input_ids, b_attention_mask, b_labels = batch
+        b_input_ids, b_attention_mask, b_labels = b_input_ids.to(device), b_attention_mask.to(device), b_labels.to(
+          device)
 
         # Forward pass
         outputs = model(b_input_ids, attention_mask=b_attention_mask, labels=b_labels)
@@ -343,8 +357,8 @@ def objective(trial):
     print(f"- Batch Size: {BATCH_SIZE}")
     print(f"- Warmup Steps: {WARMUP_STEPS}")
     print(f"- Number of Epochs: {NUM_EPOCHS}")
-    print(f"- Weight Decay: {WEIGHT_DECAY}")
-    print(f"- Dropout Rate: {DROP_OUT_RATE}")
+    #print(f"- Weight Decay: {WEIGHT_DECAY}")
+    #print(f"- Dropout Rate: {DROP_OUT_RATE}")
     print("---")
     print(f"- Seed: {SEED}")
     print()
@@ -359,13 +373,13 @@ def objective(trial):
     plt.savefig("images/paper_a_1_dl_bert_model_losses.png")
     plt.close()
 
-    return accuracy  # Return the metric we want to optimize (accuracy in this case)
+    return test_accuracy  # Return the metric we want to optimize (accuracy in this case)
 
 # Create an Optuna study
 study = create_study(direction="maximize")  # or "minimize" depending on your metric
 
 # Optimize the study
-study.optimize(objective, n_trials=30)  # Adjust the number of trials as needed
+study.optimize(objective, n_trials=20)  # Adjust the number of trials as needed
 
 # Print best trial results
 print("Number of finished trials: ", len(study.trials))

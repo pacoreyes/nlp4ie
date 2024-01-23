@@ -121,6 +121,8 @@ train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.
 # Split the remaining data equally to get a validation set and a test set
 val_df, test_df = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5, random_state=SEED)
 
+# Save the DataFrame to a JSON file
+#test_df.to_json('shared_data/test_df_output.json', orient='records', lines=True)
 pprint(test_df)
 
 
