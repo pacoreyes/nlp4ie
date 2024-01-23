@@ -7,10 +7,11 @@ from tqdm import tqdm
 from db import spreadsheet_4
 # from lib.ner_processing import custom_anonymize_text
 from lib.utils2 import anonymize_text
-from lib.utils import (read_from_google_sheet, save_row_to_jsonl_file, empty_json_file)
+from lib.utils import (read_from_google_sheet, write_to_google_sheet, save_row_to_jsonl_file, empty_json_file)
 from lib.utils2 import remove_duplicated_datapoints
 
 SEED = 1234
+ANONYMIZE_TARGET = False
 FOR_OPEN_AI = True
 
 # Set seed for reproducibility
@@ -20,33 +21,31 @@ random.seed(SEED)
 nlp_trf = spacy.load("en_core_web_trf")
 
 # Load dataset from Google Sheets
-dataset3_1 = read_from_google_sheet(spreadsheet_4, "dataset_3")
+dataset3_1 = read_from_google_sheet(spreadsheet_4, "dataset_3_*")  # tailored examples
 dataset3_2 = read_from_google_sheet(spreadsheet_4, "dataset_3_")
+
+# Join dataset and dataset3_1
+dataset3 = dataset3_2 + dataset3_1
 
 print("Combine datasets...")
 dataset = []
-accepted_classes = ["support", "oppose", "neutral"]
-for datapoint in tqdm(dataset3_2, desc=f"Processing {len(dataset)} datapoints"):
+accepted_classes = ["support", "oppose"]
+for datapoint in tqdm(dataset3, desc=f"Processing {len(dataset)} datapoints"):
   if datapoint["class"] in accepted_classes:
     dataset.append(datapoint)
-
-# Join dataset and dataset3_1
-dataset = dataset + dataset3_1
 
 # Label mapping
 LABEL_MAP = {
   "0": "support",
   "1": "oppose",
-  "2": "neutral"
 }
 
-#WITH_BALANCE = True
 LABEL_CLASS_1 = LABEL_MAP["0"]
 LABEL_CLASS_2 = LABEL_MAP["1"]
-LABEL_CLASS_3 = LABEL_MAP["2"]
 
 # Initialize path and name of output JSON-L files and Google Sheets
-# output_spreadsheet = "dataset_3"
+output_spreadsheet = "dataset_3"
+
 # output_anonym_spreadsheet = "dataset_3_anonym"
 # output_dataset = "shared_data/dataset_3_1.jsonl"
 # output_anonym_dataset = "shared_data/dataset_3_2_anonym.jsonl"
@@ -81,6 +80,23 @@ Step 3: Shuffle dataset
 random.shuffle(dataset)
 
 """ #############################################
+Write dataset to Google Sheets
+############################################# """
+
+data = []
+for datapoint in dataset:
+  row = [
+    datapoint["id"],
+    datapoint["text"],
+    datapoint["target"],
+    datapoint["class"],
+  ]
+  data.append(row)
+
+# Save dataset to Google Sheets
+write_to_google_sheet(spreadsheet_4, output_spreadsheet, data)
+
+""" #############################################
 Step 4: Filter datapoints by label
 ############################################# """
 
@@ -95,21 +111,17 @@ print("Filter datapoints...")
 # Split dataset by label
 class_0 = [item for item in dataset if item["class"] == "support"]
 class_1 = [item for item in dataset if item["class"] == "oppose"]
-class_2 = [item for item in dataset if item["class"] == "neutral"]
 
-trim_length = 60
+"""trim_length = 76
 class_0 = class_0[:trim_length]
-class_1 = class_1[:trim_length]
-class_2 = class_2[:trim_length]
+class_1 = class_1[:trim_length]"""
 
 print(f"• Class 0: {len(class_0)}")
 print(f"• Class 1: {len(class_1)}")
-print(f"• Class 2: {len(class_2)}")
 
 # Shuffle datasets
 random.shuffle(class_0)
 random.shuffle(class_1)
-random.shuffle(class_2)
 
 class_0_training = class_0[:int(len(class_0) * 0.8)]  # 80%
 class_0_validation = class_0[int(len(class_0) * 0.8):int(len(class_0) * 0.9)]  # 10%
@@ -119,14 +131,10 @@ class_1_training = class_1[:int(len(class_1) * 0.8)]  # 80%
 class_1_validation = class_1[int(len(class_1) * 0.8):int(len(class_1) * 0.9)]  # 10%
 class_1_test = class_1[int(len(class_1) * 0.9):]  # 10%
 
-class_2_training = class_2[:int(len(class_2) * 0.8)]  # 80%
-class_2_validation = class_2[int(len(class_2) * 0.8):int(len(class_2) * 0.9)]  # 10%
-class_2_test = class_2[int(len(class_2) * 0.9):]  # 10%
-
 # Merge datasets
-dataset_training = class_0_training + class_1_training + class_2_training
-dataset_validation = class_0_validation + class_1_validation + class_2_validation
-dataset_test = class_0_test + class_1_test + class_2_test
+dataset_training = class_0_training + class_1_training
+dataset_validation = class_0_validation + class_1_validation
+dataset_test = class_0_test + class_1_test
 
 # Create parallel anonymized datasets
 dataset_training_anonym = []
@@ -138,8 +146,9 @@ dataset_test_anonym = []
 print("\nCreating dataset for training...")
 for datapoint in tqdm(dataset_training, desc=f"Processing {len(dataset_training)} datapoints"):
   # Anonymize target
-  target = datapoint["target"]
-  datapoint["text"] = datapoint["text"].replace(target, "[TARGET]")
+  if ANONYMIZE_TARGET:
+    target = datapoint["target"]
+    datapoint["text"] = datapoint["text"].replace(target, "[TARGET]")
   row = {
     "id": datapoint["id"],
     "text": datapoint["text"],
@@ -162,8 +171,9 @@ for datapoint in tqdm(dataset_training, desc=f"Processing {len(dataset_training)
 print("\nCreating dataset for validation...")
 for datapoint in tqdm(dataset_validation, desc=f"Processing {len(dataset_validation)} datapoints"):
   # Anonymize target
-  target = datapoint["target"]
-  datapoint["text"] = datapoint["text"].replace(target, "[TARGET]")
+  if ANONYMIZE_TARGET:
+    target = datapoint["target"]
+    datapoint["text"] = datapoint["text"].replace(target, "[TARGET]")
   row = {
     "id": datapoint["id"],
     "text": datapoint["text"],
@@ -186,8 +196,9 @@ for datapoint in tqdm(dataset_validation, desc=f"Processing {len(dataset_validat
 print("\nCreating dataset for test...")
 for datapoint in tqdm(dataset_test, desc=f"Processing {len(dataset_test)} datapoints"):
   # Anonymize target
-  target = datapoint["target"]
-  datapoint["text"] = datapoint["text"].replace(target, "[TARGET]")
+  if ANONYMIZE_TARGET:
+    target = datapoint["target"]
+    datapoint["text"] = datapoint["text"].replace(target, "[TARGET]")
   row = {
     "id": datapoint["id"],
     "text": datapoint["text"],

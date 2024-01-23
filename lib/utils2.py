@@ -107,3 +107,14 @@ def balance_classes_in_dataset(dataset, label1, label2, label_name, seed):
   print(f"• {label2}: {len(class2)} datapoints")
 
   return balanced_dataset
+
+
+def remove_examples_in_dataset(source_list, filter_list):
+    """
+    Removes any elements from source_list that are present in filter_list.
+
+    :param source_list: List to be cleaned.
+    :param filter_list: List containing elements to remove from source_list.
+    :return: A new list which is a cleaned version of source_list.
+    """
+    return [element for element in source_list if element not in filter_list]

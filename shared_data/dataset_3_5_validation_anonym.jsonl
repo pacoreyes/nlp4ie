@@ -1,18 +1,18 @@
-{"prompt": "And I propose we make a major [TARGET] in conservation by fully funding [ORG].", "completion": "support"}
-{"prompt": "In [TARGET] we are supporting a free and democratic government.", "completion": "support"}
-{"prompt": "And as Prime Minister of [GPE], I can say [TARGET] is one of the most important guarantees of [NORP] security.", "completion": "support"}
-{"prompt": "But the most important competitiveness program of all is one which improves [TARGET] in [GPE].", "completion": "support"}
-{"prompt": "In a world where information is power, a vital element of our national security lies in our [TARGET].", "completion": "support"}
-{"prompt": "We will continue to support efforts to [TARGET].", "completion": "support"}
-{"prompt": "At the same time, however, I will oppose any efforts to undo the basic [TARGET] that we've already enacted, including the 10-percent tax break coming to taxpayers [DATE] and the tax indexing which will protect all [NORP] from inflationary bracket creep in [DATE].", "completion": "oppose"}
-{"prompt": "So we will never again be at the mercy of [TARGET] and other foreign countries in order to protect our own people.", "completion": "oppose"}
-{"prompt": "[GPE] is leading the fight against [TARGET].", "completion": "oppose"}
-{"prompt": "She supported the job killing [TARGET] deal with [GPE].", "completion": "oppose"}
-{"prompt": "I opposed the grain [TARGET] in my administration.", "completion": "oppose"}
-{"prompt": "In my opinion they concern the life and death of [TARGET].", "completion": "oppose"}
-{"prompt": "I have observed that the cost of the [TARGET] to our Government was around $[MONEY], 000.", "completion": "neutral"}
-{"prompt": "When this organization was founded back in [DATE], our [DATE] [TARGET] was running at [MONEY].", "completion": "neutral"}
-{"prompt": "[TARGET]T[TARGET]h[TARGET]e[TARGET] [TARGET]t[TARGET]o[TARGET]p[TARGET]i[TARGET]c[TARGET] [TARGET]o[TARGET]f[TARGET] [TARGET]i[TARGET]n[TARGET]t[TARGET]e[TARGET]r[TARGET]n[TARGET]e[TARGET]t[TARGET] [TARGET]r[TARGET]e[TARGET]g[TARGET]u[TARGET]l[TARGET]a[TARGET]t[TARGET]i[TARGET]o[TARGET]n[TARGET] [TARGET]a[TARGET]n[TARGET]d[TARGET] [TARGET]d[TARGET]a[TARGET]t[TARGET]a[TARGET] [TARGET]p[TARGET]r[TARGET]i[TARGET]v[TARGET]a[TARGET]c[TARGET]y[TARGET] [TARGET]i[TARGET]s[TARGET] [TARGET]g[TARGET]a[TARGET]i[TARGET]n[TARGET]i[TARGET]n[TARGET]g[TARGET] [TARGET]a[TARGET]t[TARGET]t[TARGET]e[TARGET]n[TARGET]t[TARGET]i[TARGET]o[TARGET]n[TARGET],[TARGET] [TARGET]c[TARGET]o[TARGET]n[TARGET]s[TARGET]i[TARGET]d[TARGET]e[TARGET]r[TARGET]i[TARGET]n[TARGET]g[TARGET] [TARGET]t[TARGET]h[TARGET]e[TARGET] [TARGET]b[TARGET]a[TARGET]l[TARGET]a[TARGET]n[TARGET]c[TARGET]e[TARGET] [TARGET]b[TARGET]e[TARGET]t[TARGET]w[TARGET]e[TARGET]e[TARGET]n[TARGET] [TARGET]u[TARGET]s[TARGET]e[TARGET]r[TARGET] [TARGET]s[TARGET]e[TARGET]c[TARGET]u[TARGET]r[TARGET]i[TARGET]t[TARGET]y[TARGET] [TARGET]a[TARGET]n[TARGET]d[TARGET] [TARGET]f[TARGET]r[TARGET]e[TARGET]e[TARGET]d[TARGET]o[TARGET]m[TARGET] [TARGET]o[TARGET]f[TARGET] [TARGET]i[TARGET]n[TARGET]f[TARGET]o[TARGET]r[TARGET]m[TARGET]a[TARGET]t[TARGET]i[TARGET]o[TARGET]n[TARGET].[TARGET]", "completion": "neutral"}
-{"prompt": "You remember the plain necessity in the [TARGET] when our great [NORP] President [PERSON] said we must make 60, 000 planes in [DATE].", "completion": "neutral"}
-{"prompt": "But, for example, before our entry into the [TARGET] it was planning.", "completion": "neutral"}
-{"prompt": "In [GPE], 140, 000 [NORP]-backed [NORP] soldiers wage a [TARGET] of occupation.", "completion": "neutral"}
+{"prompt": "First, in response to [DATE] of inequity and indifference, we will support democracy, reform, and human freedom.", "completion": "support"}
+{"prompt": "I believe in freedom of religion.", "completion": "support"}
+{"prompt": "But most important, I think, [DATE] we are called upon to stand for democracy under attack in [GPE].", "completion": "support"}
+{"prompt": "And we must support the victims of crime.", "completion": "support"}
+{"prompt": "This program strengthens democracy, transparency, and the rule of law in developing nations, and I ask you to fully fund this important initiative.", "completion": "support"}
+{"prompt": "And I think that the promise of this new democracy is that people will be able to live up to their potential.", "completion": "support"}
+{"prompt": "We will support abstinence-based education for young people in schools and churches and community centers.", "completion": "support"}
+{"prompt": "Finally, working with [ORG], we will continue to support monetary policy that keeps both interest rates and inflation down.", "completion": "support"}
+{"prompt": "We're supporting activities that build stability, foster democracy, and boost economic growth.", "completion": "support"}
+{"prompt": "Where human dignity is denied, [GPE] opposes poverty and is a source of opportunity.", "completion": "oppose"}
+{"prompt": "I have been opposed to a poll tax all my life.", "completion": "oppose"}
+{"prompt": "We must firmly oppose discrimination against those who have [ENTITY].", "completion": "oppose"}
+{"prompt": "But the [NORP] conceal the terrible human costs that characterize their ruthless system of dictatorship and forced labor.", "completion": "oppose"}
+{"prompt": "Nevertheless, our resolute opposition to terrorism does not mean we can ever be indifferent to the conditions that foster it.", "completion": "oppose"}
+{"prompt": "On the [LOC], the whole shipping trade threatens to pass into the control of [GPE],", "completion": "oppose"}
+{"prompt": "We don't believe in discrimination in this country.", "completion": "oppose"}
+{"prompt": "I've fought tobacco companies and trial lawyers, drug companies and union bosses.", "completion": "oppose"}
+{"prompt": "I made clear that [GPE]'s fight against terrorism is right, but the methods being used in [GPE] are wrong.", "completion": "oppose"}

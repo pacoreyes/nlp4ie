@@ -11,11 +11,10 @@ from setfit import SetFitModel, Trainer
 from lib.utils import load_jsonl_file
 
 # Set the max_split_size_mb parameter
-os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:21'
-os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+"""os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:21'
+os.environ['CUDA_LAUNCH_BLOCKING'] = "1"""
 
 import torch
-
 
 # Initialize label map and class names
 LABEL_MAP = {"support": 0, "oppose": 1}
@@ -68,14 +67,14 @@ def hp_space(trial):
   return {
     "body_learning_rate": trial.suggest_float("body_learning_rate", 1e-6, 1e-3, log=True),
     "num_epochs": trial.suggest_int("num_epochs", 1, 3),
-    "batch_size": trial.suggest_categorical("batch_size", [16, 32]),
+    "batch_size": trial.suggest_categorical("batch_size", [16, 32, 64]),
     "seed": trial.suggest_int("seed", 1, 40),
-    "max_iter": trial.suggest_int("max_iter", 50, 100),
+    "max_iter": trial.suggest_int("max_iter", 50, 300),
     "solver": trial.suggest_categorical("solver", ["newton-cg", "lbfgs", "liblinear"]),
   }
 
 
-"""def load_data_lazy(file_path):
+def load_data_lazy(file_path):
   # Lazy loading of data from a JSONL file.
   with open(file_path, "r", encoding="utf-8") as file:
     for line in file:
@@ -86,7 +85,7 @@ def process_data_lazy(data_generator):
   # Process data in a memory-efficient manner.
   for data in data_generator:
     if data["completion"] != "neutral":
-      yield {"label": LABEL_MAP[data["completion"]], "text": data["prompt"]}"""
+      yield {"label": LABEL_MAP[data["completion"]], "text": data["prompt"]}
 
 
 # Set device to CUDA, MPS, or CPU
@@ -115,7 +114,7 @@ dataset_training = [datapoint for datapoint in dataset_training if datapoint["co
 dataset_validation = [datapoint for datapoint in dataset_validation if datapoint["completion"] != "neutral"]
 dataset_test = [datapoint for datapoint in dataset_test if datapoint["completion"] != "neutral"]
 
-dataset_test = dataset_test + dataset_validation
+# dataset_test = dataset_test + dataset_validation
 """ ############################################################ """
 
 # Reverse label map from string to integer
@@ -135,7 +134,7 @@ print("\nClass distribution in training dataset:", train_label_counts)
 print("Class distribution in validation dataset:", val_label_counts)
 print("Class distribution in test dataset:", test_label_counts)
 
-"""
+
 # Replace your training dataset loading with lazy loading
 dataset_training_generator = load_data_lazy(dataset_training_route)
 dataset_training_processed = process_data_lazy(dataset_training_generator)
@@ -154,16 +153,16 @@ dataset_validation_list = list(dataset_validation_processed)
 val_columns = {key: [dic[key] for dic in dataset_validation_list] for key in dataset_validation_list[0]}
 validation_dataset = Dataset.from_dict(val_columns)
 
-# Replace your test dataset loading with lazy loading
+"""# Replace your test dataset loading with lazy loading
 dataset_test_generator = load_data_lazy(dataset_test_route)
 dataset_test_processed = process_data_lazy(dataset_test_generator)
 
 # Convert the generator to a list before creating a Dataset object for the test data
 dataset_test_list = list(dataset_test_processed)
 test_columns = {key: [dic[key] for dic in dataset_test_list] for key in dataset_test_list[0]}
-test_dataset = Dataset.from_dict(test_columns)
-"""
+test_dataset = Dataset.from_dict(test_columns)"""
 
+"""
 # Convert training data into a Dataset object
 train_columns = {key: [dic[key] for dic in dataset_training] for key in dataset_training[0]}
 train_dataset = Dataset.from_dict(train_columns)
@@ -175,15 +174,17 @@ validation_dataset = Dataset.from_dict(val_columns)
 # Convert test data into Dataset object
 test_columns = {key: [dic[key] for dic in dataset_test] for key in dataset_test[0]}
 test_dataset = Dataset.from_dict(test_columns)
+"""
 
 # print(len(train_dataset))
 
 trainer = Trainer(
     train_dataset=train_dataset,
-    eval_dataset=test_dataset,
+    eval_dataset=validation_dataset,
     model_init=model_init,
 )
-best_run = trainer.hyperparameter_search(direction="maximize", hp_space=hp_space, n_trials=20)
+
+best_run = trainer.hyperparameter_search(direction="maximize", hp_space=hp_space, n_trials=6)
 
 # Print best run
 pprint(f"\nBest run: {best_run}")
@@ -197,10 +198,9 @@ pprint(f"\nMetrics: {metrics}")
 
 # Save model
 trainer.model.save_pretrained("models/3")
-
+print("\nModel saved successfully!\n")
 # Run on the terminal before running this script:
 # Mac
 # export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
 #
 # set CUDA_LAUNCH_BLOCKING=1
-

@@ -1,9 +1,9 @@
 # from pprint import pprint
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import torch
 from datasets import Dataset
 from setfit import SetFitModel, Trainer, TrainingArguments
 from transformers import TrainerCallback
@@ -13,6 +13,13 @@ from sklearn.metrics import (precision_recall_fscore_support,
                              accuracy_score, roc_auc_score, matthews_corrcoef, confusion_matrix)
 
 from lib.utils import load_jsonl_file
+
+# Set the max_split_size_mb parameter
+"""os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:512'
+os.environ['CUDA_LAUNCH_BLOCKING'] = "1"""
+
+import torch
+
 
 # Initialize label map and class names
 LABEL_MAP = {"support": 0, "oppose": 1}
