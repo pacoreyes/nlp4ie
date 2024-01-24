@@ -28,7 +28,7 @@ LABEL_MAP = {"support": 0, "oppose": 1}
 
 # Initialize constants
 SEED = 42
-NUM_TRIALS = 1
+NUM_TRIALS = 20
 
 
 def set_seed(seed_value):
@@ -206,7 +206,6 @@ test_dataset = Dataset.from_dict(test_columns)
 trainer = Trainer(
     train_dataset=train_dataset,  # training dataset
     eval_dataset=validation_dataset,  # validation dataset
-    # metric=compute_metrics,
     model_init=model_init,  # model initialization function
 )
 
