@@ -109,12 +109,15 @@ train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.
 # Split the remaining data equally to get a validation set and a test set
 val_df, test_df = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5, random_state=SEED)
 
-def create_dataset(_df, tokenizer, device):
+def create_dataset(_df):
   _texts = _df['text'].tolist()
   _labels = _df['label'].tolist()
+  _ids = _df['id'].tolist()  # keep ids as a list of strings
 
   _input_ids, _attention_masks = preprocess(_texts, tokenizer, device, max_length=MAX_LENGTH)
-  return TensorDataset(_input_ids, _attention_masks, torch.tensor(_labels))
+
+  # Create TensorDataset without ids, since they are strings
+  return TensorDataset(_input_ids, _attention_masks, torch.tensor(_labels)), _ids
 
 
 def preprocess(_texts, _tokenizer, _device, max_length=MAX_LENGTH):
@@ -124,9 +127,9 @@ def preprocess(_texts, _tokenizer, _device, max_length=MAX_LENGTH):
 
 
 # Create TensorDatasets
-train_dataset = create_dataset(train_df, tokenizer, device)
-val_dataset = create_dataset(val_df, tokenizer, device)
-test_dataset = create_dataset(test_df, tokenizer, device)
+train_dataset, train_ids = create_dataset(train_df)
+val_dataset, val_ids = create_dataset(val_df)
+test_dataset, test_ids = create_dataset(test_df)
 
 # Calculate class weights
 labels = df["label"].tolist()
@@ -265,9 +268,9 @@ def objective(trial):
     misclassified_output_file = "shared_data/dataset_1_5_misclassified_examples.jsonl"
     empty_json_file(misclassified_output_file)
 
-    for i,batch in enumerate(tqdm(test_dataloader, desc="Testing")):
+    for i, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
       with torch.no_grad():
-        #b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
+       # b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
         # Unpack batch data without ids
         b_input_ids, b_attention_mask, b_labels = batch
         b_input_ids, b_attention_mask, b_labels = b_input_ids.to(device), b_attention_mask.to(device), b_labels.to(
@@ -293,8 +296,8 @@ def objective(trial):
         for j, (pred, true) in enumerate(zip(predictions, label_ids)):  # no _id in zip
           if pred != true:
             # Access the correct id using the batch index and the offset within the batch
-            #example_id = test_ids[i * BATCH_SIZE + j]
-            example_id = dataset[i * BATCH_SIZE + j]["metadata"]["text_id"]
+            example_id = test_ids[i * BATCH_SIZE + j]
+            #example_id = dataset[i * BATCH_SIZE + j]["metadata"]["text_id"]
             save_row_to_jsonl_file({
               "id": example_id,  # corrected to use the separate ids list
               "true_label": REVERSED_LABEL_MAP[true],

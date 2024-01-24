@@ -36,7 +36,7 @@ SEED = 1234  # 42, 1234, 2021
 LEARNING_RATE = 1.6e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
 BATCH_SIZE = 8  # 16, 32
 WARMUP_STEPS = 700  # 0, 100, 1000, 10000
-NUM_EPOCHS = 4  # 2, 3, 4, 5
+NUM_EPOCHS = 1  # 2, 3, 4, 5
 WEIGHT_DECAY = 1e-3  # 1e-2 or 1e-3
 DROP_OUT_RATE = 0.2  # 0.1 or 0.2
 
@@ -64,9 +64,12 @@ def set_seed(seed_value):
 def create_dataset(_df):
   _texts = _df['text'].tolist()
   _labels = _df['label'].tolist()
+  _ids = _df['id'].tolist()  # keep ids as a list of strings
 
   _input_ids, _attention_masks = preprocess(_texts, tokenizer, device, max_length=MAX_LENGTH)
-  return TensorDataset(_input_ids, _attention_masks, torch.tensor(_labels))
+
+  # Create TensorDataset without ids, since they are strings
+  return TensorDataset(_input_ids, _attention_masks, torch.tensor(_labels)), _ids
 
 
 def preprocess(_texts, _tokenizer, _device, max_length=MAX_LENGTH):
@@ -123,20 +126,20 @@ val_df, test_df = train_test_split(remaining_df, stratify=remaining_df["label"],
 
 # Save the DataFrame to a JSON file
 #test_df.to_json('shared_data/test_df_output.json', orient='records', lines=True)
-pprint(test_df)
+#pprint(test_df)
 
-
+'''
 # Create TensorDatasets
 train_dataset = create_dataset(train_df)
 val_dataset = create_dataset(val_df)
 test_dataset = create_dataset(test_df)
-
 '''
+
 # Create TensorDatasets
 train_dataset, train_ids = create_dataset(train_df)
 val_dataset, val_ids = create_dataset(val_df)
 test_dataset, test_ids = create_dataset(test_df)
-'''
+
 
 # Calculate class weights
 class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(labels), y=labels)
@@ -173,7 +176,7 @@ for epoch in range(NUM_EPOCHS):
   total_train_loss = 0
   loss_fct = torch.nn.CrossEntropyLoss(weight=class_weights)
 
-  print()
+  #print()
   for batch in tqdm(train_dataloader, desc=f"Training Epoch {epoch + 1}/{NUM_EPOCHS}"):
     b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
     # Clear gradients
@@ -254,9 +257,13 @@ softmax = torch.nn.Softmax(dim=1)
 misclassified_output_file = "shared_data/dataset_1_5_misclassified_examples.jsonl"
 empty_json_file(misclassified_output_file)
 
-for batch in tqdm(test_dataloader, desc="Testing"):
+for i, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
   with torch.no_grad():
-    b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
+    #b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
+
+    b_input_ids, b_attention_mask, b_labels = batch
+    b_input_ids, b_attention_mask, b_labels = b_input_ids.to(device), b_attention_mask.to(device), b_labels.to(
+      device)
 
     # Forward pass
     outputs = model(b_input_ids, attention_mask=b_attention_mask, labels=b_labels)
@@ -278,8 +285,8 @@ for batch in tqdm(test_dataloader, desc="Testing"):
     for j, (pred, true) in enumerate(zip(predictions, label_ids)):  # no _id in zip
       if pred != true:
         # Access the correct id using the batch index and the offset within the batch
-        #example_id = test_ids[i * BATCH_SIZE + j]
-        example_id = dataset[i * BATCH_SIZE + j]["id"]
+        example_id = test_ids[i * BATCH_SIZE + j]
+        #example_id = dataset[i * BATCH_SIZE + j]["id"]
         save_row_to_jsonl_file({
           "id": example_id,  # corrected to use the separate ids list
           "true_label": REVERSED_LABEL_MAP[true],
