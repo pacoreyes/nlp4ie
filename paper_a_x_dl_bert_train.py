@@ -124,17 +124,6 @@ train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.
 # Split the remaining data equally to get a validation set and a test set
 val_df, test_df = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5, random_state=SEED)
 
-# Save the DataFrame to a JSON file
-#test_df.to_json('shared_data/test_df_output.json', orient='records', lines=True)
-#pprint(test_df)
-
-'''
-# Create TensorDatasets
-train_dataset = create_dataset(train_df)
-val_dataset = create_dataset(val_df)
-test_dataset = create_dataset(test_df)
-'''
-
 # Create TensorDatasets
 train_dataset, train_ids = create_dataset(train_df)
 val_dataset, val_ids = create_dataset(val_df)
@@ -259,8 +248,6 @@ empty_json_file(misclassified_output_file)
 
 for i, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
   with torch.no_grad():
-    #b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
-
     b_input_ids, b_attention_mask, b_labels = batch
     b_input_ids, b_attention_mask, b_labels = b_input_ids.to(device), b_attention_mask.to(device), b_labels.to(
       device)
@@ -286,7 +273,6 @@ for i, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
       if pred != true:
         # Access the correct id using the batch index and the offset within the batch
         example_id = test_ids[i * BATCH_SIZE + j]
-        #example_id = dataset[i * BATCH_SIZE + j]["id"]
         save_row_to_jsonl_file({
           "id": example_id,  # corrected to use the separate ids list
           "true_label": REVERSED_LABEL_MAP[true],

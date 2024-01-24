@@ -86,15 +86,6 @@ dataset = balance_classes_in_dataset(dataset, "monologic", "dialogic", "label", 
 # Load the BERT tokenizer
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
-'''
-# Convert to pandas DataFrame for stratified splitting
-df = pd.DataFrame({
-  "id": [entry["id"] for entry in dataset],  # Include 'id'
-  "text": sentences,
-  "label": labels,
-  "metadata": [entry["metadata"] for entry in dataset]  # Include 'metadata'
-})
-'''
 # Convert to pandas DataFrame for stratified splitting
 df = pd.DataFrame({
     "id": [entry["id"] for entry in dataset],
@@ -270,7 +261,6 @@ def objective(trial):
 
     for i, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
       with torch.no_grad():
-       # b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
         # Unpack batch data without ids
         b_input_ids, b_attention_mask, b_labels = batch
         b_input_ids, b_attention_mask, b_labels = b_input_ids.to(device), b_attention_mask.to(device), b_labels.to(

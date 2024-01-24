@@ -141,9 +141,6 @@ train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE
 val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=BATCH_SIZE)
 test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=BATCH_SIZE)
 
-print(test_df)
-
-
 # Optimizer and Scheduler
 optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
 total_steps = len(train_dataloader) * NUM_EPOCHS
