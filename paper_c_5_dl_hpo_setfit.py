@@ -2,17 +2,24 @@ import random
 import os
 from pprint import pprint
 from collections import Counter
-import json
+# import json
 
+from optuna import Trial
 import numpy as np
 from datasets import Dataset
 from setfit import SetFitModel, Trainer
+from sklearn.metrics import (precision_recall_fscore_support,
+                             accuracy_score, roc_auc_score, matthews_corrcoef, confusion_matrix)
 
 from lib.utils import load_jsonl_file
+from lib.visualizations import plot_confusion_matrix
 
-# Set the max_split_size_mb parameter
-"""os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:21'
-os.environ['CUDA_LAUNCH_BLOCKING'] = "1"""
+
+""" NOTE: Set this environment variable to avoid CUDA out of memory errors.
+Set them always before importing torch"""
+# os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:21'
+# os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+# os.environ['PYTORCH_MPS_HIGH_WATERMARK_RATIO'] = "0.0"
 
 import torch
 
@@ -21,6 +28,7 @@ LABEL_MAP = {"support": 0, "oppose": 1}
 
 # Initialize constants
 SEED = 42
+NUM_TRIALS = 1
 
 
 def set_seed(seed_value):
@@ -63,16 +71,45 @@ def model_init(params):
   return model
 
 
-def hp_space(trial):
+def hp_space(trial: Trial):
   return {
     "body_learning_rate": trial.suggest_float("body_learning_rate", 1e-6, 1e-3, log=True),
-    "num_epochs": trial.suggest_int("num_epochs", 1, 3),
+    "num_epochs": trial.suggest_int("num_epochs", 1, 1),
     "batch_size": trial.suggest_categorical("batch_size", [16, 32, 64]),
     "seed": trial.suggest_int("seed", 1, 40),
     "max_iter": trial.suggest_int("max_iter", 50, 300),
     "solver": trial.suggest_categorical("solver", ["newton-cg", "lbfgs", "liblinear"]),
   }
 
+
+def compute_metrics(y_pred, y_test):
+  accuracy = accuracy_score(y_test, y_pred)
+  precision, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred, average='macro')
+  auc = roc_auc_score(y_test, y_pred)
+  mcc = matthews_corrcoef(y_test, y_pred)
+  cm = confusion_matrix(y_test, y_pred)
+
+  # Plot confusion matrix
+  plot_confusion_matrix(y_test,
+                        y_pred,
+                        ["support", "oppose"],
+                        "paper_c_1_dl_setfit_confusion_matrix.png",
+                        "Confusion Matrix for SetFit model",
+                        values_fontsize=22
+                        )
+  return {
+    'accuracy': accuracy,
+    'precision': precision,
+    'recall': recall,
+    'f1': f1,
+    'auc': auc,
+    'mcc': mcc,
+    'confusion_matrix': cm
+  }
+
+
+""" 
+Uncomment to enable lazy loading of data in case of memory issues.
 
 def load_data_lazy(file_path):
   # Lazy loading of data from a JSONL file.
@@ -86,7 +123,7 @@ def process_data_lazy(data_generator):
   for data in data_generator:
     if data["completion"] != "neutral":
       yield {"label": LABEL_MAP[data["completion"]], "text": data["prompt"]}
-
+"""
 
 # Set device to CUDA, MPS, or CPU
 device = get_device()
@@ -106,17 +143,6 @@ dataset_training = load_jsonl_file(dataset_training_route)
 dataset_validation = load_jsonl_file(dataset_validation_route)
 dataset_test = load_jsonl_file(dataset_test_route)
 
-
-""" ###############################################################
-Remove the "neutral" class from the three datasets
-############################################################### """
-dataset_training = [datapoint for datapoint in dataset_training if datapoint["completion"] != "neutral"]
-dataset_validation = [datapoint for datapoint in dataset_validation if datapoint["completion"] != "neutral"]
-dataset_test = [datapoint for datapoint in dataset_test if datapoint["completion"] != "neutral"]
-
-# dataset_test = dataset_test + dataset_validation
-""" ############################################################ """
-
 # Reverse label map from string to integer
 dataset_training = [{"label": LABEL_MAP[datapoint["completion"]], "text": datapoint["prompt"]}
                     for datapoint in dataset_training]
@@ -134,6 +160,8 @@ print("\nClass distribution in training dataset:", train_label_counts)
 print("Class distribution in validation dataset:", val_label_counts)
 print("Class distribution in test dataset:", test_label_counts)
 
+"""
+Uncomment to enable lazy loading of data in case of memory issues.
 
 # Replace your training dataset loading with lazy loading
 dataset_training_generator = load_data_lazy(dataset_training_route)
@@ -153,7 +181,7 @@ dataset_validation_list = list(dataset_validation_processed)
 val_columns = {key: [dic[key] for dic in dataset_validation_list] for key in dataset_validation_list[0]}
 validation_dataset = Dataset.from_dict(val_columns)
 
-"""# Replace your test dataset loading with lazy loading
+# Replace your test dataset loading with lazy loading
 dataset_test_generator = load_data_lazy(dataset_test_route)
 dataset_test_processed = process_data_lazy(dataset_test_generator)
 
@@ -162,7 +190,6 @@ dataset_test_list = list(dataset_test_processed)
 test_columns = {key: [dic[key] for dic in dataset_test_list] for key in dataset_test_list[0]}
 test_dataset = Dataset.from_dict(test_columns)"""
 
-"""
 # Convert training data into a Dataset object
 train_columns = {key: [dic[key] for dic in dataset_training] for key in dataset_training[0]}
 train_dataset = Dataset.from_dict(train_columns)
@@ -174,33 +201,31 @@ validation_dataset = Dataset.from_dict(val_columns)
 # Convert test data into Dataset object
 test_columns = {key: [dic[key] for dic in dataset_test] for key in dataset_test[0]}
 test_dataset = Dataset.from_dict(test_columns)
-"""
 
-# print(len(train_dataset))
-
+# Initialize trainer
 trainer = Trainer(
-    train_dataset=train_dataset,
-    eval_dataset=validation_dataset,
-    model_init=model_init,
+    train_dataset=train_dataset,  # training dataset
+    eval_dataset=validation_dataset,  # validation dataset
+    # metric=compute_metrics,
+    model_init=model_init,  # model initialization function
 )
 
-best_run = trainer.hyperparameter_search(direction="maximize", hp_space=hp_space, n_trials=6)
+# Perform hyperparameter search
+best_run = trainer.hyperparameter_search(direction="maximize", hp_space=hp_space, n_trials=NUM_TRIALS)
 
-# Print best run
+# Print best run information
 pprint(f"\nBest run: {best_run}")
 
+# Apply the best hyperparameters to the best model
 trainer.apply_hyperparameters(best_run.hyperparameters, final_model=True)
+
+# Train best model
 trainer.train()
 
-# Evaluate model
-metrics = trainer.evaluate()
-pprint(f"\nMetrics: {metrics}")
+# Evaluate best model using the test dataset
+metrics = trainer.evaluate(test_dataset, "test")
+print(f"\nMetrics: {metrics}")
 
-# Save model
+# Save best model
 trainer.model.save_pretrained("models/3")
 print("\nModel saved successfully!\n")
-# Run on the terminal before running this script:
-# Mac
-# export PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0
-#
-# set CUDA_LAUNCH_BLOCKING=1
