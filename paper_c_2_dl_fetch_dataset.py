@@ -1,7 +1,6 @@
 # from pprint import pprint
 
 from google.api_core.retry import Retry
-from tqdm import tqdm
 
 from db import firestore_db, spreadsheet_4
 from lib.utils import write_to_google_sheet, save_jsonl_file, load_jsonl_file
@@ -52,6 +51,17 @@ if TO_GSHEETS:
   # Write data to Google Sheet
   write_to_google_sheet(spreadsheet_4, "dataset_3_", data)
 
+# Remove unnecessary fields
+new_dataset = []
+for datapoint in dataset:
+  new_datapoint = {
+    "id": datapoint["id"],
+    "text": datapoint["text"],
+    "target": datapoint["issue"],
+  }
+  new_dataset.append(new_datapoint)
+
+
 # Save documents in a JSONL file
 print("Saving documents in a JSONL file...")
-save_jsonl_file(dataset, "shared_data/dataset_3_7_unlabeled_sentences_1.jsonl")
+save_jsonl_file(new_dataset, "shared_data/dataset_3_7_unlabeled_sentences_1.jsonl")
