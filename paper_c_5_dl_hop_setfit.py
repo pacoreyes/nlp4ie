@@ -236,7 +236,6 @@ test_dataset = Dataset.from_dict(test_columns)
 trainer = Trainer(
   train_dataset=train_dataset,  # training dataset
   eval_dataset=validation_dataset,  # validation dataset
-  # callbacks=[EmbeddingPlotCallback()],
   model_init=model_init,  # model initialization function
 )
 
