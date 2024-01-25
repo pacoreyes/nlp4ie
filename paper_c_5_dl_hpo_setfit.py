@@ -1,13 +1,16 @@
 import random
 import os
-from pprint import pprint
+# from pprint import pprint
 from collections import Counter
 # import json
 
 from optuna import Trial
+import matplotlib.pyplot as plt
 import numpy as np
 from datasets import Dataset
-from setfit import SetFitModel, Trainer
+from setfit import SetFitModel, Trainer, TrainingArguments
+from transformers import TrainerCallback
+from sklearn.manifold import TSNE
 from sklearn.metrics import (precision_recall_fscore_support,
                              accuracy_score, roc_auc_score, matthews_corrcoef, confusion_matrix)
 
@@ -108,6 +111,33 @@ def compute_metrics(y_pred, y_test):
   }
 
 
+class EmbeddingPlotCallback(TrainerCallback):
+  """ Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
+  # throughout training. """
+
+  def on_evaluate(self, args, state, control, **kwargs):
+    train_embeddings = trainer.model.encode(train_dataset["text"])
+    eval_embeddings = trainer.model.encode(validation_dataset["text"])
+
+    # Determine dataset size to adjust perplexity
+    eval_dataset_size = len(validation_dataset["text"])
+    perplexity_value = min(30, max(5, int(eval_dataset_size / 2)))
+
+    fig, (train_ax, eval_ax) = plt.subplots(ncols=2)
+
+    train_x = TSNE(n_components=2, perplexity=perplexity_value).fit_transform(train_embeddings)
+    train_ax.scatter(*train_x.T, c=train_dataset["label"], label=train_dataset["label"])
+    train_ax.set_title("Training embeddings")
+
+    eval_x = TSNE(n_components=2, perplexity=perplexity_value).fit_transform(eval_embeddings)
+    eval_ax.scatter(*eval_x.T, c=validation_dataset["label"], label=validation_dataset["label"])
+    eval_ax.set_title("Evaluation embeddings")
+
+    fig.suptitle(f"tSNE of training and evaluation embeddings at step {state.global_step} of {state.max_steps}.")
+    fig.savefig(f"images/paper_c_setfit_step_{state.global_step}.png")
+    plt.close(fig)
+
+
 """ 
 Uncomment to enable lazy loading of data in case of memory issues.
 
@@ -204,19 +234,33 @@ test_dataset = Dataset.from_dict(test_columns)
 
 # Initialize trainer
 trainer = Trainer(
-    train_dataset=train_dataset,  # training dataset
-    eval_dataset=validation_dataset,  # validation dataset
-    model_init=model_init,  # model initialization function
+  train_dataset=train_dataset,  # training dataset
+  eval_dataset=validation_dataset,  # validation dataset
+  # callbacks=[EmbeddingPlotCallback()],
+  model_init=model_init,  # model initialization function
 )
 
 # Perform hyperparameter search
 best_run = trainer.hyperparameter_search(direction="maximize", hp_space=hp_space, n_trials=NUM_TRIALS)
 
 # Print best run information
-pprint(f"\nBest run: {best_run}")
+print(f"\nBest run: {best_run}")
 
 # Apply the best hyperparameters to the best model
 trainer.apply_hyperparameters(best_run.hyperparameters, final_model=True)
+
+# Initialize callbacks
+embedding_plot_callback = EmbeddingPlotCallback()
+
+# Add callbacks to trainer
+trainer.callback_handler.add_callback(embedding_plot_callback)
+
+# Add training arguments
+arguments = TrainingArguments(
+  eval_steps=20,
+  seed=SEED
+)
+trainer.args = arguments
 
 # Train best model
 trainer.train()
