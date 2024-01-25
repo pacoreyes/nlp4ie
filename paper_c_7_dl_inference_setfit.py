@@ -1,4 +1,4 @@
-# from pprint import pprint
+from pprint import pprint
 
 import torch
 from setfit import SetFitModel
@@ -9,7 +9,7 @@ from lib.utils import load_jsonl_file
 # Load dataset
 dataset = load_jsonl_file("shared_data/dataset_3_7_unlabeled_sentences_1.jsonl")
 
-# dataset = dataset[:100]  # use it to test the code
+dataset = dataset[:100]  # use it to test the code
 
 
 def get_device():
@@ -34,6 +34,7 @@ model.to(device)
 
 # Create list of sentences
 sentences = [datapoint["text"] for datapoint in dataset]
+# pprint(sentences)
 
 # Make predictions using the model
 predictions = model.predict_proba(sentences)

@@ -1,25 +1,28 @@
-# from pprint import pprint
+import random
 import os
+# from pprint import pprint
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from datasets import Dataset
 from setfit import SetFitModel, Trainer, TrainingArguments
-from transformers import TrainerCallback
+from transformers import TrainerCallback, EarlyStoppingCallback
 from sklearn.manifold import TSNE
-from mpl_toolkits.mplot3d import Axes3D
 from sklearn.metrics import (precision_recall_fscore_support,
                              accuracy_score, roc_auc_score, matthews_corrcoef, confusion_matrix)
 
 from lib.utils import load_jsonl_file
+from lib.visualizations import plot_confusion_matrix
 
-# Set the max_split_size_mb parameter
-"""os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:512'
-os.environ['CUDA_LAUNCH_BLOCKING'] = "1"""
+
+""" NOTE: Set this environment variable to avoid CUDA out of memory errors.
+Set them always before importing torch"""
+# os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:21'
+# os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+# os.environ['PYTORCH_MPS_HIGH_WATERMARK_RATIO'] = "0.0"
 
 import torch
-
 
 # Initialize label map and class names
 LABEL_MAP = {"support": 0, "oppose": 1}
@@ -27,12 +30,27 @@ class_names = list(LABEL_MAP.keys())
 
 
 # Hyperparameters
-BODY_LEARNING_RATE = 6.125082727886936e-05
+BODY_LEARNING_RATE = 1.1372066559539598e-06
+NUM_EPOCHS = 1
 BATCH_SIZE = 32
-NUM_EPOCHS = 2
-MAX_ITER = 249
-MODEL_SEED = 19
-SOLVER = "liblinear"
+SEED = 9
+MAX_ITER = 297
+SOLVER = "lbfgs"
+
+
+def set_seed(seed_value):
+  """Set seed for reproducibility."""
+  random.seed(seed_value)
+  np.random.seed(seed_value)
+  torch.manual_seed(seed_value)
+  torch.cuda.manual_seed_all(seed_value)
+  torch.backends.cudnn.deterministic = True
+  torch.backends.cudnn.benchmark = False
+  os.environ['PYTHONHASHSEED'] = str(seed_value)
+
+
+# Set seed for reproducibility
+set_seed(SEED)
 
 
 def get_device():
@@ -64,6 +82,14 @@ def compute_metrics(y_pred, y_test):
   mcc = matthews_corrcoef(y_test, y_pred)
   cm = confusion_matrix(y_test, y_pred)
 
+  # Plot confusion matrix
+  plot_confusion_matrix(y_test,
+                        y_pred,
+                        ["support", "oppose"],
+                        "paper_c_1_dl_setfit_confusion_matrix.png",
+                        "Confusion Matrix for SetFit model",
+                        values_fontsize=22
+                        )
   return {
     'accuracy': accuracy,
     'precision': precision,
@@ -76,12 +102,12 @@ def compute_metrics(y_pred, y_test):
 
 
 class EmbeddingPlotCallback(TrainerCallback):
-  # Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
-  # throughout training."""
+  """ Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
+  # throughout training. """
 
   def on_evaluate(self, args, state, control, **kwargs):
-    train_embeddings = model.encode(train_dataset["text"])
-    eval_embeddings = model.encode(validation_dataset["text"])
+    train_embeddings = trainer.model.encode(train_dataset["text"])
+    eval_embeddings = trainer.model.encode(validation_dataset["text"])
 
     # Determine dataset size to adjust perplexity
     eval_dataset_size = len(validation_dataset["text"])
@@ -98,45 +124,58 @@ class EmbeddingPlotCallback(TrainerCallback):
     eval_ax.set_title("Evaluation embeddings")
 
     fig.suptitle(f"tSNE of training and evaluation embeddings at step {state.global_step} of {state.max_steps}.")
-    fig.savefig(f"images/step_{state.global_step}.png")
+    fig.savefig(f"images/paper_c_setfit_step_{state.global_step}.png")
+    plt.close(fig)
 
 
 """class EmbeddingPlotCallback(TrainerCallback):
-  # Simple embedding plotting callback that plots the 3D tSNE of the training and evaluation datasets
+  #Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
   # throughout training.
 
   def on_evaluate(self, args, state, control, **kwargs):
-    _model = model_init()
-    train_embeddings = _model.encode(train_dataset["text"])
-    eval_embeddings = _model.encode(validation_dataset["text"])
+    train_embeddings = trainer.model.encode(train_dataset["text"])
+    eval_embeddings = trainer.model.encode(validation_dataset["text"])
 
-    # Determine dataset size to adjust perplexity for 3D
+    # Determine dataset size to adjust perplexity
     eval_dataset_size = len(validation_dataset["text"])
     perplexity_value = min(30, max(5, int(eval_dataset_size / 2)))
 
-    fig = plt.figure(figsize=(16, 8))
-    ax1 = fig.add_subplot(121, projection='3d')
-    ax2 = fig.add_subplot(122, projection='3d')
+    # Enlarge the canvas
+    fig, (train_ax, eval_ax) = plt.subplots(ncols=2, figsize=(15, 7))
 
-    # 3D t-SNE for training embeddings
-    train_x = TSNE(n_components=3, perplexity=perplexity_value).fit_transform(train_embeddings)
-    ax1.scatter(train_x[:, 0], train_x[:, 1], train_x[:, 2], c=train_dataset["label"])
-    ax1.set_title("Training embeddings")
+    # Custom colors: green for 'support', orange for 'oppose'
+    custom_colors = ['green', 'orange']
+    color_map = [custom_colors[label] for label in train_dataset["label"]]
 
-    # 3D t-SNE for evaluation embeddings
-    eval_x = TSNE(n_components=3, perplexity=perplexity_value).fit_transform(eval_embeddings)
-    ax2.scatter(eval_x[:, 0], eval_x[:, 1], eval_x[:, 2], c=validation_dataset["label"])
-    ax2.set_title("Evaluation embeddings")
+    train_x = TSNE(n_components=2, perplexity=perplexity_value).fit_transform(train_embeddings)
+    train_ax.scatter(*train_x.T, c=color_map, label=class_names)
+    train_ax.set_title("Training embeddings")
 
-    fig.suptitle(f"3D tSNE of training and evaluation embeddings at step {state.global_step} of {state.max_steps}.")
-    # plt.show()
-    fig.savefig(f"images/3D_step_{state.global_step}.png")"""
+    eval_color_map = [custom_colors[label] for label in validation_dataset["label"]]
+    eval_x = TSNE(n_components=2, perplexity=perplexity_value).fit_transform(eval_embeddings)
+    eval_ax.scatter(*eval_x.T, c=eval_color_map, label=class_names)
+    eval_ax.set_title("Evaluation embeddings")
+
+    # Create a shared legend and place it at the bottom of the figure
+    handles = [plt.Line2D([0], [0], marker='o', color='w', label=class_names[i],
+                          markerfacecolor=custom_colors[i], markersize=12) for i in range(len(class_names))]
+    fig.legend(handles=handles, title="Stance classes", loc='lower center', bbox_to_anchor=(0.5, -0.05),
+               ncol=len(class_names), fontsize='medium')
+
+    # Set the super title for the figure
+    fig.suptitle(f"tSNE of training and evaluation embeddings at step {state.global_step} of {state.max_steps}.",
+                 fontsize=16)
+
+    # Save the figure and close the plot to free memory
+    fig.savefig(f"images/setfit_step_{state.global_step}.png", bbox_inches='tight')
+    plt.close(fig)"""
 
 
 # Set device to CUDA, MPS, or CPU
 device = get_device()
 print(f"\nUsing device: {str(device).upper()}\n")
 
+# Initialize model
 # model_id = "sentence-transformers/all-mpnet-base-v2"
 model_id = "sentence-transformers/paraphrase-mpnet-base-v2"
 # model_id = "BAAI/bge-small-en-v1.5"
@@ -148,16 +187,6 @@ dataset_test_route = "shared_data/dataset_3_6_test_anonym.jsonl"
 dataset_training = load_jsonl_file(dataset_training_route)
 dataset_validation = load_jsonl_file(dataset_validation_route)
 dataset_test = load_jsonl_file(dataset_test_route)
-
-""" ###############################################################
-Remove the "neutral" class from the three datasets
-############################################################### """
-dataset_training = [datapoint for datapoint in dataset_training if datapoint["completion"] != "neutral"]
-dataset_validation = [datapoint for datapoint in dataset_validation if datapoint["completion"] != "neutral"]
-dataset_test = [datapoint for datapoint in dataset_test if datapoint["completion"] != "neutral"]
-
-dataset_test = dataset_test + dataset_validation
-""" ############################################################ """
 
 # Reverse label map from string to integer
 dataset_training = [{"label": LABEL_MAP[datapoint["completion"]], "text": datapoint["prompt"]}
@@ -176,12 +205,10 @@ print(f"- test: {len(dataset_test)}")
 
 num_support_test = len([item for item in dataset_test if item["label"] == 0])
 num_oppose_test = len([item for item in dataset_test if item["label"] == 1])
-num_neutral_test = len([item for item in dataset_test if item["label"] == 2])
 
 print(f"\nTest set class distribution:")
 print(f"- support: {num_support_test}")
-print(f"- oppose: {num_oppose_test}")
-print(f"- neutral: {num_neutral_test}")
+print(f"- oppose: {num_oppose_test}\n")
 
 # Convert training data into a Dataset object
 train_columns = {key: [dic[key] for dic in dataset_training] for key in dataset_training[0]}
@@ -195,19 +222,21 @@ validation_dataset = Dataset.from_dict(val_columns)
 test_columns = {key: [dic[key] for dic in dataset_test] for key in dataset_test[0]}
 test_dataset = Dataset.from_dict(test_columns)
 
-# Initialize callbacks
+# Initialize callback for embedding plots
 embedding_plot_callback = EmbeddingPlotCallback()
+early_stopping_callback = EarlyStoppingCallback(early_stopping_patience=3)
 
 # Initialize model parameters
 arguments = TrainingArguments(
   body_learning_rate=BODY_LEARNING_RATE,
   num_epochs=NUM_EPOCHS,
   batch_size=BATCH_SIZE,
-  seed=MODEL_SEED,
+  seed=SEED,
   evaluation_strategy="steps",
-  num_iterations=20,
+  num_iterations=69,  # Note from the lecturer: I don't know why this number is 69, but it changes the number of steps
   eval_steps=20,
   end_to_end=True,
+  load_best_model_at_end=True
 )
 
 # Training Loop
@@ -215,17 +244,21 @@ trainer = Trainer(
   model_init=model_init,
   args=arguments,
   train_dataset=train_dataset,
-  # eval_dataset=test_dataset,
+  eval_dataset=validation_dataset,
+  callbacks=[embedding_plot_callback, early_stopping_callback],
   metric=compute_metrics,
-  # callbacks=[embedding_plot_callback],
 )
 
+# Train model
 trainer.train()
 
+# Evaluate model on test dataset
 metrics = trainer.evaluate(test_dataset)
 
+# Create confusion matrix
 df_cm = pd.DataFrame(metrics['confusion_matrix'], index=class_names, columns=class_names)
 
+# Print metrics and Hyperparameters
 print(f"\nModel: SetFit ({model_id})\n")
 print(f"- Accuracy: {metrics['accuracy']:.3f}")
 print(f"- Precision: {np.mean(metrics['precision']):.3f}")
@@ -236,7 +269,6 @@ print(f"- Matthews Correlation Coefficient (MCC): {metrics['mcc']:.3f}")
 print(f"- Confusion Matrix:")
 print(df_cm)
 print()
-
 print("Hyperparameters:")
 print(f"- Body Learning Rate: {BODY_LEARNING_RATE}")
 print(f"- Batch Size: {BATCH_SIZE}")
@@ -244,32 +276,9 @@ print(f"- Number of Epochs: {NUM_EPOCHS}")
 print(f"- Max Iterations: {MAX_ITER}")
 print(f"- Solver: {SOLVER}")
 print("---")
-print(f"- Seed: {MODEL_SEED}")
+print(f"- Seed: {SEED}")
 print()
 
-
-"""
-------------- Jan 18, 24 -------------
-
-Model: SetFit (sentence-transformers/all-mpnet-base-v2)
-
-- Accuracy: 0.944
-- Precision: 0.944
-- Recall: 0.944
-- F1 Score: 0.944
-- Matthews Correlation Coefficient (MCC): 0.921
-- Confusion Matrix:
-         support  oppose  neutral
-support        6       0        0
-oppose         0       6        0
-neutral        0       1        5
-
-
-Hyperparameters:
-- Body Learning Rate: 0.00010214746757835319
-- Batch Size: 32
-- Number of Epochs: 2
----
-- Seed: 42
-
-"""
+# Save model
+trainer.model.save_pretrained("models/3")
+print("\nModel saved successfully!\n")

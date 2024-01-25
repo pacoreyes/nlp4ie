@@ -6,7 +6,7 @@ from pprint import pprint
 import requests
 
 # Get dataset from Google Sheet
-dataset = read_from_google_sheet(spreadsheet_4, "dataset_3_raw")
+# dataset = read_from_google_sheet(spreadsheet_4, "dataset_3_raw")
 
 # Create reference to the database
 dataset3_coll = firestore_db.collection("_dataset3")
@@ -47,6 +47,9 @@ for sent in sentences:
 """
 PROMPT:
 
-This is the FrameNet analysis data. Step 1: Begin by identifying the specific issue in the sentence that is either supported or opposed (start with that!!!). Step 2: Next, determine which specific FrameNet frame is the most crucial for classifying the sentence as expressing a supportive or opposing stance. This will assist in creating a rule for generalization: 
-
+This is the FrameNet analysis data. 
+Step 1: Begin by identifying the specific issue in the sentence that is either supported or opposed 
+(start with that!!!).
+Step 2: Next, determine which specific FrameNet frame is the most crucial for classifying the sentence as expressing 
+a supportive or opposing stance. This will assist in creating a rule for generalization: 
 """
