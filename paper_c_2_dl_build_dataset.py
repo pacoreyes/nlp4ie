@@ -6,7 +6,7 @@ from db import firestore_db, spreadsheet_4
 from lib.utils import write_to_google_sheet, save_jsonl_file, load_jsonl_file
 from lib.utils2 import remove_examples_in_dataset
 
-TO_GSHEETS = True
+TO_GSHEETS = False
 PAGE_SIZE = 20000  # 2K is the max page size
 START_AT = "0000020233"
 

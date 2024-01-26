@@ -5,7 +5,6 @@ from tqdm import tqdm
 # from pprint import pprint
 
 from db import spreadsheet_4
-# from lib.ner_processing import custom_anonymize_text
 from lib.utils2 import anonymize_text
 from lib.utils import (read_from_google_sheet, write_to_google_sheet, save_row_to_jsonl_file, empty_json_file)
 from lib.utils2 import remove_duplicated_datapoints
@@ -32,6 +31,7 @@ dataset3_2 = read_from_google_sheet(spreadsheet_4, "dataset_3_")
 # Join dataset and dataset3_1
 dataset3 = dataset3_2 + dataset3_1
 
+# Remove those datapoints that are not support or oppose
 print("Combine datasets...")
 dataset = []
 accepted_classes = ["support", "oppose"]
