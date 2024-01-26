@@ -6,7 +6,7 @@ from db import firestore_db, spreadsheet_4
 from lib.utils import write_to_google_sheet, save_jsonl_file, load_jsonl_file
 from lib.utils2 import remove_examples_in_dataset
 
-TO_GSHEETS = True
+TO_GSHEETS = False
 PAGE_SIZE = 20000  # 2K is the max page size
 START_AT = 0
 
@@ -23,9 +23,9 @@ docs = query_start_at.stream(retry=Retry())
 dataset = [doc.to_dict() for doc in docs]
 
 # Load training all datasets
-dataset_training = load_jsonl_file("shared_data/dataset_3_4_training_anonym.jsonl")
-dataset_validation = load_jsonl_file("shared_data/dataset_3_5_validation_anonym.jsonl")
-dataset_test = load_jsonl_file("shared_data/dataset_3_6_test_anonym.jsonl")
+dataset_training = load_jsonl_file("shared_data/dataset_3_1_training.jsonl")
+dataset_validation = load_jsonl_file("shared_data/dataset_3_2_validation.jsonl")
+dataset_test = load_jsonl_file("shared_data/dataset_3_3_test.jsonl")
 
 # Combine all datasets
 dataset_used = dataset_training + dataset_validation + dataset_test
@@ -63,5 +63,5 @@ for datapoint in dataset:
 
 
 # Save documents in a JSONL file
-print("Saving documents in a JSONL file...")
+print("Saving unlabeled sentences in a JSONL file...")
 save_jsonl_file(new_dataset, "shared_data/dataset_3_7_unlabeled_sentences_1.jsonl")

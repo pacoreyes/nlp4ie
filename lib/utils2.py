@@ -117,4 +117,9 @@ def remove_examples_in_dataset(source_list, filter_list):
     :param filter_list: List containing elements to remove from source_list.
     :return: A new list which is a cleaned version of source_list.
     """
-    return [element for element in source_list if element not in filter_list]
+    for source_dp in source_list:
+        for filter_dp in filter_list:
+            if source_dp["text"] == filter_dp["prompt"]:
+                source_list.remove(source_dp)
+
+    return source_list

@@ -10,6 +10,11 @@ from lib.utils2 import anonymize_text
 from lib.utils import (read_from_google_sheet, write_to_google_sheet, save_row_to_jsonl_file, empty_json_file)
 from lib.utils2 import remove_duplicated_datapoints
 
+
+""" This script prepares the dataset for training, validation, and testing. 
+    It also creates a parallel anonymized dataset. 
+    The dataset is saved in a Google Sheet and in JSONL files. """
+
 SEED = 42
 ANONYMIZE_TARGET = False
 FOR_OPEN_AI = True
@@ -46,9 +51,6 @@ LABEL_CLASS_2 = LABEL_MAP["1"]
 # Initialize path and name of output JSON-L files and Google Sheets
 output_spreadsheet = "dataset_3"
 
-# output_anonym_spreadsheet = "dataset_3_anonym"
-# output_dataset = "shared_data/dataset_3_1.jsonl"
-# output_anonym_dataset = "shared_data/dataset_3_2_anonym.jsonl"
 output_dataset_training = "shared_data/dataset_3_1_training.jsonl"
 output_dataset_validation = "shared_data/dataset_3_2_validation.jsonl"
 output_dataset_test = "shared_data/dataset_3_3_test.jsonl"
@@ -83,18 +85,19 @@ random.shuffle(dataset)
 Write dataset to Google Sheets
 ############################################# """
 
-data = []
+dataset3 = []
 for datapoint in dataset:
   row = [
     datapoint["id"],
     datapoint["text"],
     datapoint["target"],
     datapoint["class"],
+    datapoint["type"],
   ]
-  data.append(row)
+  dataset3.append(row)
 
 # Save dataset to Google Sheets
-write_to_google_sheet(spreadsheet_4, output_spreadsheet, data)
+write_to_google_sheet(spreadsheet_4, output_spreadsheet, dataset3)
 
 """ #############################################
 Step 4: Filter datapoints by label

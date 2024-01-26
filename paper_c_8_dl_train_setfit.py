@@ -101,9 +101,9 @@ def compute_metrics(y_pred, y_test):
   }
 
 
-class EmbeddingPlotCallback(TrainerCallback):
-  """ Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
-  # throughout training. """
+"""class EmbeddingPlotCallback(TrainerCallback):
+  # Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
+  # throughout training.
 
   def on_evaluate(self, args, state, control, **kwargs):
     train_embeddings = trainer.model.encode(train_dataset["text"])
@@ -125,12 +125,12 @@ class EmbeddingPlotCallback(TrainerCallback):
 
     fig.suptitle(f"tSNE of training and evaluation embeddings at step {state.global_step} of {state.max_steps}.")
     fig.savefig(f"images/paper_c_setfit_step_{state.global_step}.png")
-    plt.close(fig)
+    plt.close(fig)"""
 
 
-"""class EmbeddingPlotCallback(TrainerCallback):
-  #Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
-  # throughout training.
+class EmbeddingPlotCallback(TrainerCallback):
+  """Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
+  # throughout training. """
 
   def on_evaluate(self, args, state, control, **kwargs):
     train_embeddings = trainer.model.encode(train_dataset["text"])
@@ -158,7 +158,7 @@ class EmbeddingPlotCallback(TrainerCallback):
 
     # Create a shared legend and place it at the bottom of the figure
     handles = [plt.Line2D([0], [0], marker='o', color='w', label=class_names[i],
-                          markerfacecolor=custom_colors[i], markersize=12) for i in range(len(class_names))]
+                          markerfacecolor=custom_colors[i], markersize=10) for i in range(len(class_names))]
     fig.legend(handles=handles, title="Stance classes", loc='lower center', bbox_to_anchor=(0.5, -0.05),
                ncol=len(class_names), fontsize='medium')
 
@@ -168,7 +168,7 @@ class EmbeddingPlotCallback(TrainerCallback):
 
     # Save the figure and close the plot to free memory
     fig.savefig(f"images/setfit_step_{state.global_step}.png", bbox_inches='tight')
-    plt.close(fig)"""
+    plt.close(fig)
 
 
 # Set device to CUDA, MPS, or CPU

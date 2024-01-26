@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from datasets import Dataset
 from setfit import SetFitModel, Trainer, TrainingArguments
-from transformers import TrainerCallback
+from transformers import TrainerCallback, EarlyStoppingCallback
 from sklearn.manifold import TSNE
 from sklearn.metrics import (precision_recall_fscore_support,
                              accuracy_score, roc_auc_score, matthews_corrcoef, confusion_matrix)
@@ -248,15 +248,18 @@ print(f"\nBest run: {best_run}")
 # Apply the best hyperparameters to the best model
 trainer.apply_hyperparameters(best_run.hyperparameters, final_model=True)
 
-# Initialize callbacks
+# Initialize callbacks for embedding plots
 embedding_plot_callback = EmbeddingPlotCallback()
+early_stopping_callback = EarlyStoppingCallback(early_stopping_patience=3)
 
 # Add callbacks to trainer
 trainer.callback_handler.add_callback(embedding_plot_callback)
+trainer.callback_handler.add_callback(early_stopping_callback)
 
 # Add training arguments
 arguments = TrainingArguments(
   eval_steps=20,
+  load_best_model_at_end=True,
   seed=SEED
 )
 trainer.args = arguments

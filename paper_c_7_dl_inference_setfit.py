@@ -50,10 +50,10 @@ predictions_list = predictions.numpy().tolist()
 for idx, p in enumerate(predictions_list):
   pred_class = None
   pred_score = 0
-  if p[0] > p[1] and p[0] > 0.9945:
+  if p[0] > p[1] and p[0] > 0.9942:
     pred_class = "support"
     pred_score = p[0]
-  elif p[0] < p[1] and p[1] > 0.9948:
+  elif p[0] < p[1] and p[1] > 0.9942:
     pred_class = "oppose"
     pred_score = p[1]
   else:
