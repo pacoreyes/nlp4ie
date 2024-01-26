@@ -114,3 +114,20 @@ print(f"- MCC: {metrics['mcc']:.3f}")
 print("- Confusion Matrix:")
 print(df_cm)
 print("\n")
+
+
+"""
+Model: Setfit (sentence-transformers/paraphrase-mpnet-base-v2)
+
+- Accuracy: 1.000
+- Precision: 1.000
+- Recall: 1.000
+- F1: 1.000
+- AUC: 1.000
+- MCC: 1.000
+- Confusion Matrix:
+         support  oppose
+support        9       0
+oppose         0       9
+
+"""

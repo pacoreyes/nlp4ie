@@ -28,6 +28,7 @@ import torch
 
 # Initialize label map and class names
 LABEL_MAP = {"support": 0, "oppose": 1}
+class_names = list(LABEL_MAP.keys())
 
 # Initialize constants
 SEED = 42
@@ -112,8 +113,51 @@ def compute_metrics(y_pred, y_test):
 
 
 class EmbeddingPlotCallback(TrainerCallback):
-  """ Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
+  """Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
   # throughout training. """
+
+  def on_evaluate(self, args, state, control, **kwargs):
+    train_embeddings = trainer.model.encode(train_dataset["text"])
+    eval_embeddings = trainer.model.encode(validation_dataset["text"])
+
+    # Determine dataset size to adjust perplexity
+    eval_dataset_size = len(validation_dataset["text"])
+    perplexity_value = min(30, max(5, int(eval_dataset_size / 2)))
+
+    # Enlarge the canvas
+    fig, (train_ax, eval_ax) = plt.subplots(ncols=2, figsize=(15, 7))
+
+    # Custom colors: green for 'support', orange for 'oppose'
+    custom_colors = ['green', 'orange']
+    color_map = [custom_colors[label] for label in train_dataset["label"]]
+
+    train_x = TSNE(n_components=2, perplexity=perplexity_value).fit_transform(train_embeddings)
+    train_ax.scatter(*train_x.T, c=color_map, label=class_names)
+    train_ax.set_title("Training embeddings")
+
+    eval_color_map = [custom_colors[label] for label in validation_dataset["label"]]
+    eval_x = TSNE(n_components=2, perplexity=perplexity_value).fit_transform(eval_embeddings)
+    eval_ax.scatter(*eval_x.T, c=eval_color_map, label=class_names)
+    eval_ax.set_title("Evaluation embeddings")
+
+    # Create a shared legend and place it at the bottom of the figure
+    handles = [plt.Line2D([0], [0], marker='o', color='w', label=class_names[i],
+                          markerfacecolor=custom_colors[i], markersize=10) for i in range(len(class_names))]
+    fig.legend(handles=handles, title="Stance classes", loc='lower center', bbox_to_anchor=(0.5, -0.05),
+               ncol=len(class_names), fontsize='medium')
+
+    # Set the super title for the figure
+    fig.suptitle(f"tSNE of training and evaluation embeddings at step {state.global_step} of {state.max_steps}.",
+                 fontsize=16)
+
+    # Save the figure and close the plot to free memory
+    fig.savefig(f"images/setfit_step_{state.global_step}.png", bbox_inches='tight')
+    plt.close(fig)
+
+
+"""class EmbeddingPlotCallback(TrainerCallback):
+  # Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
+  # throughout training.
 
   def on_evaluate(self, args, state, control, **kwargs):
     train_embeddings = trainer.model.encode(train_dataset["text"])
@@ -135,7 +179,7 @@ class EmbeddingPlotCallback(TrainerCallback):
 
     fig.suptitle(f"tSNE of training and evaluation embeddings at step {state.global_step} of {state.max_steps}.")
     fig.savefig(f"images/paper_c_setfit_step_{state.global_step}.png")
-    plt.close(fig)
+    plt.close(fig)"""
 
 
 """ 

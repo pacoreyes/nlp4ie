@@ -1,15 +1,17 @@
-from pprint import pprint
+# from pprint import pprint
 
 import torch
+import tqdm
 from setfit import SetFitModel
 
-from lib.utils import load_jsonl_file
+from db import spreadsheet_4
+from lib.utils import load_jsonl_file, write_to_google_sheet
 
 
 # Load dataset
 dataset = load_jsonl_file("shared_data/dataset_3_7_unlabeled_sentences_1.jsonl")
 
-dataset = dataset[:100]  # use it to test the code
+# dataset = dataset[101:1000]  # use it to test the code
 
 
 def get_device():
@@ -46,14 +48,16 @@ if predictions.is_cuda:
 # Convert predictions to list
 predictions_list = predictions.numpy().tolist()
 
+
 # Filter predictions by class and generate inference
-for idx, p in enumerate(predictions_list):
+predictions = []
+for idx, p in tqdm.tqdm(enumerate(predictions_list)):
   pred_class = None
   pred_score = 0
-  if p[0] > p[1] and p[0] > 0.9942:
+  if p[0] > p[1] and p[0] > 0.996:
     pred_class = "support"
     pred_score = p[0]
-  elif p[0] < p[1] and p[1] > 0.9942:
+  elif p[0] < p[1] and p[1] > 0.996:
     pred_class = "oppose"
     pred_score = p[1]
   else:
@@ -63,3 +67,20 @@ for idx, p in enumerate(predictions_list):
     print(pred_class)
     print(pred_score)
     print("-------")
+    row = [
+      sentences[idx],
+      pred_class,
+      pred_score
+    ]
+    predictions.append(row)
+
+# Write predictions to Google Sheet
+print("Writing predictions to Google Sheet...")
+write_to_google_sheet(spreadsheet_4, "error_analysis_0", predictions)
+
+"""# Save to row to jsonl file
+save_row_to_jsonl_file({
+  "text": sentences[idx],
+  "label": pred_class,
+  "score": pred_score
+}, "shared_data/dataset_3_8.error_analysis.jsonl")"""
