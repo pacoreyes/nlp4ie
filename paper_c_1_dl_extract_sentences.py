@@ -29,7 +29,7 @@ speeches_ids = load_txt_file("shared_data/text_ids_speeches.txt")
 interviews_ids = load_txt_file("shared_data/text_ids_interviews.txt")
 
 # all_ids = speeches_ids + interviews_ids
-all_ids = speeches_ids
+all_ids = interviews_ids
 
 # Get column name from tab "column_name" in the spreadsheet
 rule_frames = read_from_google_sheet(spreadsheet_4, "stance_frames_rules")
