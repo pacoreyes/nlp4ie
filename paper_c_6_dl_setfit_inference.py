@@ -11,7 +11,7 @@ from lib.utils import load_jsonl_file, write_to_google_sheet
 # Load dataset
 dataset = load_jsonl_file("shared_data/dataset_3_7_unlabeled_sentences_1.jsonl")
 
-# dataset = dataset[101:1000]  # use it to test the code
+# dataset = dataset[:2000]  # use it to test the code
 
 
 def get_device():
@@ -39,6 +39,7 @@ sentences = [datapoint["text"] for datapoint in dataset]
 # pprint(sentences)
 
 # Make predictions using the model
+print("Making predictions...")
 predictions = model.predict_proba(sentences)
 
 # Move predictions to CPU
@@ -54,33 +55,29 @@ predictions = []
 for idx, p in tqdm.tqdm(enumerate(predictions_list)):
   pred_class = None
   pred_score = 0
-  if p[0] > p[1] and p[0] > 0.996:
+  if p[0] > p[1] and p[0] > 0:  # 0.9947 is the threshold
     pred_class = "support"
     pred_score = p[0]
-  elif p[0] < p[1] and p[1] > 0.996:
+  elif p[0] < p[1] and p[1] > 0:  # 0.9947 is the threshold
     pred_class = "oppose"
     pred_score = p[1]
   else:
     pred_class = "undefined"
   if pred_class in ["oppose", "support"]:
-    print(sentences[idx])
+    """print(sentences[idx])
     print(pred_class)
     print(pred_score)
-    print("-------")
+    print("-------")"""
     row = [
+      dataset[idx]['id'],
       sentences[idx],
       pred_class,
       pred_score
     ]
     predictions.append(row)
 
+# pprint(predictions)
+
 # Write predictions to Google Sheet
 print("Writing predictions to Google Sheet...")
 write_to_google_sheet(spreadsheet_4, "error_analysis_0", predictions)
-
-"""# Save to row to jsonl file
-save_row_to_jsonl_file({
-  "text": sentences[idx],
-  "label": pred_class,
-  "score": pred_score
-}, "shared_data/dataset_3_8.error_analysis.jsonl")"""

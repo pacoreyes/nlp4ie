@@ -6,9 +6,9 @@ from db import firestore_db, spreadsheet_4
 from lib.utils import write_to_google_sheet, save_jsonl_file, load_jsonl_file
 from lib.utils2 import remove_examples_in_dataset
 
-TO_GSHEETS = False
+TO_GSHEETS = True
 PAGE_SIZE = 20000  # 2K is the max page size
-START_AT = 0
+START_AT = "0000020233"
 
 dataset3_col_ref = firestore_db.collection("sentences")
 
@@ -49,7 +49,7 @@ if TO_GSHEETS:
     data.append(row)
 
   # Write data to Google Sheet
-  write_to_google_sheet(spreadsheet_4, "dataset_3_", data)
+  write_to_google_sheet(spreadsheet_4, "delete", data)
 
 # Remove unnecessary fields
 new_dataset = []
@@ -64,4 +64,4 @@ for datapoint in dataset:
 
 # Save documents in a JSONL file
 print("Saving unlabeled sentences in a JSONL file...")
-save_jsonl_file(new_dataset, "shared_data/dataset_3_7_unlabeled_sentences_1.jsonl")
+save_jsonl_file(new_dataset, "shared_data/dataset_3_8_unlabeled_sentences_2.jsonl")
