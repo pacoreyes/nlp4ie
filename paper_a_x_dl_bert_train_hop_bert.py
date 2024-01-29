@@ -356,6 +356,12 @@ def objective(trial):
     print(f"- Seed: {SEED}")
     print()
 
+    # Save losses plot with hyperparameter values in the filename
+    losses_plot_filename = (
+      f"images/losses_plot_"
+      f"lr_{LEARNING_RATE}_batch_{BATCH_SIZE}_warmup_{WARMUP_STEPS}_epochs_{NUM_EPOCHS}.png"
+    )
+
     # Make visualization for training and validation losses
     plt.figure()
     plt.plot(range(1, NUM_EPOCHS + 1), train_losses, label="Training Loss", color="green")
@@ -363,7 +369,8 @@ def objective(trial):
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend()
-    plt.savefig("images/paper_a_1_dl_bert_model_losses.png")
+    #plt.savefig("images/paper_a_1_dl_bert_model_losses.png")
+    plt.savefig(losses_plot_filename)
     plt.close()
 
     '''

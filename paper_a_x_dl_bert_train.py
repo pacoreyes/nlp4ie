@@ -20,6 +20,8 @@ from lib.utils import load_jsonl_file
 from lib.utils2 import balance_classes_in_dataset
 from lib.visualizations import plot_confusion_matrix
 
+import json
+
 
 # Initialize label map and class names
 LABEL_MAP = {"monologic": 0, "dialogic": 1}
@@ -32,11 +34,21 @@ REVERSED_LABEL_MAP = {0: "monologic", 1: "dialogic"}
 MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BERT model
 SEED = 1234  # 42, 1234, 2021
 
+'''
 # Hyperparameters
 LEARNING_RATE = 1.6e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
 BATCH_SIZE = 8  # 16, 32
 WARMUP_STEPS = 700  # 0, 100, 1000, 10000
 NUM_EPOCHS = 1  # 2, 3, 4, 5
+WEIGHT_DECAY = 1e-3  # 1e-2 or 1e-3
+DROP_OUT_RATE = 0.2  # 0.1 or 0.2
+'''
+
+# Hyperparameters
+LEARNING_RATE = 2.07e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
+BATCH_SIZE = 16  # 16, 32
+WARMUP_STEPS = 416  # 0, 100, 1000, 10000
+NUM_EPOCHS = 4  # 2, 3, 4, 5
 WEIGHT_DECAY = 1e-3  # 1e-2 or 1e-3
 DROP_OUT_RATE = 0.2  # 0.1 or 0.2
 
@@ -123,6 +135,14 @@ train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.
 
 # Split the remaining data equally to get a validation set and a test set
 val_df, test_df = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5, random_state=SEED)
+
+# Specify file path for the JSON file
+test_json_file_path = "shared_data/dataset_1_4_test.jsonl"
+
+# Save test_df to a JSON file
+test_df.to_json(test_json_file_path, orient="records", lines=True)
+
+print(f"Test dataset saved to {test_json_file_path}")
 
 # Create TensorDatasets
 train_dataset, train_ids = create_dataset(train_df)
@@ -350,6 +370,9 @@ plt.ylabel("Loss")
 plt.legend()
 plt.savefig("images/paper_a_1_dl_bert_model_losses.png")
 plt.close()
+
+# Save the model in the 'models' directory
+torch.save(model.state_dict(), 'models/paper_a_x_dl_bert_train_97.2.pth')
 
 """
 Model: BERT

@@ -29,13 +29,13 @@ def preprocess(texts, tokenizer, device, max_length=MAX_LENGTH):
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
 # Load the saved model
-saved_model_path = "models/1/paper_a_x_dl_bert_train_hop_bert.pth"
+saved_model_path = "models/1/paper_a_x_dl_bert_train_97.2.pth"
 model = BertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=len(LABEL_MAP))
 model.load_state_dict(torch.load(saved_model_path, map_location=device))
 model.to(device)
 
 # Load and preprocess the test dataset
-data_file = "shared_data/dataset_1_4_sliced.jsonl"
+data_file = "shared_data/dataset_1_4_test.jsonl"
 test_dataset = pd.read_json(data_file, lines=True)
 
 # Tokenize and preprocess test data
