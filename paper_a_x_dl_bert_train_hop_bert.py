@@ -366,14 +366,18 @@ def objective(trial):
     plt.savefig("images/paper_a_1_dl_bert_model_losses.png")
     plt.close()
 
-    return test_accuracy  # Return the metric we want to optimize (accuracy in this case)
+    # Set the best model to the current model
+    best_model = model
+
+    return test_accuracy, best_model  # Return the metric we want to optimize (accuracy in this case)
 
 # Create an Optuna study
 study = create_study(direction="maximize")  # or "minimize" depending on your metric
 
 # Optimize the study
-study.optimize(objective, n_trials=20)  # Adjust the number of trials as needed
+best_test_accuracy, best_model = study.optimize(objective, n_trials=20)  # Adjust the number of trials as needed
 
+'''
 # Print best trial results
 print("Number of finished trials: ", len(study.trials))
 print("Best trial:")
@@ -383,6 +387,21 @@ print("Value: ", trial.value)
 print("Params: ")
 for key, value in trial.params.items():
     print(f"    {key}: {value}")
+'''
+
+# Print best trial results
+print("Number of finished trials: ", len(study.trials))
+print("Best trial:")
+print("Test Accuracy of the Best Model: ", best_test_accuracy)
+print("Params: ")
+for key, value in study.best_trial.params.items():
+    print(f"    {key}: {value}")
+
+# Save the best model after optimization is complete
+best_model_path = "models/3/best_model.pth"
+torch.save(best_model.state_dict(), best_model_path)
+print(f"Best model saved to {best_model_path}")
+
 
 """
 Model: BERT
