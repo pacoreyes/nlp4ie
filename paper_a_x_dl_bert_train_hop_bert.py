@@ -375,7 +375,7 @@ def objective(trial):
 study = create_study(direction="maximize")  # or "minimize" depending on your metric
 
 # Optimize the study
-best_test_accuracy, best_model = study.optimize(objective, n_trials=20)  # Adjust the number of trials as needed
+best_test_accuracy, best_model = study.optimize(objective, n_trials=1)  # Adjust the number of trials as needed
 
 '''
 # Print best trial results
@@ -399,7 +399,7 @@ for key, value in study.best_trial.params.items():
     print(f"    {key}: {value}")
 
 # Save the best model after optimization is complete
-best_model_path = "models/3/best_model.pth"
+best_model_path = "models/1/paper_a_x_dl_bert_train_hop_bert.pth"
 torch.save(best_model.state_dict(), best_model_path)
 print(f"Best model saved to {best_model_path}")
 
