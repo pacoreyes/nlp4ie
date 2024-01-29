@@ -366,18 +366,26 @@ def objective(trial):
     plt.savefig("images/paper_a_1_dl_bert_model_losses.png")
     plt.close()
 
+    '''
     # Set the best model to the current model
     best_model = model
+    '''
 
-    return test_accuracy, best_model  # Return the metric we want to optimize (accuracy in this case)
+    # Save the best model only if the current trial achieves the best accuracy
+    if test_accuracy > trial.user_attrs.get("best_test_accuracy", 0):
+        trial.set_user_attr("best_test_accuracy", test_accuracy)
+        best_model_path = f"models/1/paper_a_x_dl_bert_train_hop_bert.pth"
+        torch.save(model.state_dict(), best_model_path)
+        trial.set_user_attr("best_model_path", best_model_path)
+
+    return test_accuracy  # Return the metric we want to optimize (accuracy in this case)
 
 # Create an Optuna study
 study = create_study(direction="maximize")  # or "minimize" depending on your metric
 
 # Optimize the study
-best_test_accuracy, best_model = study.optimize(objective, n_trials=1)  # Adjust the number of trials as needed
+study.optimize(objective, n_trials=1)  # Adjust the number of trials as needed
 
-'''
 # Print best trial results
 print("Number of finished trials: ", len(study.trials))
 print("Best trial:")
@@ -387,9 +395,25 @@ print("Value: ", trial.value)
 print("Params: ")
 for key, value in trial.params.items():
     print(f"    {key}: {value}")
-    
-'''
 
+# After optimization is complete, retrieve the best trial and load the best model
+best_trial = study.best_trial
+best_test_accuracy = best_trial.value
+best_model_path = best_trial.user_attrs.get("best_model_path")
+
+if best_model_path:
+    # Load the best model
+    best_model = BertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=len(LABEL_MAP))
+    best_model.load_state_dict(torch.load(best_model_path))
+    best_model.to(device)
+
+    # Now we can use the best_model for further testing or inference
+    print(f"Best model loaded from {best_model_path}")
+else:
+    print("No best model path found. The best model may not have been saved during optimization.")
+
+
+'''
 # Print best trial results
 print("Number of finished trials: ", len(study.trials))
 print("Best trial:")
@@ -402,6 +426,7 @@ for key, value in study.best_trial.params.items():
 best_model_path = "models/1/paper_a_x_dl_bert_train_hop_bert.pth"
 torch.save(best_model.state_dict(), best_model_path)
 print(f"Best model saved to {best_model_path}")
+'''
 
 """
 Model: BERT
