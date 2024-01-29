@@ -128,8 +128,8 @@ class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(
 class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
 
 def objective(trial):
-    LEARNING_RATE = trial.suggest_float("learning_rate", 1.2e-5, 2e-5, log=True)
-    BATCH_SIZE = trial.suggest_categorical("batch_size", [16, 32])
+    LEARNING_RATE = trial.suggest_float("learning_rate", 2e-5, 3e-5, log=True)
+    BATCH_SIZE = trial.suggest_categorical("batch_size", [16, 16])
     WARMUP_STEPS = trial.suggest_int("warmup_steps", 0, 1000)
     NUM_EPOCHS = trial.suggest_int("num_epochs", 3, 4)
     #WEIGHT_DECAY = trial.suggest_float("weight_decay", 1e-5, 1e-3, log=True)
@@ -366,18 +366,14 @@ def objective(trial):
     plt.savefig("images/paper_a_1_dl_bert_model_losses.png")
     plt.close()
 
-    # Set the best model to the current model
-    best_model = model
-
-    return test_accuracy, best_model  # Return the metric we want to optimize (accuracy in this case)
+    return test_accuracy  # Return the metric we want to optimize (accuracy in this case)
 
 # Create an Optuna study
 study = create_study(direction="maximize")  # or "minimize" depending on your metric
 
 # Optimize the study
-best_test_accuracy, best_model = study.optimize(objective, n_trials=20)  # Adjust the number of trials as needed
+study.optimize(objective, n_trials=20)  # Adjust the number of trials as needed
 
-'''
 # Print best trial results
 print("Number of finished trials: ", len(study.trials))
 print("Best trial:")
@@ -387,21 +383,6 @@ print("Value: ", trial.value)
 print("Params: ")
 for key, value in trial.params.items():
     print(f"    {key}: {value}")
-'''
-
-# Print best trial results
-print("Number of finished trials: ", len(study.trials))
-print("Best trial:")
-print("Test Accuracy of the Best Model: ", best_test_accuracy)
-print("Params: ")
-for key, value in study.best_trial.params.items():
-    print(f"    {key}: {value}")
-
-# Save the best model after optimization is complete
-best_model_path = "models/3/best_model.pth"
-torch.save(best_model.state_dict(), best_model_path)
-print(f"Best model saved to {best_model_path}")
-
 
 """
 Model: BERT
@@ -429,4 +410,32 @@ Hyperparameters:
 - Dropout Rate: 0.2
 ---
 - Seed: 1234
+"""
+
+
+"""
+Model: BERT
+
+- Accuracy: 0.985
+- Precision: 0.985
+- Recall: 0.985
+- F1 Score: 0.985
+- AUC-ROC: 0.999
+- Matthews Correlation Coefficient (MCC): 0.971
+- Confusion Matrix:
+           monologic  dialogic
+monologic        267         5
+dialogic           3       269
+
+monologic: Precision = 0.97, Recall = 0.98, F1 = 0.98
+dialogic: Precision = 0.98, Recall = 0.97, F1 = 0.98
+
+Hyperparameters:
+- Learning Rate: 2.0749658870306432e-05
+- Batch Size: 16
+- Warmup Steps: 416
+- Number of Epochs: 4
+---
+- Seed: 1234
+
 """
