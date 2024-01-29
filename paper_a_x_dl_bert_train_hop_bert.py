@@ -131,7 +131,7 @@ def objective(trial):
     LEARNING_RATE = trial.suggest_float("learning_rate", 2e-5, 3e-5, log=True)
     BATCH_SIZE = trial.suggest_categorical("batch_size", [16, 16])
     WARMUP_STEPS = trial.suggest_int("warmup_steps", 0, 1000)
-    NUM_EPOCHS = trial.suggest_int("num_epochs", 1, 1)
+    NUM_EPOCHS = trial.suggest_int("num_epochs", 3, 4)
     #WEIGHT_DECAY = trial.suggest_float("weight_decay", 1e-5, 1e-3, log=True)
     #DROP_OUT_RATE = trial.suggest_float("dropout_rate", 0.1, 0.3)
 
@@ -384,7 +384,7 @@ def objective(trial):
 study = create_study(direction="maximize")  # or "minimize" depending on your metric
 
 # Optimize the study
-study.optimize(objective, n_trials=1)  # Adjust the number of trials as needed
+study.optimize(objective, n_trials=10)  # Adjust the number of trials as needed
 
 # Print best trial results
 print("Number of finished trials: ", len(study.trials))
