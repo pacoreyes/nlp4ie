@@ -131,7 +131,7 @@ def objective(trial):
     LEARNING_RATE = trial.suggest_float("learning_rate", 2e-5, 3e-5, log=True)
     BATCH_SIZE = trial.suggest_categorical("batch_size", [16, 16])
     WARMUP_STEPS = trial.suggest_int("warmup_steps", 0, 1000)
-    NUM_EPOCHS = trial.suggest_int("num_epochs", 3, 4)
+    NUM_EPOCHS = trial.suggest_int("num_epochs", 1, 1)
     #WEIGHT_DECAY = trial.suggest_float("weight_decay", 1e-5, 1e-3, log=True)
     #DROP_OUT_RATE = trial.suggest_float("dropout_rate", 0.1, 0.3)
 
@@ -396,6 +396,7 @@ print("Params: ")
 for key, value in trial.params.items():
     print(f"    {key}: {value}")
 
+'''
 # After optimization is complete, retrieve the best trial and load the best model
 best_trial = study.best_trial
 best_test_accuracy = best_trial.value
@@ -411,7 +412,7 @@ if best_model_path:
     print(f"Best model loaded from {best_model_path}")
 else:
     print("No best model path found. The best model may not have been saved during optimization.")
-
+'''
 
 '''
 # Print best trial results
