@@ -23,7 +23,7 @@ nlp = spacy.load("en_core_web_sm")
 nlp_trf = spacy.load("en_core_web_trf")
 
 text_col_ref = firestore_db.collection("texts2")
-sentences_col_ref = firestore_db.collection("sentences")
+sentences_col_ref = firestore_db.collection("sentences2")
 
 speeches_ids = load_txt_file("shared_data/text_ids_speeches.txt")
 interviews_ids = load_txt_file("shared_data/text_ids_interviews.txt")
