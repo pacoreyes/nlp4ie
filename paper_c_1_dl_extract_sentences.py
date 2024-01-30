@@ -27,9 +27,14 @@ sentences_col_ref = firestore_db.collection("sentences")
 
 speeches_ids = load_txt_file("shared_data/text_ids_speeches.txt")
 interviews_ids = load_txt_file("shared_data/text_ids_interviews.txt")
+text2_ids = load_txt_file("shared_data/text_ids_texts2.txt")
 
 # all_ids = speeches_ids + interviews_ids
-all_ids = interviews_ids
+# all_ids = interviews_ids
+all_ids = text2_ids
+ids_to_remove = speeches_ids + interviews_ids
+# Remove ids from list
+all_ids = [item for item in all_ids if item not in ids_to_remove]
 
 # Get column name from tab "column_name" in the spreadsheet
 rule_frames = read_from_google_sheet(spreadsheet_4, "stance_frames_rules")

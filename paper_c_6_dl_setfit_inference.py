@@ -6,15 +6,30 @@ import tqdm
 from setfit import SetFitModel
 
 from db import spreadsheet_4
-from lib.utils import load_jsonl_file, write_to_google_sheet
+from lib.utils import load_jsonl_file, write_to_google_sheet, read_from_google_sheet
+from lib.utils2 import remove_duplicated_datapoints, set_seed
+
+# Set constants
+SEED = 42
+
+# Set seed
+set_seed(SEED)
 
 # Load dataset
-dataset1 = load_jsonl_file("shared_data/dataset_3_7_unlabeled_sentences_1.jsonl")
+# dataset1 = load_jsonl_file("shared_data/dataset_3_7_unlabeled_sentences_1.jsonl")
+
+dataset1 = read_from_google_sheet(spreadsheet_4, "dataset_3_")
 dataset2 = load_jsonl_file("shared_data/dataset_3_8_unlabeled_sentences_2.jsonl")
+
+# Remove duplicated datapoints
+dataset1 = remove_duplicated_datapoints(dataset1)
+dataset2 = remove_duplicated_datapoints(dataset2)
+
+# Remove skipped datapoints
+dataset1 = [item for item in dataset1 if item["class"] == "skipped"]
 
 # Merge datasets
 dataset = dataset1 + dataset2
-
 
 # dataset = dataset[:2000]  # use it to test the code
 

@@ -32,7 +32,7 @@ class_names = list(LABEL_MAP.keys())
 
 # Initialize constants
 SEED = 42
-NUM_TRIALS = 2
+NUM_TRIALS = 10
 
 
 def set_seed(seed_value):
