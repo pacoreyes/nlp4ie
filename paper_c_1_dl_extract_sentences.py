@@ -159,7 +159,7 @@ def store_record_in_firestore(record, collection_ref, max_retries=5, wait_time=5
 
 
 # Initialize counter
-sentences_counter = 27865  #
+sentences_counter = 29161  #
 print()
 
 for _id in all_ids:
