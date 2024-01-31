@@ -170,11 +170,27 @@ for idx, _id in enumerate(all_ids):
   text_doc = text_col_ref.document(_id).get()
   rec = text_doc.to_dict()
 
-  if "text_split" not in rec or "https://transcripts.cnn.com" in rec["url"]:
+  if "text_split" not in rec:
+    text = rec["text"]
+    # Split text into sentences
+    text = [preprocess_sentence_cached(sent.text) for sent in nlp_trf(text).sents]
+    # Remove empty sentences
+    text = [sentence for sentence in text if any(token.is_alpha for token in nlp_trf(sentence))]
+    # Join sentences into a single string
+    text = ' '.join(text)
+    # Initialize the spaCy pipeline with new text
+    doc_text = nlp_trf(text)
+    # Split text into sentences
+    text_split = list(doc_text.sents)
+    # Convert sentences into a list of strings
+    text_split = [sentence.text for sentence in text_split]
+    rec["text_split"] = text_split
+
+  """if "text_split" not in rec or "https://transcripts.cnn.com" in rec["url"]:
     print("#####################################################")
     print(f"Skipping {_id}...")
     print("#####################################################")
-    continue
+    continue"""
 
   text = rec["text_split"]
 
