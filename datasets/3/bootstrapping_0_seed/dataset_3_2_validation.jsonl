@@ -1,18 +1,18 @@
-{"prompt": "And I believe in science!", "completion": "support"}
-{"prompt": "And so, yes, I'm absolutely committed to helping fight poverty.", "completion": "support"}
-{"prompt": "In China we are supporting a free and democratic government.", "completion": "support"}
-{"prompt": "Over the past 50 years, our commitment to science has strengthened this country in countless ways.", "completion": "support"}
-{"prompt": "You have said housing is important to particularly minorities and the poor.", "completion": "support"}
-{"prompt": "We've done a great job with - I think our military is getting stronger, stronger, stronger.", "completion": "support"}
-{"prompt": "The United States stands squarely and unequivocably in support of the United Nations and those acting under its mandate in the interest of peace.", "completion": "support"}
-{"prompt": "The most important alliance America has is NATO, and the expansion of NATO is something that I think is very important.", "completion": "support"}
-{"prompt": "First, in response to decades of inequity and indifference, we will support democracy, reform, and human freedom.", "completion": "support"}
-{"prompt": "Laws which are opposed by the majority sentiment create resentments which undermine enforcement and in the end produce degeneration and crime.", "completion": "oppose"}
-{"prompt": "The Democratic Party is not only opposed to the protective tariff in principle, but proposes to take from the Tariff Commission the authority to make tariff adjustments and return the whole question of the tariff once more to the madhouse of congressional logrolling.", "completion": "oppose"}
-{"prompt": "We're in a war against a non-state, a set of non-state actors that are operating in the shadows, are in nooks and crannies and crevices around the world.", "completion": "oppose"}
-{"prompt": "We will continue to oppose Russian aggression in Ukraine.", "completion": "oppose"}
-{"prompt": "We have waged war against poverty- against disease.", "completion": "oppose"}
-{"prompt": "We don't believe in discrimination in this country.", "completion": "oppose"}
-{"prompt": "China, in my opinion would have destroyed our country economically, if I didn't get elected.", "completion": "oppose"}
-{"prompt": "So America and a large coalition of nations are waging a global and unrelenting war against the terrorists, and we are winning.", "completion": "oppose"}
-{"prompt": "We oppose any unilateral decision by either China or Taiwan to change the status quo.", "completion": "oppose"}
+{"id": "0000000202", "text": "We strongly support NATO, an alliance forged through the bonds of two world wars that dethroned fascism, and a cold war, and defeated communism.", "label": "support"}
+{"id": "10", "text": "Finally, working with the Federal Reserve, we will continue to support monetary policy that keeps both interest rates and inflation down.", "label": "support"}
+{"id": "0000003635", "text": "The most important alliance America has is NATO, and the expansion of NATO is something that I think is very important.", "label": "support"}
+{"id": "0000000200", "text": "And we must support the victims of crime.", "label": "support"}
+{"id": "0000000409", "text": "The more we bring China into the world, the more the world will bring change and freedom to China.", "label": "support"}
+{"id": "14", "text": "I pledge myself to a resumption of a real endeavor to make the outlawry of war effective by removing its causes and to substitute the methods of conciliation, conference, arbitration and judicial determination.", "label": "support"}
+{"id": "0000000420", "text": "We must reinforce our commitment to medical science.", "label": "support"}
+{"id": "0000002635", "text": "Over the past 50 years, our commitment to science has strengthened this country in countless ways.", "label": "support"}
+{"id": "0000019063", "text": "Specifically, this growth package should bolster both business investment and consumer spending, which are critical to economic growth.", "label": "support"}
+{"id": "0000011539", "text": "There are those who say that values and morals and religions have no place in public education; I think that is wrong.", "label": "oppose"}
+{"id": "0000000079", "text": "And in my first hundred days, I will stop the illegal war in Nicaragua.", "label": "oppose"}
+{"id": "0000016601", "text": "We established NATO to oppose the aggression of communism.", "label": "oppose"}
+{"id": "0000004559", "text": "It's - we're in a war against these terrorists who will bring great harm to America, and I've asked these young ones to sacrifice for that.", "label": "oppose"}
+{"id": "0000005029", "text": "That's why I fight against poverty.", "label": "oppose"}
+{"id": "0000022641", "text": "The law cannot tolerate any discrimination, and my administration will not tolerate abuse of that principle.", "label": "oppose"}
+{"id": "0000004756", "text": "We are struggling against international terrorism in Iran.", "label": "oppose"}
+{"id": "0000016297", "text": "I made fighting this terrible disease a top priority of my administration by launching an emergency plan for AIDS relief.", "label": "oppose"}
+{"id": "2", "text": "And I will oppose any attempts to pay for tax cuts with Medicare cuts.", "label": "oppose"}

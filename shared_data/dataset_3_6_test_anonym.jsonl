@@ -1,18 +1,18 @@
-{"prompt": "These reforms will also support our response to the terrible crisis of opioid and drug addiction.", "completion": "support"}
-{"prompt": "I also ask you to support creating a freer and fairer trading system for [DATE] [GPE].", "completion": "support"}
-{"prompt": "We must reinforce our commitment to medical science.", "completion": "support"}
-{"prompt": "We will support abstinence-based education for young people in schools and churches and community centers.", "completion": "support"}
-{"prompt": "The more we bring [GPE] into the world, the more the world will bring change and freedom to [GPE].", "completion": "support"}
-{"prompt": "My opinion is that [GPE] will increase its authority among nations for doing this.", "completion": "support"}
-{"prompt": "We've long supported a political settlement in [GPE], and we view this negotiating process as a result of our sustained support to end [DATE] of war by securing [NORP]' self-determination.", "completion": "support"}
-{"prompt": "Well, we're supporting people who are fighting for democracy and freedom.", "completion": "support"}
-{"prompt": "And so, yes, I'm absolutely committed to helping fight poverty.", "completion": "support"}
-{"prompt": "I'm opposed to taxing for this problem, or the solution to this problem, because if you look back in history, every major tax decrease has resulted in more revenues for the Government at the lower rates because of the stimulant to the economy.", "completion": "oppose"}
-{"prompt": "We must vigorously defend our natural wealth against those who would misuse it for selfish gain.", "completion": "oppose"}
-{"prompt": "I made fighting this terrible disease a top priority of my administration by launching an emergency plan for [ENTITY] relief.", "completion": "oppose"}
-{"prompt": "I have been opposed to a poll tax all my life.", "completion": "oppose"}
-{"prompt": "We don't believe in discrimination in this country.", "completion": "oppose"}
-{"prompt": "We have waged war against poverty- against disease.", "completion": "oppose"}
-{"prompt": "I think abortion is wrong and I'm doing everything I can as President to hold down the need for abortion.", "completion": "oppose"}
-{"prompt": "And for that very same reason--because I believe in human dignity--I am against a guaranteed annual wage.", "completion": "oppose"}
-{"prompt": "I have said many times that terrorism is one of the greatest dangers we face in this new global era.", "completion": "oppose"}
+{"id": "0000000020", "text": "I pledge a complete devotion to the welfare of our country and our people.", "label": "support"}
+{"id": "0000003794", "text": "I believe in freedom of religion.", "label": "support"}
+{"id": "0000000411", "text": "First of all, our markets are already open to [GPE]; this agreement will open [GPE]'s markets to us.", "label": "support"}
+{"id": "0000006557", "text": "Well, we're supporting people who are fighting for democracy and freedom.", "label": "support"}
+{"id": "0000003122", "text": "We're supporting those who are for democracy, whoever they are, wherever they are, in whatever Republic they are and in the center.", "label": "support"}
+{"id": "0000010761", "text": "We're going to favor work over welfare.", "label": "support"}
+{"id": "0000021596", "text": "My administration is committed to creating the jobs that trade brings.", "label": "support"}
+{"id": "0000000361", "text": "My administration is promoting free and fair trade to open up new markets for [GPE]'s entrepreneurs and manufacturers and farmers, to create jobs for [NORP] workers.", "label": "support"}
+{"id": "0000019403", "text": "We will support the voices of tolerance and moderation across the world.", "label": "support"}
+{"id": "0000012685", "text": "I don't like the ever-increasing dependency on foreign sources of energy; I don't think it is good.", "label": "oppose"}
+{"id": "0000006549", "text": "I'm opposed to taxing for this problem, or the solution to this problem, because if you look back in history, every major tax decrease has resulted in more revenues for the Government at the lower rates because of the stimulant to the economy.", "label": "oppose"}
+{"id": "0000000505", "text": "Our goal must be to deter war of any kind.", "label": "oppose"}
+{"id": "0000004272", "text": "We recently, you know, implemented new sanctions against [GPE] because of a cyber attack against us.", "label": "oppose"}
+{"id": "0000001511", "text": "Another important problem in our foreign intercourse relates to [GPE].", "label": "oppose"}
+{"id": "0000016185", "text": "But we must oppose everywhere extremism that produces terrorism and hate.", "label": "oppose"}
+{"id": "0000011857", "text": "I did not ask for a gas tax; I am opposed to a gas tax; and, I know the [ORG] won't pass one.", "label": "oppose"}
+{"id": "0000003378", "text": "We cannot abandon the struggle against inflation.", "label": "oppose"}
+{"id": "0000016268", "text": "And most [NORP] believe fear of crime and violence threatens our most basic freedoms and denies us opportunity.", "label": "oppose"}

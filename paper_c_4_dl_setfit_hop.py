@@ -218,21 +218,23 @@ dataset_validation = load_jsonl_file(dataset_validation_route)
 dataset_test = load_jsonl_file(dataset_test_route)
 
 # Reverse label map from string to integer
-dataset_training = [{"label": LABEL_MAP[datapoint["completion"]], "text": datapoint["prompt"]}
+dataset_training = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text"]}
                     for datapoint in dataset_training]
-dataset_validation = [{"label": LABEL_MAP[datapoint["completion"]], "text": datapoint["prompt"]}
+dataset_validation = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text"]}
                       for datapoint in dataset_validation]
-dataset_test = [{"label": LABEL_MAP[datapoint["completion"]], "text": datapoint["prompt"]}
+dataset_test = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text"]}
                 for datapoint in dataset_test]
+
+dataset_training = dataset_training + dataset_test
 
 # Count and print class distribution
 train_label_counts = Counter([datapoint['label'] for datapoint in dataset_training])
 val_label_counts = Counter([datapoint['label'] for datapoint in dataset_validation])
-test_label_counts = Counter([datapoint['label'] for datapoint in dataset_test])
+# test_label_counts = Counter([datapoint['label'] for datapoint in dataset_test])
 
 print("\nClass distribution in training dataset:", train_label_counts)
 print("Class distribution in validation dataset:", val_label_counts)
-print("Class distribution in test dataset:", test_label_counts)
+# print("Class distribution in test dataset:", test_label_counts)
 
 """
 Uncomment to enable lazy loading of data in case of memory issues.
@@ -273,8 +275,8 @@ val_columns = {key: [dic[key] for dic in dataset_validation] for key in dataset_
 validation_dataset = Dataset.from_dict(val_columns)
 
 # Convert test data into Dataset object
-test_columns = {key: [dic[key] for dic in dataset_test] for key in dataset_test[0]}
-test_dataset = Dataset.from_dict(test_columns)
+"""test_columns = {key: [dic[key] for dic in dataset_test] for key in dataset_test[0]}
+test_dataset = Dataset.from_dict(test_columns)"""
 
 # Initialize trainer
 trainer = Trainer(
@@ -312,8 +314,8 @@ trainer.args = arguments
 trainer.train()
 
 # Evaluate best model using the test dataset
-metrics = trainer.evaluate(test_dataset, "test")
-print(f"\nMetrics: {metrics}")
+"""metrics = trainer.evaluate(test_dataset, "test")
+print(f"\nMetrics: {metrics}")"""
 
 # Save best model
 trainer.model.save_pretrained("models/3")

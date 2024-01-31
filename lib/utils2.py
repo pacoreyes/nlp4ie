@@ -119,7 +119,8 @@ def remove_examples_in_dataset(source_list, filter_list):
     """
     for source_dp in source_list:
         for filter_dp in filter_list:
-            if source_dp["text"] == filter_dp["prompt"]:
+            # if source_dp["text"] == filter_dp["prompt"]:
+            if source_dp["text"] == filter_dp["text"]:
                 source_list.remove(source_dp)
 
     return source_list

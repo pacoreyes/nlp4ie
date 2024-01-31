@@ -14,9 +14,8 @@ from lib.utils2 import remove_duplicated_datapoints
     It also creates a parallel anonymized dataset. 
     The dataset is saved in a Google Sheet and in JSONL files. """
 
-SEED = 42
+SEED = 1234
 ANONYMIZE_TARGET = False
-FOR_OPEN_AI = True
 
 # Set seed for reproducibility
 random.seed(SEED)
@@ -96,6 +95,9 @@ for datapoint in dataset:
   ]
   dataset3.append(row)
 
+# Order dataset3 by class
+dataset3 = sorted(dataset3, key=lambda x: x[3])
+
 # Save dataset to Google Sheets
 write_to_google_sheet(spreadsheet_4, output_spreadsheet, dataset3)
 
@@ -162,9 +164,6 @@ for datapoint in tqdm(dataset_training, desc=f"Processing {len(dataset_training)
     "text": anonymize_text(datapoint["text"], nlp_trf),
     "label": datapoint["class"]
   }
-  if FOR_OPEN_AI:
-    row = {"prompt": row["text"], "completion": row["label"]}
-    row_anonym = {"prompt": row_anonym["text"], "completion": row_anonym["label"]}
 
   # Save datapoint to JSONL files
   save_row_to_jsonl_file(row, output_dataset_training)
@@ -187,9 +186,6 @@ for datapoint in tqdm(dataset_validation, desc=f"Processing {len(dataset_validat
     "text": anonymize_text(datapoint["text"], nlp_trf),
     "label": datapoint["class"]
   }
-  if FOR_OPEN_AI:
-    row = {"prompt": row["text"], "completion": row["label"]}
-    row_anonym = {"prompt": row_anonym["text"], "completion": row_anonym["label"]}
 
   # Save datapoint to JSONL files
   save_row_to_jsonl_file(row, output_dataset_validation)
@@ -212,9 +208,6 @@ for datapoint in tqdm(dataset_test, desc=f"Processing {len(dataset_test)} datapo
     "text": anonymize_text(datapoint["text"], nlp_trf),
     "label": datapoint["class"]
   }
-  if FOR_OPEN_AI:
-    row = {"prompt": row["text"], "completion": row["label"]}
-    row_anonym = {"prompt": row_anonym["text"], "completion": row_anonym["label"]}
 
   # Save datapoint to JSONL files
   save_row_to_jsonl_file(row, output_dataset_test)
