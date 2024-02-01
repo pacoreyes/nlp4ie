@@ -24,11 +24,11 @@ random.seed(SEED)
 nlp_trf = spacy.load("en_core_web_trf")
 
 # Load dataset from Google Sheets
-dataset3_1 = read_from_google_sheet(spreadsheet_4, "dataset_3_*")  # tailored examples
-dataset3_2 = read_from_google_sheet(spreadsheet_4, "dataset_3_")
+dataset3 = read_from_google_sheet(spreadsheet_4, "dataset_3")
+# dataset3_2 = read_from_google_sheet(spreadsheet_4, "dataset_3_")
 
 # Join dataset and dataset3_1
-dataset3 = dataset3_2 + dataset3_1
+# dataset3 = dataset3_2 + dataset3_1
 
 # Remove those datapoints that are not support or oppose
 print("Combine datasets...")
@@ -91,7 +91,7 @@ for datapoint in dataset:
     datapoint["text"],
     datapoint["target"],
     datapoint["class"],
-    datapoint["type"],
+    # datapoint["type"],
   ]
   dataset3.append(row)
 
