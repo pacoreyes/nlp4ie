@@ -5,11 +5,27 @@ import tqdm
 from setfit import SetFitModel
 
 from db import spreadsheet_4
-from lib.utils import load_jsonl_file, write_to_google_sheet
-# from lib.utils2 import remove_duplicated_datapoints
+from lib.utils import load_jsonl_file, write_to_google_sheet, read_from_google_sheet
+from lib.utils2 import remove_duplicated_datapoints, remove_examples_in_dataset
+
+
+# Initialize constants
+GOOGLE_SHEET = "dataset3"
 
 # Load dataset
-dataset = load_jsonl_file("shared_data/dataset_3_9_unseen_unlabeled_sentences.jsonl")
+# dataset = load_jsonl_file("shared_data/dataset_3_7_unlabeled_sentences_1.jsonl")
+# dataset = load_jsonl_file("shared_data/dataset_3_9_unseen_unlabeled_sentences.jsonl")
+dataset = load_jsonl_file("shared_data/_123/argumentative_sentences.jsonl")
+
+# Load dataset3
+dataset_3 = read_from_google_sheet(spreadsheet_4, "dataset_3_it2")
+dataset = remove_examples_in_dataset(dataset, dataset_3)
+
+print("##############################################")
+dataset = remove_duplicated_datapoints(dataset)
+print("##############################################")
+
+dataset = dataset[:2000]
 
 
 def get_device():
@@ -65,7 +81,8 @@ for idx, p in tqdm.tqdm(enumerate(predictions_list, start=0), desc=f"Processing 
       [
         dataset[idx]['id'],
         sentences[idx],
-        dataset[idx]['issue'],
+        # dataset[idx]['target'],
+        "",
         pred_class,
         pred_score
       ]
@@ -74,8 +91,8 @@ for idx, p in tqdm.tqdm(enumerate(predictions_list, start=0), desc=f"Processing 
 # Sort predictions by score
 predictions.sort(key=lambda x: x[4], reverse=True)
 # Take top 50 predictions
-predictions = predictions[:50]
+# predictions = predictions[:50]
 
 # Write predictions to Google Sheet
 print("Writing predictions to Google Sheet...")
-write_to_google_sheet(spreadsheet_4, "error_analysis_0", predictions)
+write_to_google_sheet(spreadsheet_4, GOOGLE_SHEET, predictions)
