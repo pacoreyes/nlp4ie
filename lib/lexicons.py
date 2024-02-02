@@ -315,3 +315,23 @@ transition_markers = {
     }
   }
 }
+
+oppose_adj = {
+  "oppose",
+  "against",
+  "wrong",
+  "bad",
+  "harmful",
+  "clear",
+  "mistake",
+  "mistaken",
+  "profound",
+  "dangerous",
+  "broad",
+  "greater",
+  "major",
+  "unrelenting",
+  "small",
+  "terrible",
+  "dangerous",
+  }
