@@ -1,17 +1,21 @@
-from pprint import pprint
-from collections import Counter
+# from pprint import pprint
 
 import spacy
 from tqdm import tqdm
 from afinn import Afinn
-from textblob import TextBlob
+# from textblob import TextBlob
 
 from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file
+from lib.semantic_frames import api_get_frames, encode_sentence_frames
 
 # Load datasets
 dataset_training = load_jsonl_file("shared_data/dataset_3_1_training.jsonl")
 dataset_validation = load_jsonl_file("shared_data/dataset_3_2_validation.jsonl")
 dataset_test = load_jsonl_file("shared_data/dataset_3_3_test.jsonl")
+
+# Dataset not seen by the model, used for testing
+dataset_for_test = load_jsonl_file("datasets/3/bootstrap_1/dataset_3_7_test_anonym.jsonl")
+
 
 output_features = "shared_data/dataset_3_10_features.jsonl"
 
@@ -19,7 +23,7 @@ output_features = "shared_data/dataset_3_10_features.jsonl"
 empty_json_file(output_features)
 
 # Join datasets
-dataset = dataset_training + dataset_validation + dataset_test
+dataset = dataset_training + dataset_validation + dataset_test + dataset_for_test
 
 # oppose_sentences = [datapoint for datapoint in dataset if datapoint["label"] == "oppose"]
 # support_sentences = [datapoint for datapoint in dataset if datapoint["label"] == "support"]
@@ -123,69 +127,78 @@ def measure_discourse_markers_use(_doc):
   return sum(token.lemma_.lower() in discourse_markers for token in _doc)
 
 
+def measure_negation_use(_doc):
+  return len([token for token in _doc if token.dep_ == "neg"])
+
+
 def measure_adjective_polarity(_doc, pole):
   # Get the polarity words
-  polarity_words = set()
+  polarity_words = []
   for token in _doc:
     # Get sentiment score
-    # score = afinn.score(token.text)
-    blob = TextBlob(token.text)
-    score = blob.sentiment.polarity
+    score = afinn.score(token.text)
+    # blob = TextBlob(token.text)
+    # score = blob.sentiment.polarity
     if pole == "pos":
       if token.pos_ == "ADJ" and token.ent_type_ == "" and score > 0:
-        polarity_words.add(token.text)
+        polarity_words.append(score)
+        # print(token.text, score)
     elif pole == "neg":
       if token.pos_ == "ADJ" and token.ent_type_ == "" and score < 0:
-        polarity_words.add(token.text)
-  return len(polarity_words)
+        polarity_words.append(score)
+        # print(token.text, score)
+  return sum(polarity_words)
 
 
 def measure_adverb_polarity(_doc, pole):
   # Get the polarity words
-  polarity_words = set()
+  polarity_words = []
   for token in _doc:
     # Get sentiment score
-    # score = afinn.score(token.text)
-    blob = TextBlob(token.text)
-    score = blob.sentiment.polarity
+    score = afinn.score(token.text)
+    # blob = TextBlob(token.text)
+    # score = blob.sentiment.polarity
     if pole == "pos":
       if token.pos_ == "ADV" and token.ent_type_ == "" and score > 0:
-        polarity_words.add(token.text)
+        polarity_words.append(score)
     elif pole == "neg":
       if token.pos_ == "ADV" and token.ent_type_ == "" and score < 0:
-        polarity_words.add(token.text)
-  return len(polarity_words)
+        polarity_words.append(score)
+  return sum(polarity_words)
 
 
 def measure_verb_polarity(_doc, pole):
   # Get the polarity words
-  polarity_words = set()
+  polarity_words = []
   for token in _doc:
     # Get sentiment score
-    # score = afinn.score(token.text)
-    blob = TextBlob(token.text)
-    score = blob.sentiment.polarity
+    score = afinn.score(token.text)
+    # blob = TextBlob(token.text)
+    # score = blob.sentiment.polarity
     if pole == "pos":
       if token.pos_ == "VERB" and token.ent_type_ == "" and score > 0:
-        polarity_words.add(token.text)
+        polarity_words.append(score)
     elif pole == "neg":
       if token.pos_ == "VERB" and token.ent_type_ == "" and score < 0:
-        polarity_words.add(token.text)
-  return len(polarity_words)
+        polarity_words.append(score)
+  return sum(polarity_words)
 
 
 print("Extracting Stance features from dataset...")
-for sentence in tqdm(dataset, desc=f"Processing {len(dataset)} datapoints"):
-  doc = nlp(sentence["text"])
-  label = sentence["label"]
+for datapoint in tqdm(dataset, desc=f"Processing {len(dataset)} datapoints"):
+  present_frames_response = api_get_frames(datapoint["text"], "localhost", "5001", "all")
+  encoded_frames = encode_sentence_frames(present_frames_response)
+
+  doc = nlp(datapoint["text"])
+  label = datapoint["label"]
 
   neg_adj_polarity = measure_adjective_polarity(doc, "neg")
   pos_adj_polarity = measure_adjective_polarity(doc, "pos")
 
   row = {
-    "text": sentence["text"],
+    "text": datapoint["text"],
     "label": label,
-    "id": sentence["id"],
+    "id": datapoint["id"],
     "sentence_length": measure_sentence_length(doc),
     "word_length": measure_word_length(doc),
     "sentence_complexity": measure_sentence_complexity(doc),
@@ -195,12 +208,14 @@ for sentence in tqdm(dataset, desc=f"Processing {len(dataset)} datapoints"):
     "lexical_density": measure_lexical_density(doc),
     "modal_verbs_use": measure_modal_verbs_use(doc),
     "discourse_markers_use": measure_discourse_markers_use(doc),
+    "negation_use": measure_negation_use(doc),
     "pos_adj_polarity": pos_adj_polarity,
     "neg_adj_polarity": neg_adj_polarity,
     "pos_adv_polarity": measure_adverb_polarity(doc, "pos"),
     "neg_adv_polarity": measure_adverb_polarity(doc, "neg"),
     "pos_verb_polarity": measure_verb_polarity(doc, "pos"),
     "neg_verb_polarity": measure_verb_polarity(doc, "neg"),
+    "semantic_frames": encoded_frames
   }
   save_row_to_jsonl_file(row, output_features)
 

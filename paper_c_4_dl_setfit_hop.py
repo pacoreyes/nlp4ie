@@ -32,7 +32,7 @@ class_names = list(LABEL_MAP.keys())
 
 # Initialize constants
 SEED = 42
-NUM_TRIALS = 1
+NUM_TRIALS = 15
 
 
 def set_seed(seed_value):
@@ -228,6 +228,9 @@ dataset_test = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text
 dataset_training = dataset_training + dataset_test
 
 dataset_test = load_jsonl_file("datasets/3/bootstrap_1/dataset_3_7_test_anonym.jsonl")
+
+dataset_test = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text"]}
+                for datapoint in dataset_test]
 
 # Count and print class distribution
 train_label_counts = Counter([datapoint['label'] for datapoint in dataset_training])

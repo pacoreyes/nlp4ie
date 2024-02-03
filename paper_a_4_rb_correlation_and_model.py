@@ -7,8 +7,8 @@ import seaborn as sns
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, \
   confusion_matrix, matthews_corrcoef, roc_auc_score
 
-from lib.utils import load_jsonl_file
-from lib.visualizations import plot_confusion_matrix
+from utils import load_jsonl_file
+from visualizations import plot_confusion_matrix
 
 class_names = ["monologic", "dialogic"]
 

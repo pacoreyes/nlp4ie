@@ -2,29 +2,29 @@
 This script calculates the descriptive statistics for the features extracted from the measurements of linguistic
 features extracted from the texts.
 """
-from pprint import pprint
-
 import pandas as pd
 import numpy as np
 from scipy.stats import skew, kurtosis
+from typing import List
 from gspread_dataframe import set_with_dataframe
+from pprint import pprint
 
 from lib.utils import load_jsonl_file
-from db import spreadsheet_5
+from db import spreadsheet_2
 
 
 # Load the data
-ms_data = load_jsonl_file("shared_data/dataset_1_2_features.jsonl")
+ms_data = load_jsonl_file("shared_data/paper_a_2_feature_extraction_sliced.jsonl")
 
 # Load the data of features into a DataFrame
 df = pd.DataFrame(ms_data)
 
 # Split the dataframe into monologic and dialogic
-df_monologic = df[df['discourse_type'] == "monologic"]
-df_dialogic = df[df['discourse_type'] == "dialogic"]
+df_monologic = df[df['discourse_type'] == 0]
+df_dialogic = df[df['discourse_type'] == 1]
 
 
-def calculate_statistics(column):
+def calculate_statistics(column: List[int]) -> dict:
   """Calculate basic statistics for a given column."""
   stats = {
     'mean': np.mean(column),
@@ -60,7 +60,7 @@ monologic_stats = {}
 dialogic_stats = {}
 
 # Store the dataframe on a Google Sheet
-sheet = spreadsheet_5.worksheet("feature_extraction")
+sheet = spreadsheet_2.worksheet("features_extraction")
 # Append DataFrame to worksheet
 set_with_dataframe(sheet, df)
 
@@ -84,11 +84,11 @@ print("Descriptive statistics for dialogic")
 pprint(df_dialogic_stats)
 
 # Store the monologic dataframe on a Google Sheet
-sheet = spreadsheet_5.worksheet("monologic_stats")
+sheet = spreadsheet_2.worksheet("monologic_desc_stat")
 # Append DataFrame to worksheet
 set_with_dataframe(sheet, df_monologic_stats)
 
 # Store the dialogic dataframe on a Google Sheet
-sheet = spreadsheet_5.worksheet("dialogic_stats")
+sheet = spreadsheet_2.worksheet("dialogic_desc_stat")
 # Append DataFrame to worksheet
 set_with_dataframe(sheet, df_dialogic_stats)

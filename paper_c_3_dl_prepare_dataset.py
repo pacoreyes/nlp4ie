@@ -14,7 +14,7 @@ from lib.utils2 import remove_duplicated_datapoints
     It also creates a parallel anonymized dataset. 
     The dataset is saved in a Google Sheet and in JSONL files. """
 
-SEED = 42
+SEED = 1234
 ANONYMIZE_TARGET = False
 
 # Set seed for reproducibility
@@ -25,10 +25,6 @@ nlp_trf = spacy.load("en_core_web_trf")
 
 # Load dataset from Google Sheets
 dataset3 = read_from_google_sheet(spreadsheet_4, "dataset_3")
-# dataset3_2 = read_from_google_sheet(spreadsheet_4, "dataset_3_")
-
-# Join dataset and dataset3_1
-# dataset3 = dataset3_2 + dataset3_1
 
 # Remove those datapoints that are not support or oppose
 print("Combine datasets...")
