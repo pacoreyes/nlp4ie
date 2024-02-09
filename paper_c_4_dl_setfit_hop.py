@@ -313,7 +313,7 @@ arguments = TrainingArguments(
   save_strategy="epoch",
   eval_steps=1,
   load_best_model_at_end=True,
-  metric_for_best_model="accuracy",
+  metric_for_best_model="embedding_loss",
   seed=SEED
 )
 trainer.args = arguments

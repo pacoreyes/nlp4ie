@@ -30,11 +30,11 @@ class_names = list(LABEL_MAP.keys())
 
 
 # Hyperparameters
-BODY_LEARNING_RATE = 0.00025308121120828735
-NUM_EPOCHS = 1
-BATCH_SIZE = 64
-SEED = 13
-MAX_ITER = 161
+BODY_LEARNING_RATE = 0.00021297245427575413
+NUM_EPOCHS = 3
+BATCH_SIZE = 32
+SEED = 36
+MAX_ITER = 117
 SOLVER = "newton-cg"
 # Total optimization steps = 1969
 
@@ -200,6 +200,13 @@ dataset_test = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text
 
 dataset_training = dataset_training + dataset_test
 
+dataset_training = dataset_training + dataset_test
+
+dataset_test = load_jsonl_file("datasets/3/bootstrap_1/dataset_3_7_test_anonym.jsonl")
+
+dataset_test = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text"]}
+                for datapoint in dataset_test]
+
 # Count and print class distribution
 print("\nDataset:")
 print(f"- training: {len(dataset_training)}")
@@ -236,11 +243,13 @@ arguments = TrainingArguments(
   num_epochs=NUM_EPOCHS,
   batch_size=BATCH_SIZE,
   seed=SEED,
-  evaluation_strategy="steps",
+  evaluation_strategy="epoch",
+  save_strategy="epoch",
   # num_iterations=63,  # Note from the lecturer: I don't know why this number is 69, but it changes the number of steps
-  eval_steps=20,
-  end_to_end=True,
-  load_best_model_at_end=True
+  eval_steps=1,
+  # end_to_end=True,
+  load_best_model_at_end=True,
+  metric_for_best_model="embedding_loss",
 )
 
 # Training Loop
@@ -251,7 +260,7 @@ trainer = Trainer(
   eval_dataset=validation_dataset,
   callbacks=[embedding_plot_callback, early_stopping_callback],
   # callbacks=[embedding_plot_callback],
-  # metric=compute_metrics,
+  metric=compute_metrics,
 )
 
 # Train model
@@ -261,7 +270,7 @@ trainer.train()
 trainer.model.save_pretrained("models/3")
 print("\nModel saved successfully!\n")
 
-"""# Evaluate model on test dataset
+# Evaluate model on test dataset
 metrics = trainer.evaluate(test_dataset)
 
 # Create confusion matrix
@@ -286,4 +295,4 @@ print(f"- Max Iterations: {MAX_ITER}")
 print(f"- Solver: {SOLVER}")
 print("---")
 print(f"- Seed: {SEED}")
-print()"""
+print()

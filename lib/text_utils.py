@@ -1,7 +1,8 @@
 """ More text normalization functions. """
 import re
-from unidecode import unidecode
 # from pprint import pprint
+
+from unidecode import unidecode
 
 
 def preprocess_text(text: str, nlp,
@@ -107,8 +108,10 @@ def remove_leading_patterns(text: str) -> str:
   # Remove negative lookbehind assertion, "first part) second part..." > "second part..."
   text = _remove_leading_unopened_parenthesis_and_brackets(text)
 
-  # Removes leading punctuation patterns, e.g., from "# Example string" removes "# "
-  text = re.sub(r'^[\!\"\#\$\%\&\'\(\)\*\+\,\-\.\/\:\;\<\=\>\?\@\[\\\]\^\_\`\{\|\}\~]\s*', '', text)
+  # check if text begins with "["
+  if not text.startswith('['):
+    # Removes leading punctuation patterns, e.g., from "# Example string" removes "# "
+    text = re.sub(r'^[\!\"\#\$\%\&\'\(\)\*\+\,\-\.\/\:\;\<\=\>\?\@\[\\\]\^\_\`\{\|\}\~]\s*', '', text)
 
   # Removes alphanumeric period patterns, e.g., from "1. Example string" removes "1. "
   text = re.sub(r'^\w+\.\s', '', text)
@@ -172,16 +175,15 @@ def replace_unicode_characters(text: str) -> str:
     '\"': ' ',  # replace double quotes with spaces
     '\t': ' ',  # replace tabs with spaces
     '\r': ' ',  # replace carriage returns with spaces
-    ',': ', ',  # add a space after every comma
+    # ',': ', ',  # add a space after every comma
+    '\xa0': ' ',  # replace non-breaking space Unicode with space
   }
 
   for char, replacement in replacements.items():
     text = text.replace(char, replacement)
 
-  """
   text = text.encode().decode('unicode_escape')  # replace unicode characters with their closest ASCII representation
   text = text.encode('ascii', 'ignore').decode('utf-8')  # remove non-ascii, except for unicode characters
-  """
 
   # Convert any remaining unicode characters to their closest ASCII representation
   text = unidecode(text)
@@ -207,10 +209,59 @@ def remove_known_unuseful_strings(text: str) -> str:
                       "Transcribe Your Own Content Try Rev for free and save time transcribing & captioning.",
                       "Transcribe or caption speeches, interviews, meetings, town halls, phone calls, and more.",
                       "Rev is the largest, most trusted, fastest, and most accurate provider of transcription services and closed captioning & subtitling services in the world. Gov.",
-                      "This website stores cookies on your computer."
+                      "This website stores cookies on your computer.",
                       "These cookies are used to improve your website experience and provide more personalized services to you, both on this website and through other media.",
                       "To find out more about the cookies we use, see our Privacy Policy.",
-                      "We won't track your information when you visit our site. But in order to comply with your preferences, we'll have to use just one tiny cookie so that you're not asked to make this choice again."
+                      "We won't track your information when you visit our site. But in order to comply with your preferences, we'll have to use just one tiny cookie so that you're not asked to make this choice again.",
+                      "[Laughter]",
+                      "[Applause]",
+                      "[Inaudible]",
+                      "(Laughter)",
+                      "(Applause)",
+                      "[Inaudible]",
+                      "[President's biographer]",
+                      "[gesturing, as if climbing a ladder]",
+                      "[former House Speaker]",
+                      "[and other]",
+                      "[Solidarity leader]",
+                      "[Soviet Foreign Minister]",
+                      "[Prime Minister]",
+                      "[Egyptian President]",
+                      "[Israeli Prime Minister]"
+                      "[interviewed",
+                      "[interviewer",
+                      "[Solidarity leader]",
+                      "[laughter]",
+                      "[applause]",
+                      "[inaudible]",
+                      "(laughter)",
+                      "(applause)",
+                      "(inaudible)",
+                      "[Referring to a tape recorder]",
+                      "[Secretary of Defense Weinberger]",
+                      "[Disaster]",
+                      "[voice-over]",
+                      "[voiceover]",
+                      "[gesturing, as if climbing a ladder]",
+                      "[former House Speaker]",
+                      "[set]*",
+                      "[Tax]",
+                      "[Yoo]",
+                      "[billion]",
+                      "[Boggs]",
+                      "[Aung San Suu Kyi] *",
+                      "[Helmut Kohl]",
+                      "[sigh]",
+                      "[chuckles]",
+                      "[Watching the world cup on AF1]",
+                      "[question about his family]",
+                      "[nuclear arms reduction]",
+                      "[signed with Russian President Dmitry Medvedev April 8, 2010]",
+                      "[Secretary of Health and Human Services-designate]",
+                      "[Secretary of the Treasury-designate]",
+                      "[Chief of Staff to the President]",
+                      "[of State-designate]",
+                      "[Chairman of the Board of Governors of the Federal Reserve System]",
                       ]
   for string in frequent_strings:
     text = text.replace(string, ' ')
@@ -435,6 +486,7 @@ def final_cleanup(text: str) -> str:
   return text
 
 
-def remove_leading_placeholders(text):
-  text = re.sub(r'\[\w+\]\s*:\s*', '', text)  # Matches "[ANYWORD]: " or "[ANYWORD] :"
+def remove_speaker_labels(text):
+  # text = re.sub(r'\[\w+\]\s*:\s*', '', text)  # Matches "[ANYWORD]: " or "[ANYWORD] :"
+  text = re.sub(r'ENTITY\s*:\s*', '', text)
   return text

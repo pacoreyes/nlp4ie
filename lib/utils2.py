@@ -4,8 +4,11 @@ import random
 
 from tqdm import tqdm
 import torch
+import pandas as pd
+from sklearn.model_selection import train_test_split
 
 from lib.ner_processing import custom_anonymize_text
+from lib.utils import save_jsonl_file, load_jsonl_file, empty_json_file
 
 
 def set_seed(seed_value):
@@ -110,17 +113,49 @@ def balance_classes_in_dataset(dataset, label1, label2, label_name, seed):
 
 
 def remove_examples_in_dataset(source_list, filter_list):
-    """
-    Removes any elements from source_list that are present in filter_list.
+  """
+  Removes any elements from source_list that are present in filter_list.
 
-    :param source_list: List to be cleaned.
-    :param filter_list: List containing elements to remove from source_list.
-    :return: A new list which is a cleaned version of source_list.
-    """
-    for source_dp in source_list:
-        for filter_dp in filter_list:
-            # if source_dp["text"] == filter_dp["prompt"]:
-            if source_dp["text"] == filter_dp["text"]:
-                source_list.remove(source_dp)
+  :param source_list: List to be cleaned.
+  :param filter_list: List containing elements to remove from source_list.
+  :return: A new list which is a cleaned version of source_list.
+  """
+  # Create a set of texts from filter_list for faster look-up
+  filter_texts = {dp["text"] for dp in filter_list}
 
-    return source_list
+  # Use list comprehension to create a new list excluding filtered elements
+  cleaned_list = [dp for dp in source_list if dp["text"] not in filter_texts]
+
+  return cleaned_list
+
+
+def split_stratify_dataset(json_objects, dataset_name):
+  """
+  Split a dataset into train, validation, and test sets, and save them as JSONL files.
+  :param json_objects: dictionary containing the dataset
+  :param dataset_name: root name of the dataset
+  :return:
+  """
+  df = pd.DataFrame(json_objects)
+
+  # Perform the stratified split
+  train_df, temp_df = train_test_split(df, test_size=0.2, stratify=df['label'], random_state=42)
+  # Split temp into validation and test
+  validation_df, test_df = train_test_split(temp_df, test_size=0.5, stratify=temp_df['label'], random_state=42)
+
+  # Convert DataFrames back into lists of JSON objects
+  train_data = train_df.to_dict(orient='records')
+  validation_data = validation_df.to_dict(orient='records')
+  test_data = test_df.to_dict(orient='records')
+
+  # Define file names based on the dataset name
+  train_file_name = f"{dataset_name}_train.jsonl"
+  validation_file_name = f"{dataset_name}_validation.jsonl"
+  test_file_name = f"{dataset_name}_test.jsonl"
+
+  # Save the datasets to JSONL files
+  save_jsonl_file(train_data, f"shared_data/{train_file_name}")
+  save_jsonl_file(validation_data, f"shared_data/{validation_file_name}")
+  save_jsonl_file(test_data, f"shared_data/{test_file_name}")
+
+  print(f"Dataset split and saved as {train_file_name}, {validation_file_name}, and {test_file_name}")
