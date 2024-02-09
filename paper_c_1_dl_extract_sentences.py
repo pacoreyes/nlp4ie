@@ -23,13 +23,22 @@ nlp = spacy.load("en_core_web_sm")
 nlp_trf = spacy.load("en_core_web_trf")
 
 text_col_ref = firestore_db.collection("texts2")
-sentences_col_ref = firestore_db.collection("sentences")
+sentences_col_ref = firestore_db.collection("sentences2")
 
 speeches_ids = load_txt_file("shared_data/text_ids_speeches.txt")
 interviews_ids = load_txt_file("shared_data/text_ids_interviews.txt")
+text2_ids = load_txt_file("shared_data/text_ids_texts2.txt")
 
 # all_ids = speeches_ids + interviews_ids
-all_ids = interviews_ids
+# all_ids = interviews_ids
+all_ids = text2_ids
+print(f"Number of texts from Firestore (texts2): {len(all_ids)}")
+# Join speeches and interviews ids
+ids_to_remove = speeches_ids + interviews_ids
+print(f"Number of texts to remove (speeches+interviews): {len(ids_to_remove)}")
+# Remove ids from list
+all_ids = [item for item in all_ids if item not in ids_to_remove]
+print(f"Number of texts to process: {len(all_ids)}")
 
 # Get column name from tab "column_name" in the spreadsheet
 rule_frames = read_from_google_sheet(spreadsheet_4, "stance_frames_rules")
@@ -154,18 +163,34 @@ def store_record_in_firestore(record, collection_ref, max_retries=5, wait_time=5
 
 
 # Initialize counter
-sentences_counter = 27865  #
+sentences_counter = 29161  #
 print()
 
-for _id in all_ids:
+for idx, _id in enumerate(all_ids):
   text_doc = text_col_ref.document(_id).get()
   rec = text_doc.to_dict()
 
-  if "text_split" not in rec or "https://transcripts.cnn.com" in rec["url"]:
+  if "text_split" not in rec:
+    text = rec["text"]
+    # Split text into sentences
+    text = [preprocess_sentence_cached(sent.text) for sent in nlp_trf(text).sents]
+    # Remove empty sentences
+    text = [sentence for sentence in text if any(token.is_alpha for token in nlp_trf(sentence))]
+    # Join sentences into a single string
+    text = ' '.join(text)
+    # Initialize the spaCy pipeline with new text
+    doc_text = nlp_trf(text)
+    # Split text into sentences
+    text_split = list(doc_text.sents)
+    # Convert sentences into a list of strings
+    text_split = [sentence.text for sentence in text_split]
+    rec["text_split"] = text_split
+
+  """if "text_split" not in rec or "https://transcripts.cnn.com" in rec["url"]:
     print("#####################################################")
     print(f"Skipping {_id}...")
     print("#####################################################")
-    continue
+    continue"""
 
   text = rec["text_split"]
 
@@ -173,7 +198,7 @@ for _id in all_ids:
   sentences = [preprocess_sentence_cached(sent) for sent in text]
 
   print("#####################################################")
-  print(rec['id'])
+  print(f"({idx + 1}) {rec['id']}")
   print("#####################################################\n")
 
   for sent in sentences:
@@ -241,32 +266,32 @@ for _id in all_ids:
           for denotation in denotations:
             for d in denotation:
               # Check if any matched political issue is the argument of the frame
-              found_issue_as_argument = check_if_issue_is_in_string(issue_is_main_topic, d["text"])
+              """found_issue_as_argument = check_if_issue_is_in_string(issue_is_main_topic, d["text"])
               found_issue_is_target = found_issue_as_argument and d["role"] == "TARGET"
               found_issue_is_argument = found_issue_as_argument and d["role"] == "ARGUMENT"
 
-              if found_issue_is_target or found_issue_is_argument:
-                sentences_counter += 1
-                sentence_id = id_with_zeros(sentences_counter)
+              if found_issue_is_target or found_issue_is_argument:"""
+              sentences_counter += 1
+              sentence_id = id_with_zeros(sentences_counter)
 
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                print(f"> Sentence:", sent)
-                print(f"> Issue:", issue_is_main_topic)
-                # print()
-                # print(d)
-                sentence_record = {
-                  "id": sentence_id,
-                  "text": sent,
-                  "main_frame": frame_name,
-                  "semantic_frames": extracted_frame_names,
-                  "frameNet_data": extracted_frames,
-                  "issue": issue_is_main_topic,
-                  "source_url": rec["url"],
-                  "source": rec["id"],
-                }
-                store_record_in_firestore(sentence_record, sentences_col_ref)
-                sentence_is_about_issue = True
-                break
+              print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+              print(f"> Sentence:", sent)
+              print(f"> Issue:", issue_is_main_topic)
+              # print()
+              # print(d)
+              sentence_record = {
+                "id": sentence_id,
+                "text": sent,
+                "main_frame": frame_name,
+                "semantic_frames": extracted_frame_names,
+                "frameNet_data": extracted_frames,
+                "issue": issue_is_main_topic,
+                "source_url": rec["url"],
+                "source": rec["id"],
+              }
+              store_record_in_firestore(sentence_record, sentences_col_ref)
+              sentence_is_about_issue = True
+              break
 
             if sentence_is_about_issue:
               break

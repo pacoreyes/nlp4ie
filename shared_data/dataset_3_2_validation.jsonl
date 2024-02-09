@@ -1,18 +1,28 @@
-{"prompt": "We have a deep commitment to bilingual education, as you know, and a wonderful Secretary of Education.", "completion": "support"}
-{"prompt": "And we must support the victims of crime.", "completion": "support"}
-{"prompt": "The most important alliance America has is NATO, and the expansion of NATO is something that I think is very important.", "completion": "support"}
-{"prompt": "To be acquainted with the French tongue is become part of polite education; and to a man who has the prospect of mixing in a large circle absolutely necessary.", "completion": "support"}
-{"prompt": "We're supporting housing for 10 million people.", "completion": "support"}
-{"prompt": "And I think democracy is the pillar, and the Government's respect for human rights and human dignity and individualism.", "completion": "support"}
-{"prompt": "And I think that the promise of this new democracy is that people will be able to live up to their potential.", "completion": "support"}
-{"prompt": "So I think NATO is very relevant.", "completion": "support"}
-{"prompt": "We, too, must make democracy work and we must defend it against its enemies.", "completion": "support"}
-{"prompt": "Our goal must be to deter war of any kind.", "completion": "oppose"}
-{"prompt": "Already, this movement is threatening the young democracy in Macedonia, which has its own Albanian minority and a Turkish minority.", "completion": "oppose"}
-{"prompt": "I have sworn upon the altar of God eternal hostility against every form of tyranny over the mind of man.", "completion": "oppose"}
-{"prompt": "I have always opposed discrimination.", "completion": "oppose"}
-{"prompt": "I opposed the war in Iraq precisely because I believe that we must exercise restraint in the use of military force and always consider the long-term consequences of our actions.", "completion": "oppose"}
-{"prompt": "We could fight a narrow war against al-Qaida and the Taliban or we could fight a broad war against a global menace.", "completion": "oppose"}
-{"prompt": "Our policy is that we oppose terrorism wherever it may occur.", "completion": "oppose"}
-{"prompt": "And the other thing I would say is, I think that the globalization of society has made us all more vulnerable to each other's epidemics and viruses.", "completion": "oppose"}
-{"prompt": "America is leading the fight against disease.", "completion": "oppose"}
+{"id": "0000020302", "text": "This will will help foster new breakthroughs in our war on disease.", "label": "support"}
+{"id": "0000000172", "text": "Since small business has such a stabilizing influence on recession, I think this is a good sign for all Americans.", "label": "support"}
+{"id": "0000001406", "text": "Nevertheless, the still further spreading of available work in industrial, commercial, and service activities, especially with every recovery of employment, would be a vital contribution.", "label": "support"}
+{"id": "4", "text": "To promote this democracy, I will ask Congress for $350 million to support Palestinian political, economic, and security reforms.", "label": "support"}
+{"id": "0000003606", "text": "And I think the future in trade and development for both of us holds out a great promise for our people.", "label": "support"}
+{"id": "0000004314", "text": "And I think democracy is the pillar, and the Government's respect for human rights and human dignity and individualism.", "label": "support"}
+{"id": "0000000195", "text": "In the wake of war and depression, the GI bill sent a generation to college and created the largest middle class in history.", "label": "support"}
+{"id": "0000000208", "text": "And I propose we make a major investment in conservation by fully funding the Land and Water Conservation Fund.", "label": "support"}
+{"id": "0000001840", "text": "The greatness of our democracy is grounded in our ability to move beyond our differences and to learn from our experience as we confront the many challenges ahead.", "label": "support"}
+{"id": "0000026547", "text": "And so not only do we support democracy in the Palestinian Territory, we also support the Lebanese democracy.", "label": "support"}
+{"id": "6", "text": "I appeal to every American, regardless of party, race, creed, or color, to support our efforts to build a strong and lasting United Nations Organization.", "label": "support"}
+{"id": "0000007175", "text": "We're supporting activities that build stability, foster democracy, and boost economic growth.", "label": "support"}
+{"id": "0000004344", "text": "We've made real, continuing investments in science and technology, which I think are pivotal to the long-term health of the economy and the continuation of this productivity increase.", "label": "support"}
+{"id": "0000006332", "text": "I believe it is a good investment in momentum and a long-range possibility of an equitable and secure peace in the Middle East.", "label": "support"}
+{"id": "0000016185", "text": "But we must oppose everywhere extremism that produces terrorism and hate.", "label": "oppose"}
+{"id": "0000016297", "text": "I made fighting this terrible disease a top priority of my administration by launching an emergency plan for AIDS relief.", "label": "oppose"}
+{"id": "0000001096", "text": "But events in Korea have also made it more apparent than ever that the evil spirit of aggression is still abroad in the world.", "label": "oppose"}
+{"id": "0000000285", "text": "Our next step in the fight against crime is to take on gangs the way we once took on the mob.", "label": "oppose"}
+{"id": "0000003081", "text": "But I think that since there's no inflation in the economy, interest rates should not continue to go up.", "label": "oppose"}
+{"id": "0000000247", "text": "Our sanctions against the military dictatorship that has attempted to crush human rights in Poland-and against the Soviet regime behind that military dictatorship-clearly demonstrated to the world that America will not conduct business as usual with the forces of oppression.", "label": "oppose"}
+{"id": "0000013347", "text": "We are waging a broad and unrelenting war against terror and an active campaign against proliferation.", "label": "oppose"}
+{"id": "0000000970", "text": "But we have prevented world war III.", "label": "oppose"}
+{"id": "0000000896", "text": "We are vigorously opposed to Corruption and monopoly and human exploitation-but we are not opposed to business.", "label": "oppose"}
+{"id": "0000013987", "text": "That's why we oppose terrorism.", "label": "oppose"}
+{"id": "0000001589", "text": "Our struggle against aggression in Korea has had profound effects.", "label": "oppose"}
+{"id": "0000001924", "text": "And many others--I among them--have been strongly critical of the way the war has been conducted.", "label": "oppose"}
+{"id": "0000027499", "text": "And now we must redouble our fight against the persistent inflation that has wracked our country for more than a decade.", "label": "oppose"}
+{"id": "0000012398", "text": "I have said many times that terrorism is one of the greatest dangers we face in this new global era.", "label": "oppose"}

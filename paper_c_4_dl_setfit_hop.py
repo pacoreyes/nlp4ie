@@ -32,7 +32,7 @@ class_names = list(LABEL_MAP.keys())
 
 # Initialize constants
 SEED = 42
-NUM_TRIALS = 2
+NUM_TRIALS = 15
 
 
 def set_seed(seed_value):
@@ -78,7 +78,7 @@ def model_init(params):
 def hp_space(trial: Trial):
   return {
     "body_learning_rate": trial.suggest_float("body_learning_rate", 1e-6, 1e-3, log=True),
-    "num_epochs": trial.suggest_int("num_epochs", 1, 1),
+    "num_epochs": trial.suggest_int("num_epochs", 1, 3),
     "batch_size": trial.suggest_categorical("batch_size", [16, 32, 64]),
     "seed": trial.suggest_int("seed", 1, 40),
     "max_iter": trial.suggest_int("max_iter", 50, 300),
@@ -218,11 +218,18 @@ dataset_validation = load_jsonl_file(dataset_validation_route)
 dataset_test = load_jsonl_file(dataset_test_route)
 
 # Reverse label map from string to integer
-dataset_training = [{"label": LABEL_MAP[datapoint["completion"]], "text": datapoint["prompt"]}
+dataset_training = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text"]}
                     for datapoint in dataset_training]
-dataset_validation = [{"label": LABEL_MAP[datapoint["completion"]], "text": datapoint["prompt"]}
+dataset_validation = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text"]}
                       for datapoint in dataset_validation]
-dataset_test = [{"label": LABEL_MAP[datapoint["completion"]], "text": datapoint["prompt"]}
+dataset_test = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text"]}
+                for datapoint in dataset_test]
+
+dataset_training = dataset_training + dataset_test
+
+dataset_test = load_jsonl_file("datasets/3/bootstrap_1/dataset_3_7_test_anonym.jsonl")
+
+dataset_test = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text"]}
                 for datapoint in dataset_test]
 
 # Count and print class distribution
@@ -230,9 +237,9 @@ train_label_counts = Counter([datapoint['label'] for datapoint in dataset_traini
 val_label_counts = Counter([datapoint['label'] for datapoint in dataset_validation])
 test_label_counts = Counter([datapoint['label'] for datapoint in dataset_test])
 
-print("\nClass distribution in training dataset:", train_label_counts)
-print("Class distribution in validation dataset:", val_label_counts)
-print("Class distribution in test dataset:", test_label_counts)
+print(f"\nClass distribution in training dataset: {train_label_counts}")
+print(f"Class distribution in validation dataset: {val_label_counts}")
+print(f"Class distribution in test dataset: {test_label_counts}\n")
 
 """
 Uncomment to enable lazy loading of data in case of memory issues.
@@ -302,8 +309,11 @@ trainer.callback_handler.add_callback(early_stopping_callback)
 
 # Add training arguments
 arguments = TrainingArguments(
-  eval_steps=20,
+  evaluation_strategy="epoch",
+  save_strategy="epoch",
+  eval_steps=1,
   load_best_model_at_end=True,
+  metric_for_best_model="accuracy",
   seed=SEED
 )
 trainer.args = arguments

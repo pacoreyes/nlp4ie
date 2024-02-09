@@ -1,22 +1,31 @@
 # from pprint import pprint
-import random
 
 import torch
 import tqdm
 from setfit import SetFitModel
 
 from db import spreadsheet_4
-from lib.utils import load_jsonl_file, write_to_google_sheet
+from lib.utils import load_jsonl_file, write_to_google_sheet, read_from_google_sheet
+from lib.utils2 import remove_duplicated_datapoints, remove_examples_in_dataset
+
+
+# Initialize constants
+GOOGLE_SHEET = "dataset3"
 
 # Load dataset
-dataset1 = load_jsonl_file("shared_data/dataset_3_7_unlabeled_sentences_1.jsonl")
-dataset2 = load_jsonl_file("shared_data/dataset_3_8_unlabeled_sentences_2.jsonl")
+# dataset = load_jsonl_file("shared_data/dataset_3_7_unlabeled_sentences_1.jsonl")
+# dataset = load_jsonl_file("shared_data/dataset_3_9_unseen_unlabeled_sentences.jsonl")
+dataset = load_jsonl_file("shared_data/_123/argumentative_sentences.jsonl")
 
-# Merge datasets
-dataset = dataset1 + dataset2
+# Load dataset3
+dataset_3 = read_from_google_sheet(spreadsheet_4, "dataset_3_it2")
+dataset = remove_examples_in_dataset(dataset, dataset_3)
 
+print("##############################################")
+dataset = remove_duplicated_datapoints(dataset)
+print("##############################################")
 
-# dataset = dataset[:2000]  # use it to test the code
+dataset = dataset[:2000]
 
 
 def get_device():
@@ -68,65 +77,22 @@ for idx, p in tqdm.tqdm(enumerate(predictions_list, start=0), desc=f"Processing 
   else:
     pred_class = "undefined"
   if pred_class in ["oppose", "support"]:
-    row = {
-      "id": dataset[idx]['id'],
-      "text": sentences[idx],
-      "target": dataset[idx]['target'],
-      "label": pred_class,
-      "score": pred_score
-    }
-    predictions.append(row)
+    predictions.append(
+      [
+        dataset[idx]['id'],
+        sentences[idx],
+        # dataset[idx]['target'],
+        "",
+        pred_class,
+        pred_score
+      ]
+    )
 
-# pprint(predictions)
-
-# Create a representative sample of predictions
-print("Creating a representative sample of predictions...")
-
-# Extract the extremes
-extreme_low = min(predictions, key=lambda x: x['score'])
-extreme_high = max(predictions, key=lambda x: x['score'])
-
-# Remove the extremes from the main dataset to avoid re-selection
-filtered_predictions = [item for item in predictions if item not in [extreme_low, extreme_high]]
-
-# Create buckets for different score ranges
-buckets = {}
-for item in filtered_predictions:
-    bucket_key = int(item['score'] * 5) / 5  # Adjust this for different bucket sizes
-    if bucket_key not in buckets:
-        buckets[bucket_key] = []
-    buckets[bucket_key].append(item)
-
-# Sample from each bucket
-sample_size = 300 - 2  # Reserving 2 spots for the extremes
-samples_per_bucket = sample_size // len(buckets)
-sampled_data = [extreme_low, extreme_high]
-
-for bucket in buckets.values():
-    if len(bucket) <= samples_per_bucket:
-        sampled_data.extend(bucket)
-    else:
-        sampled_data.extend(random.sample(bucket, samples_per_bucket))
-
-# Ensure the total sample size is 300
-while len(sampled_data) < 500:
-    additional_samples = random.choice(list(buckets.values()))
-    sampled_data.extend(random.sample(additional_samples, 1))
-
-# Deduplicate the final sample
-sampled_data = [dict(t) for t in {tuple(d.items()) for d in sampled_data}]
-
-# Format data for Google Sheet
-predictions = []
-for item in sampled_data:
-  predictions.append([
-    item['id'],
-    item['text'],
-    item['target'],
-    item['label'],
-    item['score']
-  ])
+# Sort predictions by score
+predictions.sort(key=lambda x: x[4], reverse=True)
+# Take top 50 predictions
+# predictions = predictions[:50]
 
 # Write predictions to Google Sheet
 print("Writing predictions to Google Sheet...")
-write_to_google_sheet(spreadsheet_4, "error_analysis_0", predictions)
+write_to_google_sheet(spreadsheet_4, GOOGLE_SHEET, predictions)

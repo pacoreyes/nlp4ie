@@ -14,9 +14,8 @@ from lib.utils2 import remove_duplicated_datapoints
     It also creates a parallel anonymized dataset. 
     The dataset is saved in a Google Sheet and in JSONL files. """
 
-SEED = 42
+SEED = 1234
 ANONYMIZE_TARGET = False
-FOR_OPEN_AI = True
 
 # Set seed for reproducibility
 random.seed(SEED)
@@ -25,11 +24,7 @@ random.seed(SEED)
 nlp_trf = spacy.load("en_core_web_trf")
 
 # Load dataset from Google Sheets
-dataset3_1 = read_from_google_sheet(spreadsheet_4, "dataset_3_*")  # tailored examples
-dataset3_2 = read_from_google_sheet(spreadsheet_4, "dataset_3_")
-
-# Join dataset and dataset3_1
-dataset3 = dataset3_2 + dataset3_1
+dataset3 = read_from_google_sheet(spreadsheet_4, "dataset_3")
 
 # Remove those datapoints that are not support or oppose
 print("Combine datasets...")
@@ -92,9 +87,12 @@ for datapoint in dataset:
     datapoint["text"],
     datapoint["target"],
     datapoint["class"],
-    datapoint["type"],
+    # datapoint["type"],
   ]
   dataset3.append(row)
+
+# Order dataset3 by class
+dataset3 = sorted(dataset3, key=lambda x: x[3])
 
 # Save dataset to Google Sheets
 write_to_google_sheet(spreadsheet_4, output_spreadsheet, dataset3)
@@ -162,9 +160,6 @@ for datapoint in tqdm(dataset_training, desc=f"Processing {len(dataset_training)
     "text": anonymize_text(datapoint["text"], nlp_trf),
     "label": datapoint["class"]
   }
-  if FOR_OPEN_AI:
-    row = {"prompt": row["text"], "completion": row["label"]}
-    row_anonym = {"prompt": row_anonym["text"], "completion": row_anonym["label"]}
 
   # Save datapoint to JSONL files
   save_row_to_jsonl_file(row, output_dataset_training)
@@ -187,9 +182,6 @@ for datapoint in tqdm(dataset_validation, desc=f"Processing {len(dataset_validat
     "text": anonymize_text(datapoint["text"], nlp_trf),
     "label": datapoint["class"]
   }
-  if FOR_OPEN_AI:
-    row = {"prompt": row["text"], "completion": row["label"]}
-    row_anonym = {"prompt": row_anonym["text"], "completion": row_anonym["label"]}
 
   # Save datapoint to JSONL files
   save_row_to_jsonl_file(row, output_dataset_validation)
@@ -212,9 +204,6 @@ for datapoint in tqdm(dataset_test, desc=f"Processing {len(dataset_test)} datapo
     "text": anonymize_text(datapoint["text"], nlp_trf),
     "label": datapoint["class"]
   }
-  if FOR_OPEN_AI:
-    row = {"prompt": row["text"], "completion": row["label"]}
-    row_anonym = {"prompt": row_anonym["text"], "completion": row_anonym["label"]}
 
   # Save datapoint to JSONL files
   save_row_to_jsonl_file(row, output_dataset_test)

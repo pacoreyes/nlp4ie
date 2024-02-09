@@ -1,5 +1,6 @@
 """ More text normalization functions. """
 import re
+from unidecode import unidecode
 # from pprint import pprint
 
 
@@ -177,8 +178,13 @@ def replace_unicode_characters(text: str) -> str:
   for char, replacement in replacements.items():
     text = text.replace(char, replacement)
 
+  """
   text = text.encode().decode('unicode_escape')  # replace unicode characters with their closest ASCII representation
   text = text.encode('ascii', 'ignore').decode('utf-8')  # remove non-ascii, except for unicode characters
+  """
+
+  # Convert any remaining unicode characters to their closest ASCII representation
+  text = unidecode(text)
   return text
 
 
