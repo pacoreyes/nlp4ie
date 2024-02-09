@@ -16,8 +16,7 @@ from transformers import BertTokenizer, BertForSequenceClassification, get_linea
 import optuna
 from optuna import Trial, create_study
 
-from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file
-from lib.utils import load_jsonl_file
+from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file, save_jsonl_file
 from lib.utils2 import balance_classes_in_dataset
 from lib.visualizations import plot_confusion_matrix
 
@@ -99,6 +98,24 @@ train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.
 
 # Split the remaining data equally to get a validation set and a test set
 val_df, test_df = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5, random_state=SEED)
+
+# Specify file path for datasets JSON files
+train_json_file_path = "shared_data/dataset_1_5_train.jsonl"
+val_json_file_path = "shared_data/dataset_1_6_val.jsonl"
+test_json_file_path = "shared_data/dataset_1_7_test.jsonl"
+
+train_dict = train_df.to_dict(orient="records")
+val_dict = val_df.to_dict(orient="records")
+test_dict = test_df.to_dict(orient="records")
+
+# Save test_df to a JSON file
+save_jsonl_file(train_dict, train_json_file_path)
+print(f"Train dataset saved to {train_json_file_path}")
+save_jsonl_file(val_dict, val_json_file_path)
+print(f"Validation dataset saved to {val_json_file_path}")
+save_jsonl_file(test_dict, test_json_file_path)
+print(f"Test dataset saved to {test_json_file_path}")
+
 
 def create_dataset(_df):
   _texts = _df['text'].tolist()
@@ -256,7 +273,7 @@ def objective(trial):
     softmax = torch.nn.Softmax(dim=1)
 
     # Initialize JSONL file for misclassified examples
-    misclassified_output_file = "shared_data/dataset_1_5_misclassified_examples.jsonl"
+    misclassified_output_file = "shared_data/dataset_1_8_misclassified_examples.jsonl"
     empty_json_file(misclassified_output_file)
 
     for i, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
@@ -300,7 +317,7 @@ def objective(trial):
     plot_confusion_matrix(test_true_labels,
                           test_predictions,
                           class_names,
-                          "paper_b_2_dl_bert_model_confusion_matrix.png",
+                          "paper_a_1_dl_bert_model_confusion_matrix.png",
                           "Confusion Matrix for BERT Model",
                           values_fontsize=22
                           )
@@ -391,7 +408,7 @@ def objective(trial):
 study = create_study(direction="maximize")  # or "minimize" depending on your metric
 
 # Optimize the study
-study.optimize(objective, n_trials=10)  # Adjust the number of trials as needed
+study.optimize(objective, n_trials=10)
 
 # Print best trial results
 print("Number of finished trials: ", len(study.trials))
