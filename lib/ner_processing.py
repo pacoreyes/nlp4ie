@@ -1,5 +1,4 @@
-import re
-from pprint import pprint
+# from pprint import pprint
 
 """
 List of entity labels that sPacy recognizes (https://spacy.io/api/annotation#named-entities):

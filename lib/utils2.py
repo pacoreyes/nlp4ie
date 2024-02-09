@@ -129,33 +129,28 @@ def remove_examples_in_dataset(source_list, filter_list):
   return cleaned_list
 
 
-def split_stratify_dataset(json_objects, dataset_name):
+def split_stratify_dataset(json_objects, stratify=True):
   """
-  Split a dataset into train, validation, and test sets, and save them as JSONL files.
-  :param json_objects: dictionary containing the dataset
-  :param dataset_name: root name of the dataset
-  :return:
+  Split a dataset into train, validation, and test sets.
+  :param json_objects: List of dictionaries containing the dataset.
+  :param stratify: Boolean indicating whether to stratify split by 'label'.
+  :return: Three lists of dictionaries corresponding to train, validation, and test sets.
   """
   df = pd.DataFrame(json_objects)
 
+  # Determine the stratify parameter
+  stratify_param = df['label'] if stratify else None
+
   # Perform the stratified split
-  train_df, temp_df = train_test_split(df, test_size=0.2, stratify=df['label'], random_state=42)
+  train_df, temp_df = train_test_split(df, test_size=0.2, stratify=stratify_param, random_state=42)
   # Split temp into validation and test
-  validation_df, test_df = train_test_split(temp_df, test_size=0.5, stratify=temp_df['label'], random_state=42)
+  validation_df, test_df = train_test_split(temp_df, test_size=0.5,
+                                            stratify=stratify_param.loc[temp_df.index] if stratify else None,
+                                            random_state=42)
 
   # Convert DataFrames back into lists of JSON objects
   train_data = train_df.to_dict(orient='records')
   validation_data = validation_df.to_dict(orient='records')
   test_data = test_df.to_dict(orient='records')
 
-  # Define file names based on the dataset name
-  train_file_name = f"{dataset_name}_train.jsonl"
-  validation_file_name = f"{dataset_name}_validation.jsonl"
-  test_file_name = f"{dataset_name}_test.jsonl"
-
-  # Save the datasets to JSONL files
-  save_jsonl_file(train_data, f"shared_data/{train_file_name}")
-  save_jsonl_file(validation_data, f"shared_data/{validation_file_name}")
-  save_jsonl_file(test_data, f"shared_data/{test_file_name}")
-
-  print(f"Dataset split and saved as {train_file_name}, {validation_file_name}, and {test_file_name}")
+  return train_data, validation_data, test_data

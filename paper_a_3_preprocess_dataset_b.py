@@ -1,16 +1,26 @@
+"""
+This script preprocesses the dataset 1B for the BERT model using the sliding window approach.
+The output are two JSONL files:
+1. Dataset with sliced texts with limit of 510 tokens (dataset_1_3_preprocessed_b.jsonl)
+2. Dataset with anonymized texts with limit of 510 tokens (dataset_1_3_preprocessed_b_anonym.jsonl)
+"""
 import spacy
 import tqdm
+from transformers import BertTokenizer
 
 from lib.linguistic_utils import check_minimal_meaning
+from lib.ner_processing import anonymize_text
 from lib.text_utils import preprocess_text, remove_speaker_labels
 from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file
-from lib.ner_processing import anonymize_text
 
 PREPROCESS_TEXT = True
 REMOVE_SPEAKER_LABELS = True
 
 # load spaCy's Transformer model
 nlp = spacy.load("en_core_web_trf")
+
+# Load the BERT tokenizer
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
 
 # load dataset
 output_file = "shared_data/dataset_1_3_preprocessed_b.jsonl"
@@ -33,56 +43,6 @@ custom_entities = [
   "AIDS"
 ]
 
-# def anonymize_text(_text, _nlp):
-"""  
-  Anonymize text by replacing all entities with their labels.
-
-  :param _text:
-  :param _nlp:
-  :return:
-
-  List of entity labels that spaCy recognizes (https://spacy.io/api/annotation#named-entities):
-
-  - PERSON: People, including fictional.
-  - NORP: Nationalities or religious or political groups.
-  - FAC: Buildings, airports, highways, bridges, etc.
-  - ORG: Companies, agencies, institutions, etc.
-  - GPE: Countries, cities, states.
-  - LOC: Non-GPE locations, mountain ranges, bodies of water.
-  - PRODUCT: Objects, vehicles, foods, etc. (Not services.)
-  - EVENT: Named hurricanes, battles, wars, sports events, etc.
-  - WORK_OF_ART: Titles of books, songs, etc.
-  - LAW: Named documents made into laws.
-  - LANGUAGE: Any named language.
-  - DATE: Absolute or relative dates or periods.
-  - TIME: Times smaller than a day.
-  - PERCENT: Percentage, including "%".
-  - MONEY: Monetary values, including unit.
-  - QUANTITY: Measurements, as of weight or distance.
-  - ORDINAL: “first”, “second”, etc.
-  - CARDINAL: Numerals that do not fall under another type.
-
-
-  doc = _nlp(_text)
-  entities = [ent for ent in doc.ents if ent.label_ in [
-    "PERSON",
-    "ORG",
-    "NORP",
-    "TIME",
-    "DATE",
-    "CARDINAL",
-    "MONEY",
-    "FAC",
-    "QUANTITY",
-    "PERCENT",
-    "GPE"]
-              ]
-  sorted_entities = sorted(entities, key=lambda e: e.start_char, reverse=True)
-  for ent in sorted_entities:
-    _text = _text[:ent.start_char] + "[" + ent.label_ + "]" + _text[ent.end_char:]
-  return _text"""
-
-
 """ #######################################################################
 Preprocess text
 ########################################################################"""
@@ -92,6 +52,13 @@ Preprocess text
 for idx, datapoint in tqdm.tqdm(enumerate(dataset),
                                 desc=f"Processing {len(dataset)} datapoints", total=len(dataset)):
   text = datapoint["text"]
+
+  tokens = tokenizer.tokenize(text)
+  num_tokens = len(tokens)
+
+  if num_tokens < 450:
+    continue
+
   # convert single string to list of sentences using spaCy
   text = [sent.text for sent in nlp(text).sents]
 
@@ -118,10 +85,6 @@ for idx, datapoint in tqdm.tqdm(enumerate(dataset),
 
   # Text non-anonymized
   text = " ".join(new_text)
-
-  # Replace speaker labels with placeholders
-  """for label in SPEAKER_LABELS:
-    text = text.replace(label, "SPEAKER")"""
 
   # Text anonymized
   text_anonym = anonymize_text(text, nlp)
