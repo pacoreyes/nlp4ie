@@ -30,7 +30,8 @@ REVERSED_LABEL_MAP = {0: "monologic", 1: "dialogic"}
 
 # Initialize constants
 MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BERT model
-SEED = 1234  # 42, 1234, 2021
+SEED = 42  # 42, 1234, 2021
+TRIALS = 20
 
 '''
 # Hyperparameters
@@ -442,7 +443,7 @@ def objective(_trial):
 study = create_study(direction="maximize")  # or "minimize" depending on your metric
 
 # Optimize the study
-study.optimize(objective, n_trials=10)
+study.optimize(objective, n_trials=TRIALS)
 
 # Print best trial results
 print("Number of finished trials: ", len(study.trials))
