@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 from transformers import BertTokenizer, BertForSequenceClassification, get_linear_schedule_with_warmup
 # import optuna
-from optuna import Trial, create_study
+from optuna import create_study
 
 from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file
 from lib.utils2 import balance_classes_in_dataset
@@ -177,23 +177,23 @@ class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
 """
 
 
-def objective(trial):
-    LEARNING_RATE = trial.suggest_float("learning_rate", 2e-5, 3e-5, log=True)
-    BATCH_SIZE = trial.suggest_categorical("batch_size", [16, 16])
-    WARMUP_STEPS = trial.suggest_int("warmup_steps", 0, 1000)
-    NUM_EPOCHS = trial.suggest_int("num_epochs", 3, 4)
+def objective(_trial):
+    learning_rate = _trial.suggest_float("learning_rate", 2e-5, 3e-5, log=True)
+    batch_size = _trial.suggest_categorical("batch_size", [16, 16])
+    warmup_steps = _trial.suggest_int("warmup_steps", 0, 1000)
+    num_epochs = _trial.suggest_int("num_epochs", 3, 4)
     #WEIGHT_DECAY = trial.suggest_float("weight_decay", 1e-5, 1e-3, log=True)
     #DROP_OUT_RATE = trial.suggest_float("dropout_rate", 0.1, 0.3)
 
     # Create DataLoaders
-    train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE)
-    val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=BATCH_SIZE)
-    test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=BATCH_SIZE)
+    train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size)
+    val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size)
+    test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=batch_size)
 
     # Initialize optimizer and scheduler
-    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE)
-    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=WARMUP_STEPS,
-                                                num_training_steps=len(train_dataloader) * NUM_EPOCHS)
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
+    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps,
+                                                num_training_steps=len(train_dataloader) * num_epochs)
 
     # Initialize the gradient scaler only if the device is a GPU
     use_cuda = device.type == "cuda"
@@ -212,24 +212,24 @@ def objective(trial):
     '''
 
     print("Hyperparameters:")
-    print(f"- Learning Rate: {LEARNING_RATE}")
-    print(f"- Batch Size: {BATCH_SIZE}")
-    print(f"- Warmup Steps: {WARMUP_STEPS}")
-    print(f"- Number of Epochs: {NUM_EPOCHS}")
+    print(f"- Learning Rate: {learning_rate}")
+    print(f"- Batch Size: {batch_size}")
+    print(f"- Warmup Steps: {warmup_steps}")
+    print(f"- Number of Epochs: {num_epochs}")
     # print(f"- Weight Decay: {WEIGHT_DECAY}")
     # print(f"- Dropout Rate: {DROP_OUT_RATE}")
     print("---")
     print(f"- Seed: {SEED}")
 
     # Training Loop
-    for epoch in range(NUM_EPOCHS):
+    for epoch in range(num_epochs):
       model.train()
       total_train_loss = 0
       # loss_fct = torch.nn.CrossEntropyLoss(weight=class_weights)
       loss_fct = torch.nn.CrossEntropyLoss()
 
       print()
-      for batch in tqdm(train_dataloader, desc=f"Training Epoch {epoch + 1}/{NUM_EPOCHS}"):
+      for batch in tqdm(train_dataloader, desc=f"Training Epoch {epoch + 1}/{num_epochs}"):
         b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
         # Clear gradients
         model.zero_grad()
@@ -336,14 +336,14 @@ def objective(trial):
         for j, (pred, true) in enumerate(zip(predictions, label_ids)):  # no _id in zip
           if pred != true:
             # Access the correct id using the batch index and the offset within the batch
-            example_id = test_ids[i * BATCH_SIZE + j]
+            example_id = test_ids[i * batch_size + j]
             # example_id = dataset[i * BATCH_SIZE + j]["metadata"]["text_id"]
             save_row_to_jsonl_file({
               "id": example_id,  # corrected to use the separate ids list
               "true_label": REVERSED_LABEL_MAP[true],
               "predicted_label": REVERSED_LABEL_MAP[pred],
-              "text": test_set[i * BATCH_SIZE + j]["text"],
-              "metadata": test_set[i * BATCH_SIZE + j]["metadata"]
+              "text": test_set[i * batch_size + j]["text"],
+              "metadata": test_set[i * batch_size + j]["metadata"]
             }, misclassified_output_file)
 
     plt.figure()
@@ -396,10 +396,10 @@ def objective(trial):
 
     print()
     print("Hyperparameters:")
-    print(f"- Learning Rate: {LEARNING_RATE}")
-    print(f"- Batch Size: {BATCH_SIZE}")
-    print(f"- Warmup Steps: {WARMUP_STEPS}")
-    print(f"- Number of Epochs: {NUM_EPOCHS}")
+    print(f"- Learning Rate: {learning_rate}")
+    print(f"- Batch Size: {batch_size}")
+    print(f"- Warmup Steps: {warmup_steps}")
+    print(f"- Number of Epochs: {num_epochs}")
     #print(f"- Weight Decay: {WEIGHT_DECAY}")
     #print(f"- Dropout Rate: {DROP_OUT_RATE}")
     print("---")
@@ -409,13 +409,13 @@ def objective(trial):
     # Save losses plot with hyperparameter values in the filename
     losses_plot_filename = (
       f"images/losses_plot_"
-      f"lr_{LEARNING_RATE}_batch_{BATCH_SIZE}_warmup_{WARMUP_STEPS}_epochs_{NUM_EPOCHS}.png"
+      f"lr_{learning_rate}_batch_{batch_size}_warmup_{warmup_steps}_epochs_{num_epochs}.png"
     )
 
     # Make visualization for training and validation losses
     plt.figure()
-    plt.plot(range(1, NUM_EPOCHS + 1), train_losses, label="Training Loss", color="green")
-    plt.plot(range(1, NUM_EPOCHS + 1), val_losses, label="Validation Loss", color="black")
+    plt.plot(range(1, num_epochs + 1), train_losses, label="Training Loss", color="green")
+    plt.plot(range(1, num_epochs + 1), val_losses, label="Validation Loss", color="black")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend()
@@ -429,11 +429,11 @@ def objective(trial):
     '''
 
     # Save the best model only if the current trial achieves the best accuracy
-    if test_accuracy > trial.user_attrs.get("best_test_accuracy", 0):
-        trial.set_user_attr("best_test_accuracy", test_accuracy)
+    if test_accuracy > _trial.user_attrs.get("best_test_accuracy", 0):
+        _trial.set_user_attr("best_test_accuracy", test_accuracy)
         best_model_path = f"models/1/paper_a_x_dl_bert_train_hop_bert.pth"
         torch.save(model.state_dict(), best_model_path)
-        trial.set_user_attr("best_model_path", best_model_path)
+        _trial.set_user_attr("best_model_path", best_model_path)
 
     return test_accuracy  # Return the metric we want to optimize (accuracy in this case)
 
