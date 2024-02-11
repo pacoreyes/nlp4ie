@@ -1,5 +1,10 @@
 
 def check_minimal_meaning(doc):
+  """
+  Check if a sentence has at least one subject, predicate, and object
+  :param doc: spaCy doc
+  :return: bool
+  """
   # These are the dependency tags for subjects, predicates, and objects
   subject_tags = {'nsubj', 'nsubjpass'}
   predicate_tags = {'ROOT'}

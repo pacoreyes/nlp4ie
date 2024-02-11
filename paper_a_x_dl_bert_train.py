@@ -45,12 +45,12 @@ DROP_OUT_RATE = 0.2  # 0.1 or 0.2
 '''
 
 # Hyperparameters
-LEARNING_RATE = 2.07e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
-BATCH_SIZE = 16  # 16, 32
-WARMUP_STEPS = 416  # 0, 100, 1000, 10000
-NUM_EPOCHS = 4  # 2, 3, 4, 5
-WEIGHT_DECAY = 1e-3  # 1e-2 or 1e-3
-DROP_OUT_RATE = 0.2  # 0.1 or 0.2
+LEARNING_RATE = 2.3877703876910152e-05
+BATCH_SIZE = 16
+WARMUP_STEPS = 743
+NUM_EPOCHS = 4
+# WEIGHT_DECAY = 1e-3  # 1e-2 or 1e-3
+# DROP_OUT_RATE = 0.2  # 0.1 or 0.2
 
 
 def get_device():
@@ -103,7 +103,7 @@ data_file = "shared_data/dataset_1_4_sliced.jsonl"
 # Load BERT model
 model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
                                                       num_labels=len(LABEL_MAP),
-                                                      hidden_dropout_prob=DROP_OUT_RATE)
+                                                      hidden_dropout_prob=0.2)
 # Move model to device
 model.to(device)
 
@@ -160,7 +160,7 @@ val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=BATCH_SIZE)
 test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=BATCH_SIZE)
 
 # Optimizer and Scheduler
-optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE)
 total_steps = len(train_dataloader) * NUM_EPOCHS
 scheduler = get_linear_schedule_with_warmup(optimizer,
                                             num_warmup_steps=WARMUP_STEPS,
@@ -345,7 +345,7 @@ print(f"- Confusion Matrix:")
 print(df_cm)
 print()
 
-# print("Test Class-wise metrics:")
+print("Test Class-wise metrics:")
 for i, class_name in enumerate(class_names):
   print(f"{class_name}: Precision = {precision[i]:.2f}, Recall = {recall[i]:.2f}, F1 = {f1[i]:.2f}")
 
@@ -355,8 +355,8 @@ print(f"- Learning Rate: {LEARNING_RATE}")
 print(f"- Batch Size: {BATCH_SIZE}")
 print(f"- Warmup Steps: {WARMUP_STEPS}")
 print(f"- Number of Epochs: {NUM_EPOCHS}")
-print(f"- Weight Decay: {WEIGHT_DECAY}")
-print(f"- Dropout Rate: {DROP_OUT_RATE}")
+# print(f"- Weight Decay: {WEIGHT_DECAY}")
+# print(f"- Dropout Rate: {DROP_OUT_RATE}")
 print("---")
 print(f"- Seed: {SEED}")
 print()
@@ -372,7 +372,7 @@ plt.savefig("images/paper_a_1_dl_bert_model_losses.png")
 plt.close()
 
 # Save the model in the 'models' directory
-torch.save(model.state_dict(), 'models/paper_a_x_dl_bert_train_97.2.pth')
+torch.save(model.state_dict(), 'models/paper_a_bert.pth')
 
 """
 Model: BERT

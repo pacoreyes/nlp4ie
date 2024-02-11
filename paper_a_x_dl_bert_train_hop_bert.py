@@ -7,17 +7,16 @@ import torch
 import torch.optim as optim
 from sklearn.metrics import (confusion_matrix, roc_auc_score, matthews_corrcoef, accuracy_score,
                              precision_recall_fscore_support)
-from sklearn.model_selection import train_test_split
-from sklearn.utils.class_weight import compute_class_weight
+# from sklearn.model_selection import train_test_split
+# from sklearn.utils.class_weight import compute_class_weight
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 from transformers import BertTokenizer, BertForSequenceClassification, get_linear_schedule_with_warmup
-import optuna
-from optuna import Trial, create_study
+# import optuna
+from optuna import create_study
 
 from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file
-from lib.utils import load_jsonl_file
 from lib.utils2 import balance_classes_in_dataset
 from lib.visualizations import plot_confusion_matrix
 
@@ -31,7 +30,8 @@ REVERSED_LABEL_MAP = {0: "monologic", 1: "dialogic"}
 
 # Initialize constants
 MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BERT model
-SEED = 1234  # 42, 1234, 2021
+SEED = 42  # 42, 1234, 2021
+TRIALS = 20
 
 '''
 # Hyperparameters
@@ -43,6 +43,7 @@ WEIGHT_DECAY = 1e-3  # 1e-2 or 1e-3
 DROP_OUT_RATE = 0.2  # 0.1 or 0.2
 '''
 
+
 def get_device():
   """Returns the appropriate device available in the system: CUDA, MPS, or CPU"""
   if torch.backends.mps.is_available():
@@ -52,8 +53,10 @@ def get_device():
   else:
     return torch.device("cpu")
 
+
 device = get_device()
 print(f"\nUsing device: {str(device).upper()}\n")
+
 
 def set_seed(seed_value):
   """Set seed for reproducibility."""
@@ -69,36 +72,82 @@ set_seed(SEED)
 
 # Load BERT model
 model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
-                                                        num_labels=len(LABEL_MAP),
-                                                        hidden_dropout_prob=0.2)
+                                                      num_labels=len(LABEL_MAP),
+                                                      hidden_dropout_prob=0.2)
 # Move model to device
 model.to(device)
-
-# Load dataset
-data_file = "shared_data/dataset_1_4_sliced.jsonl"
-
-# Load and preprocess the dataset
-dataset = load_jsonl_file(data_file)
-
-# Balance dataset
-dataset = balance_classes_in_dataset(dataset, "monologic", "dialogic", "label", SEED)
 
 # Load the BERT tokenizer
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
+# Load dataset
+# data_file = "shared_data/dataset_1_4_sliced.jsonl"
+train_set = load_jsonl_file("shared_data/dataset_1_6_1b_train_anonym.jsonl")
+val_set = load_jsonl_file("shared_data/dataset_1_6_1b_validation_anonym.jsonl")
+test_set = load_jsonl_file("shared_data/dataset_1_6_1b_test_anonym.jsonl")
+
+# Load and preprocess the dataset
+# dataset = load_jsonl_file(data_file)
+
+# Balance dataset
+train_set = balance_classes_in_dataset(train_set, "monologic", "dialogic", "label", SEED)
+val_set = balance_classes_in_dataset(val_set, "monologic", "dialogic", "label", SEED)
+test_set = balance_classes_in_dataset(test_set, "monologic", "dialogic", "label", SEED)
+
+# dataset = balance_classes_in_dataset(dataset, "monologic", "dialogic", "label", SEED)
+
+
+# Convert sets to DataFrames
+"""train_df = pd.DataFrame(train_set)
+val_df = pd.DataFrame(val_set)
+test_df = pd.DataFrame(test_set)"""
+
 # Convert to pandas DataFrame for stratified splitting
-df = pd.DataFrame({
-    "id": [entry["id"] for entry in dataset],
-    "text": [entry["text"] for entry in dataset],
-    "label": [LABEL_MAP[entry["label"]] for entry in dataset],
-    "metadata": [entry["metadata"] for entry in dataset]
+train_df = pd.DataFrame({
+    "id": [entry["id"] for entry in train_set],
+    "text": [entry["text"] for entry in train_set],
+    "label": [LABEL_MAP[entry["label"]] for entry in train_set],
+    "metadata": [entry["metadata"] for entry in train_set]
 })
 
-# Stratified split of the data to obtain the train and the remaining data
+val_df = pd.DataFrame({
+    "id": [entry["id"] for entry in val_set],
+    "text": [entry["text"] for entry in val_set],
+    "label": [LABEL_MAP[entry["label"]] for entry in val_set],
+    "metadata": [entry["metadata"] for entry in val_set]
+})
+
+test_df = pd.DataFrame({
+    "id": [entry["id"] for entry in test_set],
+    "text": [entry["text"] for entry in test_set],
+    "label": [LABEL_MAP[entry["label"]] for entry in test_set],
+    "metadata": [entry["metadata"] for entry in test_set]
+})
+
+"""# Stratified split of the data to obtain the train and the remaining data
 train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.2, random_state=SEED)
 
 # Split the remaining data equally to get a validation set and a test set
 val_df, test_df = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5, random_state=SEED)
+"""
+
+"""# Specify file path for datasets JSON files
+train_json_file_path = "shared_data/dataset_1_5_train.jsonl"
+val_json_file_path = "shared_data/dataset_1_6_val.jsonl"
+test_json_file_path = "shared_data/dataset_1_7_test.jsonl"""
+
+"""train_dict = train_df.to_dict(orient="records")
+val_dict = val_df.to_dict(orient="records")
+test_dict = test_df.to_dict(orient="records")
+
+# Save test_df to a JSON file
+save_jsonl_file(train_dict, train_json_file_path)
+print(f"Train dataset saved to {train_json_file_path}")
+save_jsonl_file(val_dict, val_json_file_path)
+print(f"Validation dataset saved to {val_json_file_path}")
+save_jsonl_file(test_dict, test_json_file_path)
+print(f"Test dataset saved to {test_json_file_path}")"""
+
 
 def create_dataset(_df):
   _texts = _df['text'].tolist()
@@ -122,29 +171,30 @@ train_dataset, train_ids = create_dataset(train_df)
 val_dataset, val_ids = create_dataset(val_df)
 test_dataset, test_ids = create_dataset(test_df)
 
-# Calculate class weights
+"""# Calculate class weights
 labels = df["label"].tolist()
 class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(labels), y=labels)
 class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
+"""
 
-def objective(trial):
-    LEARNING_RATE = trial.suggest_float("learning_rate", 2e-5, 3e-5, log=True)
-    BATCH_SIZE = trial.suggest_categorical("batch_size", [16, 16])
-    WARMUP_STEPS = trial.suggest_int("warmup_steps", 0, 1000)
-    NUM_EPOCHS = trial.suggest_int("num_epochs", 3, 4)
+
+def objective(_trial):
+    learning_rate = _trial.suggest_float("learning_rate", 2e-5, 3e-5, log=True)
+    batch_size = _trial.suggest_categorical("batch_size", [16, 16])
+    warmup_steps = _trial.suggest_int("warmup_steps", 0, 1000)
+    num_epochs = _trial.suggest_int("num_epochs", 3, 4)
     #WEIGHT_DECAY = trial.suggest_float("weight_decay", 1e-5, 1e-3, log=True)
     #DROP_OUT_RATE = trial.suggest_float("dropout_rate", 0.1, 0.3)
 
     # Create DataLoaders
-    train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE)
-    val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=BATCH_SIZE)
-    test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=BATCH_SIZE)
+    train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size)
+    val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size)
+    test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=batch_size)
 
     # Initialize optimizer and scheduler
-    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE)
-    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=WARMUP_STEPS,
-                                                num_training_steps=len(train_dataloader) * NUM_EPOCHS)
-
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
+    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps,
+                                                num_training_steps=len(train_dataloader) * num_epochs)
 
     # Initialize the gradient scaler only if the device is a GPU
     use_cuda = device.type == "cuda"
@@ -163,23 +213,24 @@ def objective(trial):
     '''
 
     print("Hyperparameters:")
-    print(f"- Learning Rate: {LEARNING_RATE}")
-    print(f"- Batch Size: {BATCH_SIZE}")
-    print(f"- Warmup Steps: {WARMUP_STEPS}")
-    print(f"- Number of Epochs: {NUM_EPOCHS}")
+    print(f"- Learning Rate: {learning_rate}")
+    print(f"- Batch Size: {batch_size}")
+    print(f"- Warmup Steps: {warmup_steps}")
+    print(f"- Number of Epochs: {num_epochs}")
     # print(f"- Weight Decay: {WEIGHT_DECAY}")
     # print(f"- Dropout Rate: {DROP_OUT_RATE}")
     print("---")
     print(f"- Seed: {SEED}")
 
     # Training Loop
-    for epoch in range(NUM_EPOCHS):
+    for epoch in range(num_epochs):
       model.train()
       total_train_loss = 0
-      loss_fct = torch.nn.CrossEntropyLoss(weight=class_weights)
+      # loss_fct = torch.nn.CrossEntropyLoss(weight=class_weights)
+      loss_fct = torch.nn.CrossEntropyLoss()
 
       print()
-      for batch in tqdm(train_dataloader, desc=f"Training Epoch {epoch + 1}/{NUM_EPOCHS}"):
+      for batch in tqdm(train_dataloader, desc=f"Training Epoch {epoch + 1}/{num_epochs}"):
         b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
         # Clear gradients
         model.zero_grad()
@@ -256,7 +307,7 @@ def objective(trial):
     softmax = torch.nn.Softmax(dim=1)
 
     # Initialize JSONL file for misclassified examples
-    misclassified_output_file = "shared_data/dataset_1_5_misclassified_examples.jsonl"
+    misclassified_output_file = "shared_data/dataset_1_8_misclassified_examples.jsonl"
     empty_json_file(misclassified_output_file)
 
     for i, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
@@ -286,21 +337,21 @@ def objective(trial):
         for j, (pred, true) in enumerate(zip(predictions, label_ids)):  # no _id in zip
           if pred != true:
             # Access the correct id using the batch index and the offset within the batch
-            example_id = test_ids[i * BATCH_SIZE + j]
-            #example_id = dataset[i * BATCH_SIZE + j]["metadata"]["text_id"]
+            example_id = test_ids[i * batch_size + j]
+            # example_id = dataset[i * BATCH_SIZE + j]["metadata"]["text_id"]
             save_row_to_jsonl_file({
               "id": example_id,  # corrected to use the separate ids list
               "true_label": REVERSED_LABEL_MAP[true],
               "predicted_label": REVERSED_LABEL_MAP[pred],
-              "text": dataset[i * BATCH_SIZE + j]["text"],
-              "metadata": dataset[i * BATCH_SIZE + j]["metadata"]
+              "text": test_set[i * batch_size + j]["text"],
+              "metadata": test_set[i * batch_size + j]["metadata"]
             }, misclassified_output_file)
 
     plt.figure()
     plot_confusion_matrix(test_true_labels,
                           test_predictions,
                           class_names,
-                          "paper_b_2_dl_bert_model_confusion_matrix.png",
+                          "paper_a_1_dl_bert_model_confusion_matrix.png",
                           "Confusion Matrix for BERT Model",
                           values_fontsize=22
                           )
@@ -346,10 +397,10 @@ def objective(trial):
 
     print()
     print("Hyperparameters:")
-    print(f"- Learning Rate: {LEARNING_RATE}")
-    print(f"- Batch Size: {BATCH_SIZE}")
-    print(f"- Warmup Steps: {WARMUP_STEPS}")
-    print(f"- Number of Epochs: {NUM_EPOCHS}")
+    print(f"- Learning Rate: {learning_rate}")
+    print(f"- Batch Size: {batch_size}")
+    print(f"- Warmup Steps: {warmup_steps}")
+    print(f"- Number of Epochs: {num_epochs}")
     #print(f"- Weight Decay: {WEIGHT_DECAY}")
     #print(f"- Dropout Rate: {DROP_OUT_RATE}")
     print("---")
@@ -359,13 +410,13 @@ def objective(trial):
     # Save losses plot with hyperparameter values in the filename
     losses_plot_filename = (
       f"images/losses_plot_"
-      f"lr_{LEARNING_RATE}_batch_{BATCH_SIZE}_warmup_{WARMUP_STEPS}_epochs_{NUM_EPOCHS}.png"
+      f"lr_{learning_rate}_batch_{batch_size}_warmup_{warmup_steps}_epochs_{num_epochs}.png"
     )
 
     # Make visualization for training and validation losses
     plt.figure()
-    plt.plot(range(1, NUM_EPOCHS + 1), train_losses, label="Training Loss", color="green")
-    plt.plot(range(1, NUM_EPOCHS + 1), val_losses, label="Validation Loss", color="black")
+    plt.plot(range(1, num_epochs + 1), train_losses, label="Training Loss", color="green")
+    plt.plot(range(1, num_epochs + 1), val_losses, label="Validation Loss", color="black")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend()
@@ -379,19 +430,20 @@ def objective(trial):
     '''
 
     # Save the best model only if the current trial achieves the best accuracy
-    if test_accuracy > trial.user_attrs.get("best_test_accuracy", 0):
-        trial.set_user_attr("best_test_accuracy", test_accuracy)
+    if test_accuracy > _trial.user_attrs.get("best_test_accuracy", 0):
+        _trial.set_user_attr("best_test_accuracy", test_accuracy)
         best_model_path = f"models/1/paper_a_x_dl_bert_train_hop_bert.pth"
         torch.save(model.state_dict(), best_model_path)
-        trial.set_user_attr("best_model_path", best_model_path)
+        _trial.set_user_attr("best_model_path", best_model_path)
 
     return test_accuracy  # Return the metric we want to optimize (accuracy in this case)
+
 
 # Create an Optuna study
 study = create_study(direction="maximize")  # or "minimize" depending on your metric
 
 # Optimize the study
-study.optimize(objective, n_trials=10)  # Adjust the number of trials as needed
+study.optimize(objective, n_trials=TRIALS)
 
 # Print best trial results
 print("Number of finished trials: ", len(study.trials))

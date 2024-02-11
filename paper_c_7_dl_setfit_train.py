@@ -30,12 +30,13 @@ class_names = list(LABEL_MAP.keys())
 
 
 # Hyperparameters
-BODY_LEARNING_RATE = 1.1372066559539598e-06
-NUM_EPOCHS = 1
+BODY_LEARNING_RATE = 0.00021297245427575413
+NUM_EPOCHS = 3
 BATCH_SIZE = 32
-SEED = 9
-MAX_ITER = 297
-SOLVER = "lbfgs"
+SEED = 36
+MAX_ITER = 117
+SOLVER = "newton-cg"
+# Total optimization steps = 1969
 
 
 def set_seed(seed_value):
@@ -101,7 +102,7 @@ def compute_metrics(y_pred, y_test):
   }
 
 
-"""class EmbeddingPlotCallback(TrainerCallback):
+class EmbeddingPlotCallback(TrainerCallback):
   # Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
   # throughout training.
 
@@ -125,12 +126,13 @@ def compute_metrics(y_pred, y_test):
 
     fig.suptitle(f"tSNE of training and evaluation embeddings at step {state.global_step} of {state.max_steps}.")
     fig.savefig(f"images/paper_c_setfit_step_{state.global_step}.png")
-    plt.close(fig)"""
+    plt.close(fig)
 
 
+"""
 class EmbeddingPlotCallback(TrainerCallback):
-  """Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
-  # throughout training. """
+  # Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
+  # throughout training.
 
   def on_evaluate(self, args, state, control, **kwargs):
     train_embeddings = trainer.model.encode(train_dataset["text"])
@@ -168,7 +170,7 @@ class EmbeddingPlotCallback(TrainerCallback):
 
     # Save the figure and close the plot to free memory
     fig.savefig(f"images/setfit_step_{state.global_step}.png", bbox_inches='tight')
-    plt.close(fig)
+    plt.close(fig)"""
 
 
 # Set device to CUDA, MPS, or CPU
@@ -189,11 +191,20 @@ dataset_validation = load_jsonl_file(dataset_validation_route)
 dataset_test = load_jsonl_file(dataset_test_route)
 
 # Reverse label map from string to integer
-dataset_training = [{"label": LABEL_MAP[datapoint["completion"]], "text": datapoint["prompt"]}
+dataset_training = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text"]}
                     for datapoint in dataset_training]
-dataset_validation = [{"label": LABEL_MAP[datapoint["completion"]], "text": datapoint["prompt"]}
+dataset_validation = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text"]}
                       for datapoint in dataset_validation]
-dataset_test = [{"label": LABEL_MAP[datapoint["completion"]], "text": datapoint["prompt"]}
+dataset_test = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text"]}
+                for datapoint in dataset_test]
+
+dataset_training = dataset_training + dataset_test
+
+dataset_training = dataset_training + dataset_test
+
+dataset_test = load_jsonl_file("datasets/3/bootstrap_1/dataset_3_7_test_anonym.jsonl")
+
+dataset_test = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text"]}
                 for datapoint in dataset_test]
 
 # Count and print class distribution
@@ -232,11 +243,13 @@ arguments = TrainingArguments(
   num_epochs=NUM_EPOCHS,
   batch_size=BATCH_SIZE,
   seed=SEED,
-  evaluation_strategy="steps",
-  num_iterations=69,  # Note from the lecturer: I don't know why this number is 69, but it changes the number of steps
-  eval_steps=20,
-  end_to_end=True,
-  load_best_model_at_end=True
+  evaluation_strategy="epoch",
+  save_strategy="epoch",
+  # num_iterations=63,  # Note from the lecturer: I don't know why this number is 69, but it changes the number of steps
+  eval_steps=1,
+  # end_to_end=True,
+  load_best_model_at_end=True,
+  metric_for_best_model="embedding_loss",
 )
 
 # Training Loop
@@ -246,11 +259,16 @@ trainer = Trainer(
   train_dataset=train_dataset,
   eval_dataset=validation_dataset,
   callbacks=[embedding_plot_callback, early_stopping_callback],
+  # callbacks=[embedding_plot_callback],
   metric=compute_metrics,
 )
 
 # Train model
 trainer.train()
+
+# Save model
+trainer.model.save_pretrained("models/3")
+print("\nModel saved successfully!\n")
 
 # Evaluate model on test dataset
 metrics = trainer.evaluate(test_dataset)
@@ -278,7 +296,3 @@ print(f"- Solver: {SOLVER}")
 print("---")
 print(f"- Seed: {SEED}")
 print()
-
-# Save model
-trainer.model.save_pretrained("models/3")
-print("\nModel saved successfully!\n")

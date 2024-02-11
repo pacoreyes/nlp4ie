@@ -4,8 +4,11 @@ import random
 
 from tqdm import tqdm
 import torch
+import pandas as pd
+from sklearn.model_selection import train_test_split
 
 from lib.ner_processing import custom_anonymize_text
+from lib.utils import save_jsonl_file, load_jsonl_file, empty_json_file
 
 
 def set_seed(seed_value):
@@ -110,17 +113,44 @@ def balance_classes_in_dataset(dataset, label1, label2, label_name, seed):
 
 
 def remove_examples_in_dataset(source_list, filter_list):
-    """
-    Removes any elements from source_list that are present in filter_list.
+  """
+  Removes any elements from source_list that are present in filter_list.
 
-    :param source_list: List to be cleaned.
-    :param filter_list: List containing elements to remove from source_list.
-    :return: A new list which is a cleaned version of source_list.
-    """
-    for source_dp in source_list:
-        for filter_dp in filter_list:
-            # if source_dp["text"] == filter_dp["prompt"]:
-            if source_dp["text"] == filter_dp["text"]:
-                source_list.remove(source_dp)
+  :param source_list: List to be cleaned.
+  :param filter_list: List containing elements to remove from source_list.
+  :return: A new list which is a cleaned version of source_list.
+  """
+  # Create a set of texts from filter_list for faster look-up
+  filter_texts = {dp["text"] for dp in filter_list}
 
-    return source_list
+  # Use list comprehension to create a new list excluding filtered elements
+  cleaned_list = [dp for dp in source_list if dp["text"] not in filter_texts]
+
+  return cleaned_list
+
+
+def split_stratify_dataset(json_objects, stratify=True):
+  """
+  Split a dataset into train, validation, and test sets.
+  :param json_objects: List of dictionaries containing the dataset.
+  :param stratify: Boolean indicating whether to stratify split by 'label'.
+  :return: Three lists of dictionaries corresponding to train, validation, and test sets.
+  """
+  df = pd.DataFrame(json_objects)
+
+  # Determine the stratify parameter
+  stratify_param = df['label'] if stratify else None
+
+  # Perform the stratified split
+  train_df, temp_df = train_test_split(df, test_size=0.2, stratify=stratify_param, random_state=42)
+  # Split temp into validation and test
+  validation_df, test_df = train_test_split(temp_df, test_size=0.5,
+                                            stratify=stratify_param.loc[temp_df.index] if stratify else None,
+                                            random_state=42)
+
+  # Convert DataFrames back into lists of JSON objects
+  train_data = train_df.to_dict(orient='records')
+  validation_data = validation_df.to_dict(orient='records')
+  test_data = test_df.to_dict(orient='records')
+
+  return train_data, validation_data, test_data
