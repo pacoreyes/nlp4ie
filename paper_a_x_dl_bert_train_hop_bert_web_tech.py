@@ -40,7 +40,7 @@ BATCH_SIZE = 8  # 16, 32
 WARMUP_STEPS = 700  # 0, 100, 1000, 10000
 NUM_EPOCHS = 4  # 2, 3, 4, 5
 WEIGHT_DECAY = 1e-3  # 1e-2 or 1e-3
-DROP_OUT_RATE = 0.2  # 0.1 or 0.2
+DROP_OUT_RATE = 0.2  # 0.1 or 0.2shuf
 '''
 
 
@@ -187,7 +187,7 @@ def objective(_trial):
     #DROP_OUT_RATE = trial.suggest_float("dropout_rate", 0.1, 0.3)
 
     # Create DataLoaders
-    train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size)
+    train_dataloader = DataLoader(train_dataset, shuffle=False, batch_size=batch_size)
     val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size)
     test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=batch_size)
 

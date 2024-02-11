@@ -78,11 +78,12 @@ def anonymize_text(text, nlp):
   return text
 
 
-def balance_classes_in_dataset(dataset, label1, label2, label_name, seed):
-  set_seed(seed)
+def balance_classes_in_dataset(dataset, label1, label2, label_name, seed=False):
+  if seed:
+    set_seed(seed)
 
   # shuffle dataset
-  random.shuffle(dataset)
+  # random.shuffle(dataset)
 
   # Balance dataset
   class1 = [item for item in dataset if item[label_name] == label1]
