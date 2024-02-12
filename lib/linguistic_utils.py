@@ -39,3 +39,4 @@ def check_if_has_one_word_or_more(doc):
   for token in doc:
     if token.is_alpha:
       return True
+  return False

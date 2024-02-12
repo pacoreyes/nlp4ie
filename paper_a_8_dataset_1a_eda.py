@@ -11,39 +11,40 @@ It performs the following steps:
 
 import pandas as pd
 import numpy as np
-# from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 import seaborn as sns
-# from scipy.stats import probplot
 from scipy import stats
-# from gspread_dataframe import set_with_dataframe
-# from db import spreadsheet_2
 from scipy.stats import shapiro, boxcox
 from collections import defaultdict
-# from pprint import pprint
-# from sklearn.preprocessing import PowerTransformer, StandardScaler
 
-from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file
+from lib.utils import load_jsonl_file, save_jsonl_file, empty_json_file
 
-ms_data = load_jsonl_file("shared_data/paper_a_2_feature_extraction_sliced.jsonl")
+dataset_train = load_jsonl_file("shared_data/dataset_1_5_1a_train_features.jsonl")
+length_train_dataset = len(dataset_train)
+dataset_test = load_jsonl_file("shared_data/dataset_1_5_1a_test_features.jsonl")
+
+output_dataset_train = "shared_data/dataset_1_5_1a_train_features_transformed.jsonl"
+output_dataset_test = "shared_data/dataset_1_5_1a_test_features_transformed.jsonl"
+
+dataset = dataset_train + dataset_test
+
+features = ["sentence_length", "word_length", "sentence_complexity", "personal_pronoun_d",
+            "passive_voice_d", "nominalization_d", "lexical_d", "interjection_d", "modal_verb_d",
+            "discourse_markers_d"]
 
 # Convert the data into a DataFrame
-df = pd.json_normalize(ms_data, max_level=0)
-
-features = ["sentence_length", "word_length", "sentence_complexity", "personal_pronoun_use",
-            "passive_voice_use", "nominalization_use", "lexical_density", "interjection_use", "modal_verb_use",
-            "discourse_markers_use"]
+df = pd.json_normalize(dataset, max_level=0)
 
 # copy the dataframe
 df_flatten = df.copy()
 
 # Flatten the list of values in each cell to a single mean value
 for feature in features:
-  df_flatten[feature] = df_flatten[feature].apply(lambda x: np.mean([float(i) for i in x]))
+  df_flatten[feature] = df_flatten[feature].apply(lambda x: np.mean([float(item) for item in x]))
 
 # Divide dataset into two classes: monologic and dialogic
-df_monologic = df_flatten[df_flatten["discourse_type"] == 0].copy()
-df_dialogic = df_flatten[df_flatten["discourse_type"] == 1].copy()
+df_monologic = df_flatten[df_flatten["label"] == "monologic"].copy()
+df_dialogic = df_flatten[df_flatten["label"] == "dialogic"].copy()
 
 """ ##########################################################
 1. Observe the distribution of each feature in each class
@@ -70,7 +71,7 @@ for i, feature in enumerate(features):
   axes[i, 2].set_title('Boxplot - ' + feature)
 
 plt.tight_layout()
-plt.savefig(f"shared_images/paper_a_1_monologic_all_features_before_treatment.png")
+plt.savefig(f"images/paper_a_1_monologic_all_features_before_treatment.png")
 plt.close()
 print("Generated plots for all features in monologic texts")
 print("--------------------------------------------------------------")
@@ -97,7 +98,7 @@ for i, feature in enumerate(features):
   axes[i, 2].set_title('Boxplot - ' + feature)
 
 plt.tight_layout()
-plt.savefig(f"shared_images/paper_a_2_dialogic_all_features_before_treatment.png")
+plt.savefig(f"images/paper_a_2_dialogic_all_features_before_treatment.png")
 plt.close()
 print("Generated plots for all features in dialogic texts")
 print("--------------------------------------------------------------")
@@ -112,7 +113,7 @@ normality_tests = defaultdict(dict)
 
 # Apply the Shapiro-Wilk test to each feature
 for feature in features:
-  print(f"- Testing for normality of {feature}...")
+  print(f"\n- Testing for normality of {feature}...")
   _, p_value_monologic = shapiro(df_monologic[feature].apply(np.mean))
   _, p_value_dialogic = shapiro(df_dialogic[feature].apply(np.mean))
 
@@ -174,7 +175,8 @@ df_processed = df_flatten.copy()
 
 for feature in features:
   # Apply log transformation to the "non-normal" feature (column)
-  df_processed[feature], _ = boxcox(df_processed[feature] + 1)
+  feature_transformed, _ = boxcox(df_processed[feature].values + 1)
+  df_processed[feature] = feature_transformed
   print("- Applied log transformation to " + feature + "...")
   # Apply the IQR method to adjust outliers
   df_processed[feature] = adjust_outliers(df_processed[feature].values)
@@ -184,8 +186,8 @@ for feature in features:
 
 # Print a random sample of the pre- and post-transformation data
 print()
-print(df_flatten["personal_pronoun_use"].head(10))
-print(df_processed["personal_pronoun_use"].head(10))
+print(df_flatten["personal_pronoun_d"].head(10))
+print(df_processed["personal_pronoun_d"].head(10))
 print()
 
 """ ##########################################################
@@ -197,8 +199,8 @@ print("Testing for normality of each feature in each class AFTER transformation.
 # Divide dataset into two classes: monologic and dialogic
 del df_monologic
 del df_dialogic
-df_monologic = df_processed[df_processed["discourse_type"] == 0].copy()
-df_dialogic = df_processed[df_processed["discourse_type"] == 1].copy()
+df_monologic = df_processed[df_processed["label"] == "monologic"].copy()
+df_dialogic = df_processed[df_processed["label"] == "dialogic"].copy()
 
 # Initialize the result dictionary
 normality_tests = defaultdict(dict)
@@ -255,7 +257,7 @@ for i, feature in enumerate(features):
   axes[i, 2].set_title('Boxplot - ' + feature)
 
 plt.tight_layout()
-plt.savefig(f"shared_images/paper_a_3_monologic_all_features_after_treatment.png")
+plt.savefig(f"images/paper_a_3_monologic_all_features_after_treatment.png")
 plt.close()
 print("Generated plots for all features in monologic texts")
 print("--------------------------------------------------------------")
@@ -281,7 +283,7 @@ for i, feature in enumerate(features):
   axes[i, 2].set_title('Boxplot - ' + feature)
 
 plt.tight_layout()
-plt.savefig(f"shared_images/paper_a_4_dialogic_all_features_after_treatment.png")
+plt.savefig(f"images/paper_a_4_dialogic_all_features_after_treatment.png")
 plt.close()
 print("Generated plots for all features in dialogic texts")
 print("--------------------------------------------------------------")
@@ -290,26 +292,34 @@ print("--------------------------------------------------------------")
 6. Save the processed dataset to JSONL file
 #######################################################"""
 
-# Empty the JSONL file
-empty_json_file('shared_data/paper_a_3_feature_extraction_sliced_transformed.jsonl')
-
-for index, row in df_processed.iterrows():
-  slots = {
-    "id": row["id"],
-    "discourse_type": row["discourse_type"],
-    "sentence_length": row["sentence_length"],
-    "word_length": row["word_length"],
-    "sentence_complexity": row["sentence_complexity"],
-    # "pronoun_use": row["pronoun_use"],
-    "personal_pronoun_use": row["personal_pronoun_use"],
-    "passive_voice_use": row["passive_voice_use"],
-    "nominalization_use": row["nominalization_use"],
-    "lexical_density": row["lexical_density"],
-    "interjection_use": row["interjection_use"],
-    "modal_verb_use": row["modal_verb_use"],
-    "discourse_markers_use": row["discourse_markers_use"]
+merged_dataset = []
+for index, datapoint in df_processed.iterrows():
+  row = {
+    "id": datapoint["id"],
+    "label": datapoint["label"],
+    "sentence_length": datapoint["sentence_length"],
+    "word_length": datapoint["word_length"],
+    "sentence_complexity": datapoint["sentence_complexity"],
+    "personal_pronoun_d": datapoint["personal_pronoun_d"],
+    "passive_voice_d": datapoint["passive_voice_d"],
+    "nominalization_d": datapoint["nominalization_d"],
+    "lexical_d": datapoint["lexical_d"],
+    "interjection_d": datapoint["interjection_d"],
+    "modal_verb_d": datapoint["modal_verb_d"],
+    "discourse_markers_d": datapoint["discourse_markers_d"]
   }
-  # corpus.append(slots)
-  save_row_to_jsonl_file(slots, 'shared_data/paper_a_3_feature_extraction_sliced_transformed.jsonl')
+  merged_dataset.append(row)
+
+# Split the dataset into train and test using the length of the original train dataset
+train_dataset = merged_dataset[:length_train_dataset]
+test_dataset = merged_dataset[length_train_dataset:]
+
+# Empty the JSONL file
+empty_json_file(output_dataset_train)
+empty_json_file(output_dataset_test)
+
+save_jsonl_file(train_dataset, output_dataset_train)
+save_jsonl_file(test_dataset, output_dataset_test)
+
 print()
 print("Saved the processed dataset to JSONL file")

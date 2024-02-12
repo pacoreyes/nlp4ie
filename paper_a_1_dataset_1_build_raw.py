@@ -11,6 +11,11 @@ from lib.utils import (save_row_to_jsonl_file, load_jsonl_file, empty_json_file,
                        read_from_google_sheet)
 from lib.ner_processing import replace_speaker_labels
 
+if spacy.prefer_gpu():
+    print("spaCy is using GPU!")
+else:
+    print("GPU not available, spaCy is using CPU instead.")
+
 # Load spaCy's Transformer model
 nlp = spacy.load("en_core_web_trf")
 

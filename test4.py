@@ -1,6 +1,8 @@
 import spacy
 from lib.utils import load_jsonl_file, empty_json_file
 from lib.linguistic_utils import check_if_has_one_word_or_more
+from lib.utils2 import balance_classes_in_dataset
+
 
 nlp = spacy.load("en_core_web_trf")
 

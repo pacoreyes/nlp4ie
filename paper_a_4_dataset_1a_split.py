@@ -1,11 +1,24 @@
 from collections import Counter
-
 import random
 
+import numpy as np
+import torch
+
 from lib.utils import load_jsonl_file, save_jsonl_file
-from lib.utils2 import set_seed, split_stratify_dataset
+from lib.utils2 import split_stratify_dataset
 
 SEED = 42
+
+
+def set_seed(seed_value):
+  """Set seed for reproducibility."""
+  random.seed(seed_value)
+  np.random.seed(seed_value)
+  torch.manual_seed(seed_value)
+  torch.cuda.manual_seed_all(seed_value)
+  torch.backends.cudnn.deterministic = True
+  torch.backends.cudnn.benchmark = False
+
 
 # Set seed for reproducibility
 set_seed(SEED)

@@ -1,8 +1,6 @@
 """
-This script preprocesses the dataset 1B for the BERT model using the sliding window approach.
-The output are two JSONL files:
-1. Dataset with sliced texts with limit of 510 tokens (dataset_1_3_preprocessed_b.jsonl)
-2. Dataset with anonymized texts with limit of 510 tokens (dataset_1_3_preprocessed_b_anonym.jsonl)
+This script preprocesses the dataset 1B for the BERT model.
+The output is a dataset with speakers anonymized replaced with ENTITY and the text preprocessed.
 """
 import spacy
 import tqdm
@@ -12,6 +10,11 @@ from lib.linguistic_utils import check_minimal_meaning
 from lib.ner_processing import anonymize_text
 from lib.text_utils import preprocess_text, remove_speaker_labels
 from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file
+
+if spacy.prefer_gpu():
+    print("spaCy is using GPU!")
+else:
+    print("GPU not available, spaCy is using CPU instead.")
 
 PREPROCESS_TEXT = True
 REMOVE_SPEAKER_LABELS = True

@@ -19,73 +19,66 @@ from tqdm import tqdm
 from lib.linguistic_utils import check_if_has_one_word_or_more
 from lib.utils import save_row_to_jsonl_file, load_jsonl_file, empty_json_file
 
+# Set spaCy to use GPU if available
+if spacy.prefer_gpu():
+    print("spaCy is using GPU!")
+else:
+    print("GPU not available, spaCy is using CPU instead.")
+
 # load transformer model
 nlp = spacy.load("en_core_web_trf")
 
 # Load dataset
-dataset = load_jsonl_file("shared_data/dataset_1_4_1a_split_train.jsonl")
+dataset_train = load_jsonl_file("shared_data/dataset_1_4_1a_train.jsonl")
+dataset_test = load_jsonl_file("shared_data/dataset_1_4_1a_test.jsonl")
 
-output_file = "shared_data/dataset_1_5_1a_train_features.jsonl"
+train_output_file = "shared_data/dataset_1_5_1a_train_features.jsonl"
+test_output_file = "shared_data/dataset_1_5_1a_test_features.jsonl"
 
-empty_json_file(output_file)
+empty_json_file(train_output_file)
 
 """All functions evaluate based on sentence occurrences, not token or text occurrences."""
 
 
 # Feature 1: Sentence length, a list of the length of all sentences, excluding punctuation
-def measure_sentence_length(_doc):
-  # Get a list of sentences filtering only those with one word
-  sentences = list(sent for sent in _doc.sents if check_if_has_one_word_or_more(sent))
+def measure_sentence_length(_sentences):
   # Make a list of the length of all sentences, excluding punctuation
-  sentence_length_count = [len([token for token in sent if token.is_alpha]) for sent in sentences]
+  sentence_length_count = [len([token for token in sent if token.is_alpha]) for sent in _sentences]
   return sentence_length_count
 
 
 # Feature 2: Word length, a list of the length of all words, excluding punctuation
-def measure_word_length(_doc):
-  # Get a list of sentences filtering only those with one word
-  sentences = list(sent for sent in _doc.sents if check_if_has_one_word_or_more(sent))
-  # Make a list of the length of all words in all sentences, excluding punctuation
-  word_length_count = [len(token) for sent in sentences for token in sent if token.is_alpha]
-  return word_length_count
+def measure_word_length(_sentences):
+  # List the length of all words in these sentences
+  return [len(token) for sent in _sentences for token in sent if token.is_alpha]
 
 
 # Feature 3: Sentence complexity, a list of the number of adverbial clauses found in each sentence
-def measure_sentence_complexity(_doc):
-  # Get a list of sentences filtering only those with one word
-  sentences = list(sent for sent in _doc.sents if check_if_has_one_word_or_more(sent))
+def measure_sentence_complexity(_sentences):
   # Make a list of the number of adverbial clauses found in each sentence
-  sentence_complexity_count = [len([token for token in sent if token.dep_ in
-                                    ['advcl', 'relcl', 'acl', 'ccomp', 'xcomp']]) for sent in sentences]
-  return sentence_complexity_count
+  return [len([token for token in sent if token.dep_ in
+               ['advcl', 'relcl', 'acl', 'ccomp', 'xcomp']]) for sent in _sentences]
 
 
 # Feature 4: Personal pronoun use, a list of the number of personal pronouns found in each sentence
-def measure_personal_pronoun_use(_doc):
-  # Get a list of sentences filtering only those with one word
-  sentences = list(sent for sent in _doc.sents if check_if_has_one_word_or_more(sent))
+def measure_personal_pronoun_use(_sentences):
   # List of personal pronouns in English
   personal_pronouns = ['i', 'me', 'my', 'mine', 'you', 'your', 'yours', 'he', 'him', 'his', 'she', 'her', 'hers', 'it',
                        'its', 'we', 'us', 'our', 'ours', 'they', 'them', 'their', 'theirs']
   # Make a list of the number of personal pronouns in each sentence
   personal_pronoun_use_count = [len([token for token in sent if token.text.lower() in personal_pronouns]) for sent in
-                                sentences]
+                                _sentences]
   return personal_pronoun_use_count
 
 
 # Feature 5: Passive voice use, a list of the number of passive voice occurrences found in each sentence
-def measure_passive_voice_use(_doc):
-  # Get a list of sentences filtering only those with one word
-  sentences = list(sent for sent in _doc.sents if check_if_has_one_word_or_more(sent))
+def measure_passive_voice_use(_sentences):
   # Make a list of the number of passive voice occurrences in each sentence
-  passive_voice_use_count = [len([tok for tok in sent if tok.dep_ == 'auxpass']) for sent in sentences]
-  return passive_voice_use_count
+  return [len([tok for tok in sent if tok.dep_ == 'auxpass']) for sent in _sentences]
 
 
 # Feature 6: Nominalization use, a list of the number of nominalizations found in each sentence
-def measure_nominalization_use(_doc):
-  # Get a list of sentences filtering only those with one word
-  sentences = list(sent for sent in _doc.sents if check_if_has_one_word_or_more(sent))
+def measure_nominalization_use(_sentences):
   # Define common nominalization suffixes
   nominalization_suffixes = ('tion', 'ment', 'ness', 'ity', 'age',
                              'ance', 'ence', 'hood', 'ship', 'ty',
@@ -98,42 +91,32 @@ def measure_nominalization_use(_doc):
                              'ium', 'let', 'ling', 'man', 'woman',
                              'mania', 'or', 'th', 'tude')
   # Make a list of the number of nominalizations in each sentence
-  nominatilzation_use_count = [len([token for token in sent if token.pos_ == 'NOUN'
+  return [len([token for token in sent if token.pos_ == 'NOUN'
                                     and any(token.text.lower().endswith(suffix)
-                                            for suffix in nominalization_suffixes)]) for sent in sentences]
-  return nominatilzation_use_count
+                                            for suffix in nominalization_suffixes)]) for sent in _sentences]
 
 
 # Feature 7: Lexical density, a list of the number of lexical words found in each sentence
-def measure_lexical_density(_doc):
-  # Get a list of sentences filtering only those with one word
-  sentences = list(sent for sent in _doc.sents if check_if_has_one_word_or_more(sent))
+def measure_lexical_density(_sentences):
   # Make a list of the number of lexical words in each sentence
-  lexical_density_count = [len([token for token in sent if token.pos_ in ['NOUN', 'VERB', 'ADJ', 'ADV']])
-                           for sent in sentences]
-  return lexical_density_count
+  return [len([token for token in sent if token.pos_ in ['NOUN', 'VERB', 'ADJ', 'ADV']])
+                           for sent in _sentences]
 
 
 # Feature 8: Interjection use, a list of the number of interjections found in each sentence
-def measure_interjections_use(_doc):
-  # Get a list of sentences filtering only those with one word
-  sentences = list(sent for sent in _doc.sents if check_if_has_one_word_or_more(sent))
+def measure_interjections_use(_sentences):
   # Make a list of the number of interjections in each sentence
-  interjection_use_count = [len([token for token in sent if token.pos_ == 'INTJ']) for sent in sentences]
-  return interjection_use_count
+  return [len([token for token in sent if token.pos_ == 'INTJ']) for sent in _sentences]
 
 
 # Feature 9: Modal verb use, a list of the number of modal verbs found in each sentence
-def measure_modal_verbs_use(_doc):
-  # Get a list of sentences filtering only those with one word
-  sentences = list(sent for sent in _doc.sents if check_if_has_one_word_or_more(sent))
+def measure_modal_verbs_use(_sentences):
   # Make a list of the number of modal verbs in each sentence
-  modal_verb_use_count = [len([token for token in sent if token.tag_ == 'MD']) for sent in sentences]
-  return modal_verb_use_count
+  return [len([token for token in sent if token.tag_ == 'MD']) for sent in _sentences]
 
 
 # Feature 10: Discourse markers use, a list of the number of discourse markers found in each sentence
-def measure_discourse_markers_use(_doc):
+def measure_discourse_markers_use(_sentences):
   # Predefined list of common discourse markers
   discourse_markers = [
     'accordingly', 'actually', 'after', 'after all', 'afterward', 'afterwards', 'all in all', 'also', 'although',
@@ -172,49 +155,46 @@ def measure_discourse_markers_use(_doc):
     'what is more', 'whatever', 'when', 'whenever', 'whereas', 'whereby', 'whereupon', 'wherever', 'whether',
     'whichever', 'while', 'whilst', 'whoever', 'with this in mind', 'with this intention', 'yet'
   ]
-  # Get a list of sentences filtering only those with one word
-  sentences = list(sent for sent in _doc.sents if check_if_has_one_word_or_more(sent))
   # Make a list of the number of discourse markers per sentence
-  discourse_marker_use_count = [sum(token.lemma_.lower() in discourse_markers for token in sent) for sent in sentences]
-  return discourse_marker_use_count
+  return [sum(token.lemma_.lower() in discourse_markers for token in sent) for sent in _sentences]
 
-
-# Collect all monologic datapoints
-monologic_data = [item for item in dataset if item["label"] == "monologic"]
-# Collect all dialogic datapoints
-dialogic_data = [item for item in dataset if item["label"] == "dialogic"]
 
 class_names = ["monologic", "dialogic"]
 
+# Collect all monologic datapoints
+monologic_train_data = [item for item in dataset_train if item["label"] == "monologic"]
+# Collect all dialogic datapoints
+dialogic_train_data = [item for item in dataset_train if item["label"] == "dialogic"]
 
-for _idx, label in enumerate([monologic_data, dialogic_data]):
+for _idx, label in enumerate([monologic_train_data, dialogic_train_data]):
   print("Class: ", class_names[_idx])
 
   for idx, item in tqdm(enumerate(label), desc=f"Processing {len(label)} datapoints", total=len(label)):
-    text = " ".join(item["text"])
+    text = item["text"]
 
     doc = nlp(text)
+    sentences = list(sent for sent in doc.sents if check_if_has_one_word_or_more(sent))
 
     # measure sentence length
-    sentence_lengths = measure_sentence_length(doc)
+    sentence_lengths = measure_sentence_length(sentences)
     # measure word length
-    word_lengths = measure_word_length(doc)
+    word_lengths = measure_word_length(sentences)
     # measure sentence complexity
-    sentence_complexity = measure_sentence_complexity(doc)
+    sentence_complexity = measure_sentence_complexity(sentences)
     # measure personal pronouns use
-    personal_pronoun_use = measure_personal_pronoun_use(doc)
+    personal_pronoun_use = measure_personal_pronoun_use(sentences)
     # measure passive voice use
-    passive_voice_use = measure_passive_voice_use(doc)
+    passive_voice_use = measure_passive_voice_use(sentences)
     # measure nominalization use
-    nominalization_use = measure_nominalization_use(doc)
+    nominalization_use = measure_nominalization_use(sentences)
     # measure lexical density
-    lexical_density = measure_lexical_density(doc)
+    lexical_density = measure_lexical_density(sentences)
     # measure interjection use
-    interjection_use = measure_interjections_use(doc)
+    interjection_use = measure_interjections_use(sentences)
     # measure modal verb use
-    modal_verb_use = measure_modal_verbs_use(doc)
+    modal_verb_use = measure_modal_verbs_use(sentences)
     # measure discourse markers use
-    discourse_markers_use = measure_discourse_markers_use(doc)
+    discourse_markers_use = measure_discourse_markers_use(sentences)
 
     slots = {
       "id": item["id"],
@@ -222,15 +202,70 @@ for _idx, label in enumerate([monologic_data, dialogic_data]):
       "sentence_length": sentence_lengths,
       "word_length": word_lengths,
       "sentence_complexity": sentence_complexity,
-      "personal_pronoun_use": personal_pronoun_use,
-      "passive_voice_use": passive_voice_use,
-      "nominalization_use": nominalization_use,
-      "lexical_density": lexical_density,
-      "interjection_use": interjection_use,
-      "modal_verb_use": modal_verb_use,
-      "discourse_markers_use": discourse_markers_use
+      "personal_pronoun_d": personal_pronoun_use,
+      "passive_voice_d": passive_voice_use,
+      "nominalization_d": nominalization_use,
+      "lexical_d": lexical_density,
+      "interjection_d": interjection_use,
+      "modal_verb_d": modal_verb_use,
+      "discourse_markers_d": discourse_markers_use
     }
     # store the slots in a JSONL file
-    save_row_to_jsonl_file(slots, output_file)
+    save_row_to_jsonl_file(slots, train_output_file)
+
+  print(f"{class_names[_idx]} processed")
+
+
+# Collect all monologic datapoints
+monologic_test_data = [item for item in dataset_test if item["label"] == "monologic"]
+# Collect all dialogic datapoints
+dialogic_test_data = [item for item in dataset_test if item["label"] == "dialogic"]
+
+for _idx, label in enumerate([monologic_test_data, dialogic_test_data]):
+  print("Class: ", class_names[_idx])
+
+  for idx, item in tqdm(enumerate(label), desc=f"Processing {len(label)} datapoints", total=len(label)):
+    text = item["text"]
+
+    doc = nlp(text)
+    sentences = list(sent for sent in doc.sents if check_if_has_one_word_or_more(sent))
+
+    # measure sentence length
+    sentence_lengths = measure_sentence_length(sentences)
+    # measure word length
+    word_lengths = measure_word_length(sentences)
+    # measure sentence complexity
+    sentence_complexity = measure_sentence_complexity(sentences)
+    # measure personal pronouns use
+    personal_pronoun_use = measure_personal_pronoun_use(sentences)
+    # measure passive voice use
+    passive_voice_use = measure_passive_voice_use(sentences)
+    # measure nominalization use
+    nominalization_use = measure_nominalization_use(sentences)
+    # measure lexical density
+    lexical_density = measure_lexical_density(sentences)
+    # measure interjection use
+    interjection_use = measure_interjections_use(sentences)
+    # measure modal verb use
+    modal_verb_use = measure_modal_verbs_use(sentences)
+    # measure discourse markers use
+    discourse_markers_use = measure_discourse_markers_use(sentences)
+
+    slots = {
+      "id": item["id"],
+      "label": item["label"],
+      "sentence_length": sentence_lengths,
+      "word_length": word_lengths,
+      "sentence_complexity": sentence_complexity,
+      "personal_pronoun_d": personal_pronoun_use,
+      "passive_voice_d": passive_voice_use,
+      "nominalization_d": nominalization_use,
+      "lexical_d": lexical_density,
+      "interjection_d": interjection_use,
+      "modal_verb_d": modal_verb_use,
+      "discourse_markers_d": discourse_markers_use
+    }
+    # store the slots in a JSONL file
+    save_row_to_jsonl_file(slots, test_output_file)
 
   print(f"{class_names[_idx]} processed")

@@ -1,5 +1,6 @@
 import re
 import random
+import numpy as np
 # from pprint import pprint
 
 from tqdm import tqdm
@@ -8,13 +9,13 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from lib.ner_processing import custom_anonymize_text
-from lib.utils import save_jsonl_file, load_jsonl_file, empty_json_file
+# from lib.utils import save_jsonl_file, load_jsonl_file, empty_json_file
 
 
 def set_seed(seed_value):
   """Set seed for reproducibility."""
   random.seed(seed_value)
-  # np.random.seed(seed_value)
+  np.random.seed(seed_value)
   torch.manual_seed(seed_value)
   torch.cuda.manual_seed_all(seed_value)
   torch.backends.cudnn.deterministic = True
@@ -79,11 +80,19 @@ def anonymize_text(text, nlp):
 
 
 def balance_classes_in_dataset(dataset, label1, label2, label_name, seed=False):
+  """
+  Balance the dataset by truncating the majority class to the same size as the minority class.
+  :param dataset: list of dictionaries containing the dataset.
+  :param label1: str, label of the first class.
+  :param label2: str, label of the second class.
+  :param label_name: str, name of the label key in the dictionary.
+  :param seed: optional, int, seed for reproducibility.
+  :return:
+  """
   if seed:
     set_seed(seed)
-
-  # shuffle dataset
-  # random.shuffle(dataset)
+    # shuffle dataset
+    # random.shuffle(dataset)
 
   # Balance dataset
   class1 = [item for item in dataset if item[label_name] == label1]
@@ -130,28 +139,38 @@ def remove_examples_in_dataset(source_list, filter_list):
   return cleaned_list
 
 
-def split_stratify_dataset(json_objects, stratify=True):
+def split_stratify_dataset(dataset, stratify_key='label'):
   """
-  Split a dataset into train, validation, and test sets.
-  :param json_objects: List of dictionaries containing the dataset.
-  :param stratify: Boolean indicating whether to stratify split by 'label'.
-  :return: Three lists of dictionaries corresponding to train, validation, and test sets.
+  Splits the dataset into training, validation, and test sets in a stratified manner,
+  maintaining the original order. The split proportions are 80% training, 10% validation, and 10% test.
+
+  Parameters:
+  - dataset: List of dictionaries, where each dictionary represents a data point.
+  - stratify_key: The key in the dictionaries used for stratifying the split.
+
+  Returns:
+  - train_data: Training dataset (80% of the original dataset).
+  - validation_data: Validation dataset (10% of the original dataset).
+  - test_data: Test dataset (10% of the original dataset).
   """
-  df = pd.DataFrame(json_objects)
+  # Group data by the stratify key
+  from collections import defaultdict
+  grouped_data = defaultdict(list)
+  for item in dataset:
+    key = item[stratify_key]
+    grouped_data[key].append(item)
 
-  # Determine the stratify parameter
-  stratify_param = df['label'] if stratify else None
+  # Initialize the splits
+  train_data, validation_data, test_data = [], [], []
 
-  # Perform the stratified split
-  train_df, temp_df = train_test_split(df, test_size=0.2, stratify=stratify_param, random_state=42)
-  # Split temp into validation and test
-  validation_df, test_df = train_test_split(temp_df, test_size=0.5,
-                                            stratify=stratify_param.loc[temp_df.index] if stratify else None,
-                                            random_state=42)
+  # Determine split indices for each group and distribute the data accordingly
+  for _, items in grouped_data.items():
+    n = len(items)
+    train_end = int(n * 0.8)
+    validation_end = train_end + int(n * 0.1)
 
-  # Convert DataFrames back into lists of JSON objects
-  train_data = train_df.to_dict(orient='records')
-  validation_data = validation_df.to_dict(orient='records')
-  test_data = test_df.to_dict(orient='records')
+    train_data.extend(items[:train_end])
+    validation_data.extend(items[train_end:validation_end])
+    test_data.extend(items[validation_end:])
 
   return train_data, validation_data, test_data
