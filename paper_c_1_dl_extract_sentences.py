@@ -1,3 +1,8 @@
+"""
+This script extracts sentences with support/oppose stances from texts to create a corpus of sentences.
+The script uses a fine-tuned BERT model to predict the the support/oppose stance of a sentence.
+"""
+
 import functools
 import time
 
@@ -12,10 +17,11 @@ from lib.utils import load_txt_file, read_from_google_sheet
 
 # from pprint import pprint
 
-"""
-This script extracts sentences with support/oppose stances from texts to create a corpus of sentences.
-The script uses a fine-tuned BERT model to predict the the support/oppose stance of a sentence.
-"""
+# Set spaCy to use GPU if available
+if spacy.prefer_gpu():
+  print("spaCy is using GPU")
+else:
+  print("GPU not available, spaCy is not using GPU")
 
 # Load spacy models
 nlp = spacy.load("en_core_web_sm")
@@ -23,7 +29,7 @@ nlp = spacy.load("en_core_web_sm")
 nlp_trf = spacy.load("en_core_web_trf")
 
 text_col_ref = firestore_db.collection("texts2")
-sentences_col_ref = firestore_db.collection("sentences2")
+sentences_col_ref = firestore_db.collection("sentences3")
 
 speeches_ids = load_txt_file("shared_data/text_ids_speeches.txt")
 interviews_ids = load_txt_file("shared_data/text_ids_interviews.txt")
@@ -39,6 +45,9 @@ print(f"Number of texts to remove (speeches+interviews): {len(ids_to_remove)}")
 # Remove ids from list
 all_ids = [item for item in all_ids if item not in ids_to_remove]
 print(f"Number of texts to process: {len(all_ids)}")
+
+# Prune ids to the last index added
+all_ids = all_ids[30427:]
 
 # Get column name from tab "column_name" in the spreadsheet
 rule_frames = read_from_google_sheet(spreadsheet_4, "stance_frames_rules")
@@ -163,7 +172,7 @@ def store_record_in_firestore(record, collection_ref, max_retries=5, wait_time=5
 
 
 # Initialize counter
-sentences_counter = 29161  #
+sentences_counter = 53998  # the las sentence id in the database
 print()
 
 for idx, _id in enumerate(all_ids):
