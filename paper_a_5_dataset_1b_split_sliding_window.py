@@ -3,6 +3,8 @@ import os
 import random
 # from pprint import pprint
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
 import spacy
 from tqdm import tqdm
 from transformers import BertTokenizer
