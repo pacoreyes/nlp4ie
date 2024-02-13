@@ -177,6 +177,7 @@ def replace_unicode_characters(text: str) -> str:
     '\r': ' ',  # replace carriage returns with spaces
     # ',': ', ',  # add a space after every comma
     '\xa0': ' ',  # replace non-breaking space Unicode with space
+    '\\': '\\\\', # escape backslashes
   }
 
   for char, replacement in replacements.items():
