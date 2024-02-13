@@ -1,0 +1,33 @@
+def replace_unicode_characters(text: str) -> str:
+  """
+  Replace various unicode and other characters with appropriate substitutes.
+
+  Args:
+      text (str): The input text.
+
+  Returns:
+      str: The text with replaced unicode and other characters.
+  """
+  replacements = {
+    '\u200b': ' ',  # replace zero-width space Unicode with space
+    '\u2013': '-',  # replace en dash Unicode with hyphen
+    '\u2014': '-',  # replace em dash Unicode with hyphen
+    '\u2019': "'",  # replace right single quotation mark Unicode with apostrophe
+    '\u2018': "'",  # replace left single quotation mark Unicode with apostrophe
+    '\n': ' ',  # replace newlines with spaces
+    '\"': ' ',  # replace double quotes with spaces
+    '\t': ' ',  # replace tabs with spaces
+    '\r': ' ',  # replace carriage returns with spaces
+    # ',': ', ',  # add a space after every comma
+    '\xa0': ' ',  # replace non-breaking space Unicode with space
+  }
+
+  for char, replacement in replacements.items():
+    text = text.replace(char, replacement)
+
+  text = text.encode().decode('unicode_escape')  # replace unicode characters with their closest ASCII representation
+  text = text.encode('ascii', 'ignore').decode('utf-8')  # remove non-ascii, except for unicode characters
+
+  # Convert any remaining unicode characters to their closest ASCII representation
+  text = unidecode(text)
+  return text
