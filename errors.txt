@@ -31,3 +31,17 @@ def replace_unicode_characters(text: str) -> str:
   # Convert any remaining unicode characters to their closest ASCII representation
   text = unidecode(text)
   return text
+
+
+  Traceback (most recent call last):
+  File "C:\Users\Juan\PycharmProjects\nlp4ie\paper_c_1_dl_extract_sentences.py", line 185, in <module>
+    text = [preprocess_sentence_cached(sent.text) for sent in nlp_trf(text).sents]
+  File "C:\Users\Juan\PycharmProjects\nlp4ie\paper_c_1_dl_extract_sentences.py", line 185, in <listcomp>
+    text = [preprocess_sentence_cached(sent.text) for sent in nlp_trf(text).sents]
+  File "C:\Users\Juan\PycharmProjects\nlp4ie\paper_c_1_dl_extract_sentences.py", line 66, in preprocess_sentence_cached
+    return preprocess_text(sentence, nlp_trf,
+  File "C:\Users\Juan\PycharmProjects\nlp4ie\lib\text_utils.py", line 52, in preprocess_text
+    text = replace_unicode_characters(text)
+  File "C:\Users\Juan\PycharmProjects\nlp4ie\lib\text_utils.py", line 185, in replace_unicode_characters
+    text = text.encode().decode('unicode_escape')  # replace unicode characters with their closest ASCII representation
+UnicodeDecodeError: 'unicodeescape' codec can't decode byte 0x5c in position 6: \ at end of string
