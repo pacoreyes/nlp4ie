@@ -263,7 +263,7 @@ for _idx, label in enumerate([monologic_test_data, dialogic_test_data]):
       "lexical_d": lexical_density,
       "interjection_d": interjection_use,
       "modal_verb_d": modal_verb_use,
-      "discourse_markers_d": discourse_markers_use
+      "discourse_marker_d": discourse_markers_use
     }
     # store the slots in a JSONL file
     save_row_to_jsonl_file(slots, test_output_file)

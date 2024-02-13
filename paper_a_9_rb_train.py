@@ -57,8 +57,8 @@ df_dialogic.drop(["id", "label"], axis=1, inplace=True)
 
 # Calculate correlation matrices
 print("Analyzing correlation coefficients for both classes...")
-corr_monologic = df_monologic.corr(method="pearson")
-corr_dialogic = df_dialogic.corr(method="pearson")
+corr_monologic = df_monologic.corr()
+corr_dialogic = df_dialogic.corr()
 
 # Set a color map
 # colors = ["lightseagreen", "white", "orangered"]  # https://matplotlib.org/stable/gallery/color/named_colors.html
