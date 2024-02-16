@@ -27,7 +27,7 @@ random.shuffle(dataset)
 nlp = spacy.load("en_core_web_lg")
 
 # Initialize path and name of output JSON-L file
-output_file = "shared_data/dataset_2_6_1b_pair_sentences_gs.jsonl"
+output_file = "shared_data/dataset_2_6_pair_sentences_gs.jsonl"
 
 # Initialize a JSONL file for the dataset
 empty_json_file(output_file)
@@ -38,14 +38,14 @@ for idx, datapoint in enumerate(tqdm(dataset, desc=f"Generating Gold Standard Da
   row = {
     "id": idx + 1,
     "text": datapoint["text"],
-    "label": datapoint["reclass_4"],
-    # "metadata": {
-    #   # "gsheets_id": datapoint["id"],
-    #  "rb_continuity_features": datapoint["continuity"],
-    #  "rb_label": datapoint["reclass_rb2"],
-    #  "annotator1": datapoint["annotator"],
-    #  "annotator2": datapoint["annotator_3"]
-    #}
+    "label": datapoint["reclass_3"],
+    "metadata": {
+      "gsheets_id": datapoint["id"],
+      "rb_continuity_features": datapoint["continuity"],
+      "rb_label": datapoint["reclass_rb2"],
+      "annotator1": datapoint["annotator"],
+      "annotator2": datapoint["annotator_3"]
+    }
   }
   if row["label"]:
     new_dataset.append(row)
@@ -53,8 +53,8 @@ for idx, datapoint in enumerate(tqdm(dataset, desc=f"Generating Gold Standard Da
 dataset = []
 
 # Anonymize dataset
-"""for idx, datapoint in enumerate(tqdm(new_dataset, desc=f"Anonymizing dataset")):
-  datapoint["text"] = custom_anonymize_text(datapoint["text"], nlp)"""
+for idx, datapoint in enumerate(tqdm(new_dataset, desc=f"Anonymizing dataset")):
+  datapoint["text"] = custom_anonymize_text(datapoint["text"], nlp)
 
 counter_classes = Counter([datapoint["label"] for datapoint in dataset])
 

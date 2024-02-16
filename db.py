@@ -27,6 +27,7 @@ sheet_id_3 = load_json_file("credentials/gsheets_credentials.json")["sheet_id_3"
 sheet_id_4 = load_json_file("credentials/gsheets_credentials.json")["sheet_id_4"]
 sheet_id_5 = load_json_file("credentials/gsheets_credentials.json")["sheet_id_5"]
 sheet_id_6 = load_json_file("credentials/gsheets_credentials.json")["sheet_id_6"]
+sheet_id_7 = load_json_file("credentials/gsheets_credentials.json")["sheet_id_7"]
 
 cred = ServiceAccountCredentials.from_json_keyfile_name("credentials/gsheets_credentials.json", gdrive_scope)
 client = gspread.authorize(cred)
@@ -36,4 +37,5 @@ spreadsheet_2 = client.open_by_key(sheet_id_2)  # Initialize the spreadsheet 2 (
 spreadsheet_3 = client.open_by_key(sheet_id_3)  # Initialize the spreadsheet 3 (dataset1_seminar - dataset2)
 spreadsheet_4 = client.open_by_key(sheet_id_4)  # Initialize the spreadsheet 4 (dataset3)
 spreadsheet_5 = client.open_by_key(sheet_id_5)  # Initialize the spreadsheet 5 (dataset1_seminar - dataset1)
-spreadsheet_6 = client.open_by_key(sheet_id_6)  # Initialize the spreadsheet 6 (dataset2 final)
+spreadsheet_6 = client.open_by_key(sheet_id_6)  # Initialize the spreadsheet 6 (dataset2)
+spreadsheet_7 = client.open_by_key(sheet_id_7)  # Initialize the spreadsheet 7 (dataset2 reclass final)
