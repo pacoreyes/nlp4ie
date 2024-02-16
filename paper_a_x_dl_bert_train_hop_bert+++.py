@@ -74,9 +74,9 @@ model.to(device)
 
 # Load dataset
 # data_file = "shared_data/dataset_1_4_sliced.jsonl"
-train_set = load_jsonl_file("shared_data/dataset_1_6_1b_train_anonym.jsonl")
-val_set = load_jsonl_file("shared_data/dataset_1_6_1b_validation_anonym.jsonl")
-test_set = load_jsonl_file("shared_data/dataset_1_6_1b_test_anonym.jsonl")
+train_set = load_jsonl_file("shared_data/dataset_1_6_1b_train.jsonl")
+val_set = load_jsonl_file("shared_data/dataset_1_6_1b_validation.jsonl")
+test_set = load_jsonl_file("shared_data/dataset_1_6_1b_test.jsonl")
 
 
 # Load the BERT tokenizer
