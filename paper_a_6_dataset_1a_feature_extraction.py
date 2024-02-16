@@ -36,6 +36,7 @@ train_output_file = "shared_data/dataset_1_5_1a_train_features.jsonl"
 test_output_file = "shared_data/dataset_1_5_1a_test_features.jsonl"
 
 empty_json_file(train_output_file)
+empty_json_file(test_output_file)
 
 """All functions evaluate based on sentence occurrences, not token or text occurrences."""
 
@@ -197,7 +198,7 @@ for _idx, label in enumerate([monologic_train_data, dialogic_train_data]):
     discourse_markers_use = measure_discourse_markers_use(sentences)
 
     slots = {
-      "id": item["id"],
+      "id": item["metadata"]["text_id"],
       "label": item["label"],
       "sentence_length": sentence_lengths,
       "word_length": word_lengths,
@@ -208,7 +209,7 @@ for _idx, label in enumerate([monologic_train_data, dialogic_train_data]):
       "lexical_d": lexical_density,
       "interjection_d": interjection_use,
       "modal_verb_d": modal_verb_use,
-      "discourse_markers_d": discourse_markers_use
+      "discourse_marker_d": discourse_markers_use
     }
     # store the slots in a JSONL file
     save_row_to_jsonl_file(slots, train_output_file)
@@ -252,7 +253,7 @@ for _idx, label in enumerate([monologic_test_data, dialogic_test_data]):
     discourse_markers_use = measure_discourse_markers_use(sentences)
 
     slots = {
-      "id": item["id"],
+      "id": item["metadata"]["text_id"],
       "label": item["label"],
       "sentence_length": sentence_lengths,
       "word_length": word_lengths,

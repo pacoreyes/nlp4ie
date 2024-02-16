@@ -30,7 +30,7 @@ dataset = dataset_train + dataset_test
 
 features = ["sentence_length", "word_length", "sentence_complexity", "personal_pronoun_d",
             "passive_voice_d", "nominalization_d", "lexical_d", "interjection_d", "modal_verb_d",
-            "discourse_markers_d"]
+            "discourse_marker_d"]
 
 # Convert the data into a DataFrame
 df = pd.json_normalize(dataset, max_level=0)
@@ -306,7 +306,7 @@ for index, datapoint in df_processed.iterrows():
     "lexical_d": datapoint["lexical_d"],
     "interjection_d": datapoint["interjection_d"],
     "modal_verb_d": datapoint["modal_verb_d"],
-    "discourse_markers_d": datapoint["discourse_markers_d"]
+    "discourse_marker_d": datapoint["discourse_marker_d"]
   }
   merged_dataset.append(row)
 

@@ -49,7 +49,6 @@ for idx, datapoint in tqdm.tqdm(enumerate(dataset),
     "label": datapoint["label"],
     "metadata": datapoint["metadata"]
   }
-
   save_row_to_jsonl_file(slots, output_file)
   counter += 1
 
