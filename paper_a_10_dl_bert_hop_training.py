@@ -74,9 +74,9 @@ model.to(device)
 
 # Load dataset
 # data_file = "shared_data/dataset_1_4_sliced.jsonl"
-train_set = load_jsonl_file("shared_data/dataset_1_6_1b_train_anonym.jsonl")
-val_set = load_jsonl_file("shared_data/dataset_1_6_1b_validation_anonym.jsonl")
-test_set = load_jsonl_file("shared_data/dataset_1_6_1b_test_anonym.jsonl")
+train_set = load_jsonl_file("shared_data/dataset_1_6_1b_train.jsonl")
+val_set = load_jsonl_file("shared_data/dataset_1_6_1b_validation.jsonl")
+test_set = load_jsonl_file("shared_data/dataset_1_6_1b_test.jsonl")
 
 
 # Load the BERT tokenizer
@@ -270,7 +270,7 @@ def objective(trial):
     softmax = torch.nn.Softmax(dim=1)
 
     # Initialize JSONL file for misclassified examples
-    misclassified_output_file = "shared_data/dataset_1_8_misclassified_examples.jsonl"
+    misclassified_output_file = "shared_data/dataset_1_8_1b_misclassified_examples.jsonl"
     empty_json_file(misclassified_output_file)
 
     for i, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
