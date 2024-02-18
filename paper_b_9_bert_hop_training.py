@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 from transformers import BertTokenizer, BertForSequenceClassification, get_linear_schedule_with_warmup
 
-from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file
+from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file, save_jsonl_file
 from lib.utils2 import balance_classes_in_dataset
 from lib.visualizations import plot_confusion_matrix
 
@@ -26,7 +26,7 @@ REVERSED_LABEL_MAP = {0: "continue", 1: "not_continue"}
 
 # Initialize constants
 MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BERT model
-SEED = 1234  # 42, 1234, 2024
+SEED = 2024  # 42, 1234, 2024
 NUM_TRIALS = 20  # Number of trials for hyperparameter optimization
 VALIDATION_STEP_INTERVAL = 20  # Interval for validation step for early stopping
 
@@ -76,6 +76,8 @@ tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 dataset = load_jsonl_file("shared_data/dataset_2_5_pair_sentences_reclass.jsonl")
 # Create a balanced dataset by undersampling the majority class
 dataset = balance_classes_in_dataset(dataset, "continue", "not_continue", "label")
+# Save the balanced dataset to a JSONL file
+save_jsonl_file(dataset, "shared_data/dataset_2_6_2b.jsonl")
 
 # Convert to pandas DataFrame for stratified splitting
 df = pd.DataFrame({
@@ -89,7 +91,8 @@ df = pd.DataFrame({
 df_train, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.2, random_state=SEED)
 
 # Split the remaining data equally to get a validation set and a test set
-df_val, df_test = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5, random_state=SEED)
+df_val, df_test = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5,
+                                   random_state=SEED)
 
 
 # Early stopping class for stopping the training when the validation loss does not improve
@@ -321,7 +324,7 @@ def objective(_trial):
   for i, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
     with torch.no_grad():
       # Unpack batch data
-      b_input_ids, b_attention_mask, b_labels = batch[0], batch[1], batch[2]
+      b_input_ids, b_attention_mask, b_labels = batch
       b_input_ids, b_attention_mask, b_labels = b_input_ids.to(device), b_attention_mask.to(device), b_labels.to(device)
 
       # Forward pass
