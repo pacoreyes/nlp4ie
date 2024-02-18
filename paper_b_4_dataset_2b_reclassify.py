@@ -18,7 +18,7 @@ dataset = read_from_google_sheet(spreadsheet_6, "dataset_2")
 nlp_trf = spacy.load("en_core_web_trf")
 
 # Initialize path and name of output JSON-L file
-output_file = "shared_data/dataset_2_5_pair_sentences_reclass.jsonl"
+output_file = "shared_data/dataset_2_5_pair_sentences_reclass_ok.jsonl"
 
 # Initialize a JSONL file for the dataset
 empty_json_file(output_file)

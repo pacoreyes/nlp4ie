@@ -29,10 +29,10 @@ REVERSED_LABEL_MAP = {0: "continue", 1: "not_continue"}
 
 # Initialize constants
 MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BERT model
-SEED = 42  # 42, 1234, 2021
+SEED = 1234  # 42, 1234, 2021
 
 # Hyperparameters
-LEARNING_RATE = 1.9e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
+LEARNING_RATE = 2.1e-5  # 1.5e-5, 2e-5, 3e-5, 5e-5
 BATCH_SIZE = 16  # 16, 32
 NUM_EPOCHS = 3  # 2, 3, 4, 5
 WEIGHT_DECAY = 1e-3  # 1e-2 or 1e-3
@@ -82,7 +82,7 @@ print(f"\nUsing device: {str(device).upper()}\n")
 
 # Load dataset
 # data_file = "shared_data/dataset_2_2_pair_sentences_anonym.jsonl"
-data_file = "shared_data/dataset_2_5_pair_sentences_reclass.jsonl"
+data_file = "shared_data/dataset_2_5_pair_sentences_reclass_ok.jsonl"
 
 # Load BERT model
 model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
@@ -247,7 +247,7 @@ precision, recall, f1, _ = precision_recall_fscore_support(true_labels, predicti
 print("\nAccuracy:", accuracy)
 print("Training Class-wise metrics:")
 for i, class_name in enumerate(class_names):
-  print(f"{class_name}: Precision = {precision[i]:.2f}, Recall = {recall[i]:.2f}, F1 = {f1[i]:.2f}")
+  print(f"{class_name}: Precision = {precision[i]:.3f}, Recall = {recall[i]:.3f}, F1 = {f1[i]:.3f}")
 
 # Test Loop
 model.eval()
@@ -299,7 +299,7 @@ plt.figure()
 plot_confusion_matrix(test_true_labels,
                       test_predictions,
                       class_names,
-                      "paper_b_2_dl_bert_model_confusion_matrix.png",
+                      "paper_b_2_dl_bert_model_confusion_matrix_reclass.png",
                       "Confusion Matrix for BERT Model",
                       values_fontsize=22
                       )
@@ -341,7 +341,7 @@ print()
 
 # print("Test Class-wise metrics:")
 for i, class_name in enumerate(class_names):
-  print(f"{class_name}: Precision = {precision[i]:.2f}, Recall = {recall[i]:.2f}, F1 = {f1[i]:.2f}")
+  print(f"{class_name}: Precision = {precision[i]:.3f}, Recall = {recall[i]:.3f}, F1 = {f1[i]:.3f}")
 
 print()
 print("Hyperparameters:")
@@ -362,7 +362,7 @@ plt.plot(range(1, NUM_EPOCHS + 1), val_losses, label="Validation Loss", color="b
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.legend()
-plt.savefig("images/paper_b_1_dl_bert_model_losses.png")
+plt.savefig("images/paper_b_1_dl_bert_model_losses_reclass.png")
 plt.close()
 
 """ ------------ December 12, 2023 BASELINE RESULTS -------------
