@@ -1,5 +1,4 @@
 # from pprint import pprint
-import random
 
 from tqdm import tqdm
 import spacy
@@ -15,19 +14,13 @@ if spacy.prefer_gpu():
 else:
   print("Using CPU")
 
+# Initialize Firestore collections
 ref_collection_passages = firestore_db.collection("passages")
 ref_collection_text = firestore_db.collection("texts2")
 
-# Global variables
-SEED = 42
-
+# Load dataset from Google Sheets
 dataset = read_from_google_sheet(spreadsheet_7, "dataset_2_reclass_")
 # dataset = dataset[:10]
-
-# Set seed
-random.seed(SEED)
-# Shuffle dataset
-random.shuffle(dataset)
 
 # Load spaCy model
 nlp = spacy.load("en_core_web_trf")
@@ -67,10 +60,10 @@ for idx, datapoint in enumerate(tqdm(dataset, desc=f"Generating Dataset 2")):
   # Create row
   row = {
     "id": idx + 1,
+    "passage_id": datapoint["passage_id"],
     "text": datapoint["text"],
     "label": datapoint["label"],
     "metadata": {
-      "passage_id": datapoint["passage_id"],
       'text_id': passage_rec['text_id'],
       'title': title,
       'publication_date': firestore_timestamp_to_string(passage_rec['publication_date']),
