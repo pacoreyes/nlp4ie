@@ -1,4 +1,4 @@
-from pprint import pprint
+# from pprint import pprint
 
 import spacy
 from spacy.language import Language
@@ -6,8 +6,8 @@ from spacy.tokens import Span
 from spacy.matcher import Matcher, PhraseMatcher
 import pandas as pd
 
-from db import spreadsheet_1
-from lib.utils import read_from_google_sheet
+# from db import spreadsheet_1
+from lib.utils import read_from_google_sheet, load_jsonl_file
 
 
 @Language.component("custom_ner")
@@ -80,7 +80,9 @@ nlp_tagger = spacy.load("en_core_web_sm")
 
 """ 2. Load gazetteers and split them into three lists """
 # Load gazetteers from Google Sheet
-gazetteers = read_from_google_sheet(spreadsheet_1, "pol_issues_split")
+# gazetteers = read_from_google_sheet(spreadsheet_1, "pol_issues_split")
+# Load gazetteers from a JSON file
+gazetteers = load_jsonl_file("shared_data/political_issues_gazetteers.jsonl")
 
 # Load gazetteers into a dataframe
 df = pd.DataFrame(gazetteers)
@@ -97,7 +99,8 @@ lemmatized_terms = [term for term in lemmatized_terms if term]
 
 """ 3. Load political issues and create and load matchers """
 # Read the political issues data from the Google Sheet
-pol_issues = read_from_google_sheet(spreadsheet_1, "pol_issues2")
+# pol_issues = read_from_google_sheet(spreadsheet_1, "pol_issues2")
+pol_issues = load_jsonl_file("shared_data/political_issues.jsonl")
 
 # Create matchers
 matcher = Matcher(nlp.vocab)

@@ -26,7 +26,7 @@ REVERSED_LABEL_MAP = {0: "continue", 1: "not_continue"}
 
 # Initialize constants
 MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BERT model
-SEED = 2024  # 42, 1234, 2024
+SEED = 42  # 42, 1234, 2024
 NUM_TRIALS = 20  # Number of trials for hyperparameter optimization
 VALIDATION_STEP_INTERVAL = 20  # Interval for validation step for early stopping
 
