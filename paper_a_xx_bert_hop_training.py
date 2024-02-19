@@ -8,15 +8,15 @@ import torch
 import torch.optim as optim
 from sklearn.metrics import (confusion_matrix, roc_auc_score, matthews_corrcoef, accuracy_score,
                              precision_recall_fscore_support)
-from sklearn.model_selection import train_test_split
+# from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 from transformers import BertTokenizer, BertForSequenceClassification, get_linear_schedule_with_warmup
 
-from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file, save_jsonl_file
-from lib.utils2 import balance_classes_in_dataset
+from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file
+# from lib.utils2 import balance_classes_in_dataset
 from lib.visualizations import plot_confusion_matrix
 
 # Initialize label map and class names
@@ -73,26 +73,53 @@ model.to(device)
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
 # Load the dataset
-dataset = load_jsonl_file("shared_data/dataset_2_5_pair_sentences_reclass.jsonl")
+"""dataset = load_jsonl_file("shared_data/dataset_2_5_pair_sentences_reclass.jsonl")
 # Create a balanced dataset by undersampling the majority class
 dataset = balance_classes_in_dataset(dataset, "continue", "not_continue", "label")
 # Save the balanced dataset to a JSONL file
-save_jsonl_file(dataset, "shared_data/dataset_2_6_2b.jsonl")
+save_jsonl_file(dataset, "shared_data/dataset_2_6_2b.jsonl")"""
 
-# Convert to pandas DataFrame for stratified splitting
+# Load datasets
+train_set = load_jsonl_file("shared_data/dataset_1_6_1b_train.jsonl")
+val_set = load_jsonl_file("shared_data/dataset_1_6_1b_validation.jsonl")
+test_set = load_jsonl_file("shared_data/dataset_1_6_1b_test.jsonl")
+
+"""# Convert to pandas DataFrame for stratified splitting
 df = pd.DataFrame({
   "id": [entry["id"] for entry in dataset],
   "text": [entry["text"] for entry in dataset],
   "label": [LABEL_MAP[entry["label"]] for entry in dataset],
   # "metadata": [entry["metadata"] for entry in dataset]
+})"""
+
+# Convert to pandas DataFrame for stratified splitting
+df_train = pd.DataFrame({
+    "id": [entry["id"] for entry in train_set],
+    "text": [entry["text"] for entry in train_set],
+    "label": [LABEL_MAP[entry["label"]] for entry in train_set],
+    "metadata": [entry["metadata"] for entry in train_set]
 })
 
-# Stratified split of the data to obtain the train and the remaining data
+df_val = pd.DataFrame({
+    "id": [entry["id"] for entry in val_set],
+    "text": [entry["text"] for entry in val_set],
+    "label": [LABEL_MAP[entry["label"]] for entry in val_set],
+    "metadata": [entry["metadata"] for entry in val_set]
+})
+
+df_test = pd.DataFrame({
+    "id": [entry["id"] for entry in test_set],
+    "text": [entry["text"] for entry in test_set],
+    "label": [LABEL_MAP[entry["label"]] for entry in test_set],
+    "metadata": [entry["metadata"] for entry in test_set]
+})
+
+"""# Stratified split of the data to obtain the train and the remaining data
 df_train, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.2, random_state=SEED)
 
 # Split the remaining data equally to get a validation set and a test set
 df_val, df_test = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5,
-                                   random_state=SEED)
+                                   random_state=SEED)"""
 
 
 # Early stopping class for stopping the training when the validation loss does not improve
@@ -145,45 +172,22 @@ def preprocess(_texts, _tokenizer, _device, max_length=MAX_LENGTH):
   return inputs["input_ids"].to(_device), inputs["attention_mask"].to(_device)"""
 
 
-# Function for handling sentence pairs
+# Function for creating TensorDatasets
 def create_dataset(_df):
-  _texts = _df['text'].tolist()  # Assuming this contains sentence pairs
+  _texts = _df['text'].tolist()
   _labels = _df['label'].tolist()
-  _ids = _df['id'].tolist()  # Keep ids as a list of strings
-
-  # Tokenize and preprocess texts for sentence pairs
-  _input_ids, _attention_masks = preprocess_pairs(_texts, tokenizer, device, max_length=MAX_LENGTH)
-
+  _ids = _df['id'].tolist()  # keep ids as a list of strings
+  # Tokenize and preprocess texts
+  _input_ids, _attention_masks = preprocess(_texts, tokenizer, device, max_length=MAX_LENGTH)
   # Create TensorDataset without ids, since they are strings
   return TensorDataset(_input_ids, _attention_masks, torch.tensor(_labels)), _ids
 
 
-# Function for handling sentence pairs
-def preprocess_pairs(_texts, _tokenizer, _device, max_length=MAX_LENGTH):
-  """Tokenize and preprocess text pairs."""
-  input_ids = []
-  attention_masks = []
-
-  for text in _texts:
-    # Split the text into two sentences using the [SEP] token
-    sentence1, sentence2 = text.split('[SEP]')
-    encoded_input = _tokenizer.encode_plus(text=sentence1.strip(),
-                                           text_pair=sentence2.strip(),
-                                           add_special_tokens=True,
-                                           max_length=max_length,
-                                           padding='max_length',
-                                           truncation=True,
-                                           return_attention_mask=True,
-                                           return_tensors='pt')
-
-    input_ids.append(encoded_input['input_ids'])
-    attention_masks.append(encoded_input['attention_mask'])
-
-  # Convert lists to tensors and reshape to remove extra dimension
-  input_ids = torch.cat(input_ids, dim=0)
-  attention_masks = torch.cat(attention_masks, dim=0)
-
-  return input_ids.to(_device), attention_masks.to(_device)
+# Function for preprocessing datapoints for BERT
+def preprocess(_texts, _tokenizer, _device, max_length=MAX_LENGTH):
+  """Tokenize and preprocess texts."""
+  inputs = _tokenizer(_texts, return_tensors="pt", truncation=True, padding=True, max_length=max_length)
+  return inputs["input_ids"].to(_device), inputs["attention_mask"].to(_device)
 
 
 # Create TensorDatasets

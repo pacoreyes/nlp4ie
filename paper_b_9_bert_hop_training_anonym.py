@@ -73,11 +73,11 @@ model.to(device)
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
 # Load the dataset
-dataset = load_jsonl_file("shared_data/dataset_2_5_pair_sentences_reclass.jsonl")
+dataset = load_jsonl_file("shared_data/dataset_2_5_pair_sentences_reclass_anonym.jsonl")
 # Create a balanced dataset by undersampling the majority class
 dataset = balance_classes_in_dataset(dataset, "continue", "not_continue", "label")
 # Save the balanced dataset to a JSONL file
-save_jsonl_file(dataset, "shared_data/dataset_2_6_2b.jsonl")
+save_jsonl_file(dataset, "shared_data/dataset_2_6_2b_anonym.jsonl")
 
 # Convert to pandas DataFrame for stratified splitting
 df = pd.DataFrame({
@@ -337,7 +337,7 @@ def objective(_trial):
   plt.ylabel("Loss")
   plt.title("Training and Validation Losses per Epoch")
   plt.legend()
-  plt.savefig("images/paper_b_3_bert_losses.png")
+  plt.savefig("images/paper_b_3_bert_losses_anonym.png")
   plt.close()
 
   """ END of training /validation loop ------------------- """
@@ -423,7 +423,7 @@ def objective(_trial):
   plot_confusion_matrix(test_true_labels,
                         test_predictions,
                         class_names,
-                        "paper_b_2_bert_confusion_matrix.png",
+                        "paper_b_2_bert_confusion_matrix_anonym.png",
                         "Confusion Matrix for BERT Model",
                         values_fontsize=22
                         )
@@ -461,7 +461,7 @@ def objective(_trial):
   # Save the best model only if the current trial achieves the best accuracy
   if test_accuracy > _trial.user_attrs.get("best_test_accuracy", 0):
     _trial.set_user_attr("best_test_accuracy", test_accuracy)
-    best_model_path = f"models/2/paper_b_hop_bert_reclass.pth"
+    best_model_path = f"models/2/paper_b_hop_bert_reclass_anonym.pth"
     torch.save(model.state_dict(), best_model_path)
     _trial.set_user_attr("best_model_path", best_model_path)
 

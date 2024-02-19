@@ -72,8 +72,7 @@ model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
 # Move model to device
 model.to(device)
 
-# Load dataset
-# data_file = "shared_data/dataset_1_4_sliced.jsonl"
+# Load datasets
 train_set = load_jsonl_file("shared_data/dataset_1_6_1b_train.jsonl")
 val_set = load_jsonl_file("shared_data/dataset_1_6_1b_validation.jsonl")
 test_set = load_jsonl_file("shared_data/dataset_1_6_1b_test.jsonl")
