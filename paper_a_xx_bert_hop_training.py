@@ -8,7 +8,6 @@ import torch
 import torch.optim as optim
 from sklearn.metrics import (confusion_matrix, roc_auc_score, matthews_corrcoef, accuracy_score,
                              precision_recall_fscore_support)
-# from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, TensorDataset
@@ -16,7 +15,6 @@ from tqdm import tqdm
 from transformers import BertTokenizer, BertForSequenceClassification, get_linear_schedule_with_warmup
 
 from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file
-# from lib.utils2 import balance_classes_in_dataset
 from lib.visualizations import plot_confusion_matrix
 
 # Initialize label map and class names
@@ -72,25 +70,10 @@ model.to(device)
 # Load the BERT tokenizer
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
-# Load the dataset
-"""dataset = load_jsonl_file("shared_data/dataset_2_5_pair_sentences_reclass.jsonl")
-# Create a balanced dataset by undersampling the majority class
-dataset = balance_classes_in_dataset(dataset, "continue", "not_continue", "label")
-# Save the balanced dataset to a JSONL file
-save_jsonl_file(dataset, "shared_data/dataset_2_6_2b.jsonl")"""
-
 # Load datasets
 train_set = load_jsonl_file("shared_data/dataset_1_6_1b_train.jsonl")
 val_set = load_jsonl_file("shared_data/dataset_1_6_1b_validation.jsonl")
 test_set = load_jsonl_file("shared_data/dataset_1_6_1b_test.jsonl")
-
-"""# Convert to pandas DataFrame for stratified splitting
-df = pd.DataFrame({
-  "id": [entry["id"] for entry in dataset],
-  "text": [entry["text"] for entry in dataset],
-  "label": [LABEL_MAP[entry["label"]] for entry in dataset],
-  # "metadata": [entry["metadata"] for entry in dataset]
-})"""
 
 # Convert to pandas DataFrame for stratified splitting
 df_train = pd.DataFrame({
@@ -113,13 +96,6 @@ df_test = pd.DataFrame({
     "label": [LABEL_MAP[entry["label"]] for entry in test_set],
     "metadata": [entry["metadata"] for entry in test_set]
 })
-
-"""# Stratified split of the data to obtain the train and the remaining data
-df_train, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.2, random_state=SEED)
-
-# Split the remaining data equally to get a validation set and a test set
-df_val, df_test = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5,
-                                   random_state=SEED)"""
 
 
 # Early stopping class for stopping the training when the validation loss does not improve
@@ -152,24 +128,6 @@ class EarlyStopping:
     else:
       self.best_score = val_loss
       self.counter = 0
-
-
-#
-"""def create_dataset(_df):
-  _texts = _df['text'].tolist()
-  _labels = _df['label'].tolist()
-  _ids = _df['id'].tolist()  # keep ids as a list of strings
-  # Tokenize and preprocess texts
-  _input_ids, _attention_masks = preprocess(_texts, tokenizer, device, max_length=MAX_LENGTH)
-  # Create TensorDataset without ids, since they are strings
-  return TensorDataset(_input_ids, _attention_masks, torch.tensor(_labels)), _ids
-
-
-# Preprocess datapoints for BERT
-def preprocess(_texts, _tokenizer, _device, max_length=MAX_LENGTH):
-  # Tokenize and preprocess texts.
-  inputs = _tokenizer(_texts, return_tensors="pt", truncation=True, padding=True, max_length=max_length)
-  return inputs["input_ids"].to(_device), inputs["attention_mask"].to(_device)"""
 
 
 # Function for creating TensorDatasets
@@ -489,29 +447,28 @@ for key, value in trial.params.items():
   print(f"    {key}: {value}")
 
 """
-Model: BERT non-anonymized
+Model: BERT
 
-- Accuracy: 0.857
-- Precision: 0.857
-- Recall: 0.857
-- F1 Score: 0.857
-- AUC-ROC: 0.917
-- Matthews Correlation Coefficient (MCC): 0.714
+- Accuracy: 0.852
+- Precision: 0.852
+- Recall: 0.852
+- F1 Score: 0.852
+- AUC-ROC: 0.901
+- Matthews Correlation Coefficient (MCC): 0.703
 - Confusion Matrix:
               continue  not_continue
 continue           154            25
-not_continue        26           152
+not_continue        28           150
 
 Class-wise metrics:
-continue: Precision = 0.856, Recall = 0.860, F1 = 0.858
-not_continue: Precision = 0.859, Recall = 0.854, F1 = 0.856
+continue: Precision = 0.846, Recall = 0.860, F1 = 0.853
+not_continue: Precision = 0.857, Recall = 0.843, F1 = 0.850
 
 Hyperparameters:
-- Learning Rate: 1.0490130958581018e-05
+- Learning Rate: 9.202355402390342e-06
 - Batch Size: 16
-- Warmup Steps: 466
+- Warmup Steps: 248
 - Number of Epochs: 1
 ---
-- Seed: 2024
-
+- Seed: 42
 """
