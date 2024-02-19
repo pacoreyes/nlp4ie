@@ -20,9 +20,9 @@ from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file
 from lib.visualizations import plot_confusion_matrix
 
 # Initialize label map and class names
-LABEL_MAP = {"continue": 0, "not_continue": 1}
+LABEL_MAP = {"monologic": 0, "dialogic": 1}
 class_names = list(LABEL_MAP.keys())
-REVERSED_LABEL_MAP = {0: "continue", 1: "not_continue"}
+REVERSED_LABEL_MAP = {0: "monologic", 1: "dialogic"}
 
 # Initialize constants
 MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BERT model
