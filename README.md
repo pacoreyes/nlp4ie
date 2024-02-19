@@ -28,14 +28,14 @@ The rule-based models offer the advantage of explainability, a crucial aspect wh
 - [Thesis Overview](#overview)
 - [Abstract](#abstract)
 - [Table of Contents](#table-of-contents)
-- [Paper 1: Performance and Explainability of Rule-based, Machine Learning, and BERT Models in Monologic and Dialogic Classification](#paper-1-title)
-- [Paper 2: Title](#paper-2-title)
-- [Paper 3: Title](#paper-3-title)
+- [Paper A: Performance and Explainability of Rule-based, Machine Learning, and BERT Models in Monologic and Dialogic Classification](#paper-1-title)
+- [Paper B: Title](#paper-2-title)
+- [Paper C: Title](#paper-3-title)
 - [Conclusion](#conclusion)
 - [Acknowledgments](#acknowledgments)
 - [References](#references)
 
-## Paper 1: Performance and Explainability of Rule-based, Machine Learning, and BERT Models in Monologic and Dialogic Classification
+## Paper A: Performance and Explainability of Rule-based, Machine Learning, and BERT Models in Monologic and Dialogic Classification
 
 ### Abstract
 
@@ -48,7 +48,7 @@ This study introduces an approach to this classification task, exploring the per
 
 Provide the citation format for this paper.
 
-## Paper 2: Title
+## Paper B: Title
 
 ### Abstract
 
@@ -62,7 +62,7 @@ Summarize the second paper, highlighting the research problem, methodology, find
 
 Offer the citation details for this paper.
 
-## Paper 3: Title
+## Paper D: Title
 
 ### Abstract
 
