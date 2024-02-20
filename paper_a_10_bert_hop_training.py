@@ -24,8 +24,6 @@ from lib.visualizations import plot_confusion_matrix
 # Initialize label map and class names
 LABEL_MAP = {"monologic": 0, "dialogic": 1}
 class_names = list(LABEL_MAP.keys())
-
-# REVERSED_LABEL_MAP = {v: k for k, v in LABEL_MAP.items()}
 REVERSED_LABEL_MAP = {0: "monologic", 1: "dialogic"}
 
 # Initialize constants
@@ -76,7 +74,6 @@ model.to(device)
 train_set = load_jsonl_file("shared_data/dataset_1_6_1b_train.jsonl")
 val_set = load_jsonl_file("shared_data/dataset_1_6_1b_validation.jsonl")
 test_set = load_jsonl_file("shared_data/dataset_1_6_1b_test.jsonl")
-
 
 # Load the BERT tokenizer
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
@@ -309,7 +306,6 @@ def objective(trial):
               "metadata": test_set[i * BATCH_SIZE + j]["metadata"]
             }, misclassified_output_file)
 
-    plt.figure()
     plot_confusion_matrix(test_true_labels,
                           test_predictions,
                           class_names,

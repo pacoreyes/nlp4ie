@@ -34,3 +34,4 @@ textblob== 0.17.1
 seaborn==0.13.2
 networkx==3.2.1
 bertviz==1.4.0
+lime==0.2.0.1

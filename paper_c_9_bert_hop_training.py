@@ -127,24 +127,6 @@ class EarlyStopping:
       self.counter = 0
 
 
-#
-"""def create_dataset(_df):
-  _texts = _df['text'].tolist()
-  _labels = _df['label'].tolist()
-  _ids = _df['id'].tolist()  # keep ids as a list of strings
-  # Tokenize and preprocess texts
-  _input_ids, _attention_masks = preprocess(_texts, tokenizer, device, max_length=MAX_LENGTH)
-  # Create TensorDataset without ids, since they are strings
-  return TensorDataset(_input_ids, _attention_masks, torch.tensor(_labels)), _ids
-
-
-# Preprocess datapoints for BERT
-def preprocess(_texts, _tokenizer, _device, max_length=MAX_LENGTH):
-  # Tokenize and preprocess texts.
-  inputs = _tokenizer(_texts, return_tensors="pt", truncation=True, padding=True, max_length=max_length)
-  return inputs["input_ids"].to(_device), inputs["attention_mask"].to(_device)"""
-
-
 # Function for handling sentence pairs
 def create_dataset(_df):
   _texts = _df['text'].tolist()  # Assuming this contains sentence pairs
