@@ -20,20 +20,18 @@ class_name = ['monologic', 'dialogic']
 # Load dataset
 dataset = load_jsonl_file("shared_data/dataset_1_6_1b_test.jsonl")
 # Load mismatched datapoint
-mismatched_datapoint = load_jsonl_file("dataset_1_8_2b_misclassified_examples.jsonl")
-
-# datapoint = dataset[0]
+mismatched_datapoint = load_jsonl_file("shared_data/dataset_1_8_2b_misclassified_examples.jsonl")
 
 
 def get_device():
   """Returns the appropriate device available in the system: CUDA, MPS, or CPU"""
-  """  if torch.backends.mps.is_available():
+  if torch.backends.mps.is_available():
     return torch.device("mps")
   elif torch.cuda.is_available():
     return torch.device("cuda")
   else:
-    return torch.device("cpu")"""
-  return torch.device("cpu")
+    return torch.device("cpu")
+  # return torch.device("cpu")
 
 
 def predict_proba(_text):
