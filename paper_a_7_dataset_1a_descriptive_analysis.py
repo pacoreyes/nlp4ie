@@ -93,6 +93,11 @@ write_to_google_sheet(spreadsheet_5, "monologic_desc_stat", monologic_stats)
 # Store the dialogic dataframe on a Google Sheet
 write_to_google_sheet(spreadsheet_5, "dialogic_desc_stat", dialogic_stats)
 
+# Save starts to Excel in two sheets
+with pd.ExcelWriter("shared_data/paper_a_descriptive_statistics.xlsx") as writer:
+  df_monologic_stats.to_excel(writer, sheet_name="monologic")
+  df_dialogic_stats.to_excel(writer, sheet_name="dialogic")
+
 print("Descriptive statistics for monologic")
 pprint(df_monologic_stats)
 print()
