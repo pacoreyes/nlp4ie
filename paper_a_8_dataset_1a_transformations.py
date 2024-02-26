@@ -12,8 +12,8 @@ LABEL_MAP = {"monologic": 0, "dialogic": 1}
 dataset_train = load_jsonl_file("shared_data/dataset_1_5_1a_train_features.jsonl")
 dataset_test = load_jsonl_file("shared_data/dataset_1_5_1a_test_features.jsonl")
 
-output_dataset_train = "shared_data/dataset_1_5_1a_train_features_transformed_.jsonl"
-output_dataset_test = "shared_data/dataset_1_5_1a_test_features_transformed_.jsonl"
+output_dataset_train = "shared_data/dataset_1_5_1a_train_features_transformed.jsonl"
+output_dataset_test = "shared_data/dataset_1_5_1a_test_features_transformed.jsonl"
 
 output_paths = [output_dataset_train, output_dataset_test]
 

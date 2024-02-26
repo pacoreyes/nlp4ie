@@ -5,7 +5,6 @@ from tqdm import tqdm
 # from pprint import pprint
 
 from db import spreadsheet_4
-from lib.utils2 import anonymize_text
 from lib.utils import (read_from_google_sheet, write_to_google_sheet, save_row_to_jsonl_file, empty_json_file)
 from lib.utils2 import remove_duplicated_datapoints
 
@@ -14,7 +13,7 @@ from lib.utils2 import remove_duplicated_datapoints
     It also creates a parallel anonymized dataset. 
     The dataset is saved in a Google Sheet and in JSONL files. """
 
-SEED = 1234
+SEED = 42
 ANONYMIZE_TARGET = False
 
 # Set seed for reproducibility
@@ -44,23 +43,14 @@ LABEL_CLASS_1 = LABEL_MAP["0"]
 LABEL_CLASS_2 = LABEL_MAP["1"]
 
 # Initialize path and name of output JSON-L files and Google Sheets
-output_spreadsheet = "dataset_3"
+# output_spreadsheet = "dataset_3"
 
-output_dataset_training = "shared_data/dataset_3_1_training.jsonl"
-output_dataset_validation = "shared_data/dataset_3_2_validation.jsonl"
-output_dataset_test = "shared_data/dataset_3_3_test.jsonl"
-output_dataset_training_anonym = "shared_data/dataset_3_4_training_anonym.jsonl"
-output_dataset_validation_anonym = "shared_data/dataset_3_5_validation_anonym.jsonl"
-output_dataset_test_anonym = "shared_data/dataset_3_6_test_anonym.jsonl"
-
+output_dataset_training = "shared_data/dataset_2_1_1a_train.jsonl"
+output_dataset_test = "shared_data/dataset_2_1_1a_test.jsonl"
 
 # Empty JSONL files
 empty_json_file(output_dataset_training)
-empty_json_file(output_dataset_validation)
 empty_json_file(output_dataset_test)
-empty_json_file(output_dataset_training_anonym)
-empty_json_file(output_dataset_validation_anonym)
-empty_json_file(output_dataset_test_anonym)
 
 """ #############################################
 Step 2: Remove duplicated datapoints
@@ -80,7 +70,7 @@ random.shuffle(dataset)
 Write dataset to Google Sheets
 ############################################# """
 
-dataset3 = []
+"""dataset3 = []
 for datapoint in dataset:
   row = [
     datapoint["id"],
@@ -92,10 +82,10 @@ for datapoint in dataset:
   dataset3.append(row)
 
 # Order dataset3 by class
-dataset3 = sorted(dataset3, key=lambda x: x[3])
+dataset3 = sorted(dataset3, key=lambda x: x[3])"""
 
 # Save dataset to Google Sheets
-write_to_google_sheet(spreadsheet_4, output_spreadsheet, dataset3)
+# write_to_google_sheet(spreadsheet_4, output_spreadsheet, dataset3)
 
 """ #############################################
 Step 4: Filter datapoints by label
@@ -125,21 +115,21 @@ random.shuffle(class_0)
 random.shuffle(class_1)
 
 class_0_training = class_0[:int(len(class_0) * 0.8)]  # 80%
-class_0_validation = class_0[int(len(class_0) * 0.8):int(len(class_0) * 0.9)]  # 10%
-class_0_test = class_0[int(len(class_0) * 0.9):]  # 10%
+#class_0_validation = class_0[int(len(class_0) * 0.8):int(len(class_0) * 0.9)]  # 10%
+class_0_test = class_0[int(len(class_0) * 0.8):]  # 10%
 
 class_1_training = class_1[:int(len(class_1) * 0.8)]  # 80%
-class_1_validation = class_1[int(len(class_1) * 0.8):int(len(class_1) * 0.9)]  # 10%
-class_1_test = class_1[int(len(class_1) * 0.9):]  # 10%
+# class_1_validation = class_1[int(len(class_1) * 0.8):int(len(class_1) * 0.9)]  # 10%
+class_1_test = class_1[int(len(class_1) * 0.8):]  # 10%
 
 # Merge datasets
 dataset_training = class_0_training + class_1_training
-dataset_validation = class_0_validation + class_1_validation
+# dataset_validation = class_0_validation + class_1_validation
 dataset_test = class_0_test + class_1_test
 
 # Create parallel anonymized datasets
 dataset_training_anonym = []
-dataset_validation_anonym = []
+# dataset_validation_anonym = []
 dataset_test_anonym = []
 
 
@@ -155,17 +145,12 @@ for datapoint in tqdm(dataset_training, desc=f"Processing {len(dataset_training)
     "text": datapoint["text"],
     "label": datapoint["class"]
   }
-  row_anonym = {
-    "id": datapoint["id"],
-    "text": anonymize_text(datapoint["text"], nlp_trf),
-    "label": datapoint["class"]
-  }
 
   # Save datapoint to JSONL files
   save_row_to_jsonl_file(row, output_dataset_training)
-  save_row_to_jsonl_file(row_anonym, output_dataset_training_anonym)
+  # save_row_to_jsonl_file(row_anonym, output_dataset_training_anonym)
 
-# Create dataset for validation
+"""# Create dataset for validation
 print("\nCreating dataset for validation...")
 for datapoint in tqdm(dataset_validation, desc=f"Processing {len(dataset_validation)} datapoints"):
   # Anonymize target
@@ -185,7 +170,7 @@ for datapoint in tqdm(dataset_validation, desc=f"Processing {len(dataset_validat
 
   # Save datapoint to JSONL files
   save_row_to_jsonl_file(row, output_dataset_validation)
-  save_row_to_jsonl_file(row_anonym, output_dataset_validation_anonym)
+  save_row_to_jsonl_file(row_anonym, output_dataset_validation_anonym)"""
 
 # Create dataset for test
 print("\nCreating dataset for test...")
@@ -199,12 +184,7 @@ for datapoint in tqdm(dataset_test, desc=f"Processing {len(dataset_test)} datapo
     "text": datapoint["text"],
     "label": datapoint["class"]
   }
-  row_anonym = {
-    "id": datapoint["id"],
-    "text": anonymize_text(datapoint["text"], nlp_trf),
-    "label": datapoint["class"]
-  }
 
   # Save datapoint to JSONL files
   save_row_to_jsonl_file(row, output_dataset_test)
-  save_row_to_jsonl_file(row_anonym, output_dataset_test_anonym)
+  # save_row_to_jsonl_file(row_anonym, output_dataset_test_anonym)

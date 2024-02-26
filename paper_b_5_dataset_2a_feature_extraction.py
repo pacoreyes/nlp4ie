@@ -7,34 +7,40 @@ from afinn import Afinn
 from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file
 from lib.semantic_frames import api_get_frames, encode_sentence_frames
 
+# Set spaCy to use GPU if available
+if spacy.prefer_gpu():
+    print("spaCy is using GPU!")
+else:
+    print("GPU not available, spaCy is using CPU instead.")
+
+# load transformer model
+nlp = spacy.load("en_core_web_trf")
+
+# Initialize Afinn sentiment analyzer
+afinn = Afinn()
+
 # Load datasets
-dataset_training = load_jsonl_file("shared_data/dataset_3_1_training.jsonl")
-dataset_validation = load_jsonl_file("shared_data/dataset_3_2_validation.jsonl")
-dataset_test = load_jsonl_file("shared_data/dataset_3_3_test.jsonl")
-
-# Dataset not seen by the model, used for testing
-dataset_for_test = load_jsonl_file("datasets/3/bootstrap_1/dataset_3_7_test_anonym.jsonl")
-
-
-output_features = "shared_data/dataset_3_10_features.jsonl"
-
-# Empty JSONL file
-empty_json_file(output_features)
+dataset_train = load_jsonl_file("shared_data/dataset_2_1_1a_train.jsonl")
+dataset_train2 = load_jsonl_file("shared_data/dataset_2_1_1a_test.jsonl")
 
 # Join datasets
-dataset = dataset_training + dataset_validation + dataset_test + dataset_for_test
+dataset = dataset_train + dataset_train2
+
+# Dataset not seen by the model, used for testing
+dataset_test = load_jsonl_file("shared_data/dataset_3_7_test_master.jsonl")
+
+train_output_file = "shared_data/dataset_2_2_1a_train_features.jsonl"
+test_output_file = "shared_data/dataset_2_2_1a_test_features.jsonl"
+
+# Empty JSONL file
+empty_json_file(train_output_file)
+empty_json_file(test_output_file)
 
 # dataset = dataset[:500]
 # dataset = [datapoint for datapoint in dataset if datapoint["label"] == "oppose"]
 
 # oppose_sentences = [datapoint for datapoint in dataset if datapoint["label"] == "oppose"]
 # support_sentences = [datapoint for datapoint in dataset if datapoint["label"] == "support"]
-
-# Initialize spacy model
-nlp = spacy.load("en_core_web_trf")
-
-# Initialize Afinn sentiment analyzer
-afinn = Afinn()
 
 
 def measure_sentence_length(_doc):
@@ -234,48 +240,114 @@ def quantify_argument_structure(_doc):
   }
 
 
-print("Extracting linguistic features from dataset...")
-for datapoint in tqdm(dataset, desc=f"Processing {len(dataset)} datapoints"):
-  # Query the semantic frames API
-  present_frames_response = api_get_frames(datapoint["text"], "localhost", "5001", "all")
-  # Encode the frames with one-hot encoding
-  encoded_frames = encode_sentence_frames(present_frames_response)
+class_names = ["support", "oppose"]
 
-  doc = nlp(datapoint["text"])
-  label = datapoint["label"]
+# Collect all support datapoints
+support_train_data = [item for item in dataset if item["label"] == "support"]
+# Collect all oppose datapoints
+oppose_train_data = [item for item in dataset if item["label"] == "oppose"]
 
-  # Extract numeric representation of argument structures
-  verb_count, subject_count, direct_object_count, indirect_object_count \
-    = quantify_argument_structure(doc).values()
+for _idx, label in enumerate([support_train_data, oppose_train_data]):
+  print(f"Class: {class_names[_idx]}")
 
-  row = {
-    "text": datapoint["text"],
-    "label": label,
-    "id": datapoint["id"],
-    "sentence_length": measure_sentence_length(doc),
-    "word_length": measure_word_length(doc),
-    "sentence_complexity": measure_sentence_complexity(doc),
-    "passive_voice_use": measure_passive_voice_use(doc),
-    "personal_pronouns": measure_personal_pronoun_use(doc),
-    "nominalization_use": measure_nominalization_use(doc),
-    "lexical_density": measure_lexical_density(doc),
-    "modal_verbs_use": measure_modal_verbs_use(doc),
-    "discourse_markers_use": measure_discourse_markers_use(doc),
-    "negation_use": measure_negation_use(doc),
-    # "verb_count": verb_count,
-    # "subject_count": subject_count,
-    # "direct_object_count": direct_object_count,
-    # "indirect_object_count": indirect_object_count,
-    "pos_adj_polarity": measure_adjective_polarity(doc, "pos"),
-    "neg_adj_polarity": measure_adjective_polarity(doc, "neg"),
-    "pos_noun_polarity": measure_noun_polarity(doc, "pos"),
-    "neg_noun_polarity": measure_noun_polarity(doc, "neg"),
-    # "pos_adv_polarity": measure_adverb_polarity(doc, "pos"),
-    # "neg_adv_polarity": measure_adverb_polarity(doc, "neg"),
-    "pos_verb_polarity": measure_verb_polarity(doc, "pos"),
-    "neg_verb_polarity": measure_verb_polarity(doc, "neg"),
-    "semantic_frames": encoded_frames
-  }
-  save_row_to_jsonl_file(row, output_features)
+  for idx, datapoint in tqdm(enumerate(label), desc=f"Processing {len(label)} datapoints", total=len(label)):
+    text = datapoint["text"]
 
-print("Finished!")
+    # Query the semantic frames API
+    present_frames_response = api_get_frames(datapoint["text"], "localhost", "5001", "all")
+    # Encode the frames with one-hot encoding
+    encoded_frames = encode_sentence_frames(present_frames_response)
+
+    doc = nlp(datapoint["text"])
+    label = datapoint["label"]
+
+    # Extract numeric representation of argument structures
+    verb_count, subject_count, direct_object_count, indirect_object_count \
+      = quantify_argument_structure(doc).values()
+
+    row = {
+      "text": datapoint["text"],
+      "label": label,
+      "id": datapoint["id"],
+      "sentence_length": measure_sentence_length(doc),
+      "word_length": measure_word_length(doc),
+      "sentence_complexity": measure_sentence_complexity(doc),
+      "passive_voice_use": measure_passive_voice_use(doc),
+      "personal_pronouns": measure_personal_pronoun_use(doc),
+      "nominalization_use": measure_nominalization_use(doc),
+      "lexical_density": measure_lexical_density(doc),
+      "modal_verbs_use": measure_modal_verbs_use(doc),
+      "discourse_markers_use": measure_discourse_markers_use(doc),
+      "negation_use": measure_negation_use(doc),
+      # "verb_count": verb_count,
+      # "subject_count": subject_count,
+      # "direct_object_count": direct_object_count,
+      # "indirect_object_count": indirect_object_count,
+      "pos_adj_polarity": measure_adjective_polarity(doc, "pos"),
+      "neg_adj_polarity": measure_adjective_polarity(doc, "neg"),
+      "pos_noun_polarity": measure_noun_polarity(doc, "pos"),
+      "neg_noun_polarity": measure_noun_polarity(doc, "neg"),
+      # "pos_adv_polarity": measure_adverb_polarity(doc, "pos"),
+      # "neg_adv_polarity": measure_adverb_polarity(doc, "neg"),
+      "pos_verb_polarity": measure_verb_polarity(doc, "pos"),
+      "neg_verb_polarity": measure_verb_polarity(doc, "neg"),
+      "semantic_frames": encoded_frames
+    }
+    save_row_to_jsonl_file(row, train_output_file)
+
+  print(f"Class '{class_names[_idx]}' processed\n")
+
+# Collect all support datapoints
+support_test_data = [item for item in dataset_test if item["label"] == "support"]
+# Collect all oppose datapoints
+oppose_test_data = [item for item in dataset_test if item["label"] == "oppose"]
+
+for _idx, label in enumerate([support_test_data, oppose_test_data]):
+  print(f"Class: {class_names[_idx]}")
+
+  for idx, datapoint in tqdm(enumerate(label), desc=f"Processing {len(label)} datapoints", total=len(label)):
+    text = datapoint["text"]
+
+    # Query the semantic frames API
+    present_frames_response = api_get_frames(datapoint["text"], "localhost", "5001", "all")
+    # Encode the frames with one-hot encoding
+    encoded_frames = encode_sentence_frames(present_frames_response)
+
+    doc = nlp(datapoint["text"])
+    label = datapoint["label"]
+
+    # Extract numeric representation of argument structures
+    verb_count, subject_count, direct_object_count, indirect_object_count \
+      = quantify_argument_structure(doc).values()
+
+    row = {
+      "text": datapoint["text"],
+      "label": label,
+      "id": datapoint["id"],
+      "sentence_length": measure_sentence_length(doc),
+      "word_length": measure_word_length(doc),
+      "sentence_complexity": measure_sentence_complexity(doc),
+      "passive_voice_use": measure_passive_voice_use(doc),
+      "personal_pronouns": measure_personal_pronoun_use(doc),
+      "nominalization_use": measure_nominalization_use(doc),
+      "lexical_density": measure_lexical_density(doc),
+      "modal_verbs_use": measure_modal_verbs_use(doc),
+      "discourse_markers_use": measure_discourse_markers_use(doc),
+      "negation_use": measure_negation_use(doc),
+      # "verb_count": verb_count,
+      # "subject_count": subject_count,
+      # "direct_object_count": direct_object_count,
+      # "indirect_object_count": indirect_object_count,
+      "pos_adj_polarity": measure_adjective_polarity(doc, "pos"),
+      "neg_adj_polarity": measure_adjective_polarity(doc, "neg"),
+      "pos_noun_polarity": measure_noun_polarity(doc, "pos"),
+      "neg_noun_polarity": measure_noun_polarity(doc, "neg"),
+      # "pos_adv_polarity": measure_adverb_polarity(doc, "pos"),
+      # "neg_adv_polarity": measure_adverb_polarity(doc, "neg"),
+      "pos_verb_polarity": measure_verb_polarity(doc, "pos"),
+      "neg_verb_polarity": measure_verb_polarity(doc, "neg"),
+      "semantic_frames": encoded_frames}
+
+    save_row_to_jsonl_file(row, test_output_file)
+
+  print(f"Class '{class_names[_idx]}' processed\n")

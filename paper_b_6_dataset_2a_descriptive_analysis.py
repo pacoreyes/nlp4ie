@@ -86,7 +86,7 @@ def count_frames(data, frame_mapping):
 
 
 # Load the data
-ms_data = load_jsonl_file("shared_data/dataset_3_10_features.jsonl")
+ms_data = load_jsonl_file("shared_data/dataset_2_2_1a_train_features.jsonl")
 
 # Load the data of features into a DataFrame
 df = pd.DataFrame(ms_data)
@@ -141,7 +141,7 @@ pprint(class_stats_dict)
 # Call the refactored function with the loaded data, a title, and an image name
 plot_2x2_feature_boxplots(ms_data,
                           "Boxplots of 4 main features by Stance",
-                          "paper_c_rb_boxplot_features.png")
+                          "paper_b_rb_boxplot_features.png")
 
 
 # Counting frames for each stance
@@ -217,7 +217,7 @@ print()
 # Plot the top N frames for each stance class
 # plot_bar_chart(support_frame_counts, oppose_frame_counts, "paper_c_rb_frames_bar_chart.png")
 
-plot_bar_chart(frame_counts['support'], frame_counts['oppose'], "paper_c_rb_frames_bar_chart.png")
+plot_bar_chart(frame_counts['support'], frame_counts['oppose'], "paper_b_rb_frames_bar_chart.png")
 
 # List of features to plot, ensuring only numeric features are considered
 """features_to_plot = numerical_df.columns.drop(['label'])
