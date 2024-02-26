@@ -13,7 +13,7 @@ import torch
 
 from lib.utils import load_jsonl_file, empty_json_file, save_row_to_jsonl_file
 from lib.utils2 import split_stratify_dataset, balance_classes_in_dataset
-from lib.ner_processing import anonymize_text
+# from lib.ner_processing import anonymize_text
 
 # Set spaCy to use GPU if available
 if spacy.prefer_gpu():
@@ -45,21 +45,22 @@ tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=Tru
 
 # Load the JSON file
 dataset = load_jsonl_file("shared_data/dataset_1_3_1b_preprocessed.jsonl")
+# Shuffle the dataset
+random.shuffle(dataset)
 
 temp = "shared_data/_temp.jsonl"
-temp_anonym = "shared_data/_temp_anonym.jsonl"
+# temp_anonym = "shared_data/_temp_anonym.jsonl"
 
 output_dataset_train = "shared_data/dataset_1_6_1b_train.jsonl"
 output_dataset_validation = "shared_data/dataset_1_6_1b_validation.jsonl"
 output_dataset_test = "shared_data/dataset_1_6_1b_test.jsonl"
 
-output_dataset_train_anonym = "shared_data/dataset_1_6_1b_train_anonym.jsonl"
+"""output_dataset_train_anonym = "shared_data/dataset_1_6_1b_train_anonym.jsonl"
 output_dataset_validation_anonym = "shared_data/dataset_1_6_1b_validation_anonym.jsonl"
-output_dataset_test_anonym = "shared_data/dataset_1_6_1b_test_anonym.jsonl"
+output_dataset_test_anonym = "shared_data/dataset_1_6_1b_test_anonym.jsonl"""
 
 # Empty the output JSONL files
-output_files = [output_dataset_train, output_dataset_validation, output_dataset_test, output_dataset_train_anonym,
-                output_dataset_validation_anonym, output_dataset_test_anonym, temp, temp_anonym]
+output_files = [output_dataset_train, output_dataset_validation, output_dataset_test]
 for file in output_files:
   empty_json_file(file)
 
@@ -97,9 +98,9 @@ for idx, datapoint in tqdm(enumerate(dataset), desc=f"Processing {len(dataset)} 
       }
       save_row_to_jsonl_file(row, temp)
       # Create a new row with the anonymized text
-      row["text"] = anonymize_text(row["text"], nlp)
+      """row["text"] = anonymize_text(row["text"], nlp)
       # Save anonymized row
-      save_row_to_jsonl_file(row, temp_anonym)
+      save_row_to_jsonl_file(row, temp_anonym)"""
 
       if row['label'] == 0:
         monologic_counter += 1
@@ -120,9 +121,9 @@ for idx, datapoint in tqdm(enumerate(dataset), desc=f"Processing {len(dataset)} 
     }
     save_row_to_jsonl_file(row, temp)
     # Create a new row with the anonymized text
-    row["text"] = anonymize_text(row["text"], nlp)
+    """row["text"] = anonymize_text(row["text"], nlp)
     # Save anonymized row
-    save_row_to_jsonl_file(row, temp_anonym)
+    save_row_to_jsonl_file(row, temp_anonym)"""
 
     if row['label'] == 0:
       monologic_counter += 1
@@ -131,30 +132,30 @@ for idx, datapoint in tqdm(enumerate(dataset), desc=f"Processing {len(dataset)} 
 
 
 temp_dataset = load_jsonl_file(temp)
-temp_dataset_anonym = load_jsonl_file(temp_anonym)
+# temp_dataset_anonym = load_jsonl_file(temp_anonym)
 
 temp_dataset = balance_classes_in_dataset(temp_dataset, "monologic", "dialogic", "label")
-temp_dataset_anonym = balance_classes_in_dataset(temp_dataset_anonym, "monologic", "dialogic", "label")
+# temp_dataset_anonym = balance_classes_in_dataset(temp_dataset_anonym, "monologic", "dialogic", "label")
 
 # Count the number of monologic and dialogic datapoints
 counter = Counter([item['label'] for item in temp_dataset])
 monologic_percentage = counter["monologic"] / (counter["monologic"] + counter["dialogic"]) * 100
 dialogic_percentage = counter["dialogic"] / (counter["monologic"] + counter["dialogic"]) * 100
 
-counter_a = Counter([item['label'] for item in temp_dataset_anonym])
+"""counter_a = Counter([item['label'] for item in temp_dataset_anonym])
 monologic_percentage_a = counter_a["monologic"] / (counter_a["monologic"] + counter_a["dialogic"]) * 100
 dialogic_percentage_a = counter_a["dialogic"] / (counter_a["monologic"] + counter_a["dialogic"]) * 100
-
+"""
 print()
 print("Dataset distribution:")
 print(f"• Monologic: {counter['monologic']} ({monologic_percentage:.2f})")
 print(f"• Dialogic: {counter['dialogic']} ({dialogic_percentage:.2f})")
-print(f"• Monologic anonym: {counter_a['monologic']} ({monologic_percentage_a:.2f})")
-print(f"• Dialogic anonym: {counter_a['dialogic']} ({dialogic_percentage_a:.2f})\n")
+"""print(f"• Monologic anonym: {counter_a['monologic']} ({monologic_percentage_a:.2f})")
+print(f"• Dialogic anonym: {counter_a['dialogic']} ({dialogic_percentage_a:.2f})\n")"""
 
 # Stratify and split the datasets
 train_set, validation_set, test_set = split_stratify_dataset(temp_dataset)
-train_set_anonym, validation_set_anonym, test_set_anonym = split_stratify_dataset(temp_dataset_anonym)
+# train_set_anonym, validation_set_anonym, test_set_anonym = split_stratify_dataset(temp_dataset_anonym)
 
 # Save the split datasets
 for idx, row in enumerate(train_set):
@@ -164,27 +165,27 @@ for idx, row in enumerate(validation_set):
 for idx, row in enumerate(test_set):
   save_row_to_jsonl_file(row, output_dataset_test)
 
-# Save the split anonym datasets
+"""# Save the split anonym datasets
 for idx, row in enumerate(train_set_anonym):
   save_row_to_jsonl_file(row, output_dataset_train_anonym)
 for idx, row in enumerate(validation_set_anonym):
   save_row_to_jsonl_file(row, output_dataset_validation_anonym)
 for idx, row in enumerate(test_set_anonym):
-  save_row_to_jsonl_file(row, output_dataset_test_anonym)
+  save_row_to_jsonl_file(row, output_dataset_test_anonym)"""
 
 
 # Remove temporary files
 os.remove(temp)
-os.remove(temp_anonym)
+# os.remove(temp_anonym)
 
 print("\nSplit dataset into train, validation and test sets:")
 print(f"• Train: {len(train_set)}")
 print(f"• Validation: {len(validation_set)}")
 print(f"• Test: {len(test_set)}")
 print()
-print(f"• Train anonym: {len(train_set_anonym)}")
+"""print(f"• Train anonym: {len(train_set_anonym)}")
 print(f"• Validation anonym: {len(validation_set_anonym)}")
-print(f"• Test anonym: {len(test_set_anonym)}\n")
+print(f"• Test anonym: {len(test_set_anonym)}\n")"""
 
 print("Dataset distribution:")
 counter_train = Counter([item['label'] for item in train_set])

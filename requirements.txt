@@ -35,3 +35,6 @@ seaborn==0.13.2
 networkx==3.2.1
 bertviz==1.4.0
 lime==0.2.0.1
+shap==0.44.1
+# google-api-core==0.5.1
+captum==0.7.0

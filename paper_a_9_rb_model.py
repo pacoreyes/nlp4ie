@@ -113,6 +113,9 @@ print("Analyzing correlation coefficients for both classes...")
 corr_monologic = df_monologic.corr()
 corr_dialogic = df_dialogic.corr()
 
+pprint(corr_monologic)
+pprint(corr_dialogic)
+
 # Set a color map
 # colors = ["lightseagreen", "white", "orangered"]  # https://matplotlib.org/stable/gallery/color/named_colors.html
 # cmap = mcolors.LinearSegmentedColormap.from_list("", colors)

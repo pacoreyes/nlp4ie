@@ -1,48 +1,76 @@
 import torch
 from transformers import BertTokenizer, BertForSequenceClassification
-import torch.nn.functional as F
-from lib.utils import load_txt_file
 
-# Replace this with your model's name or path if you used a different model
+
+def get_device():
+  """Returns the appropriate device available in the system: CUDA, MPS, or CPU"""
+  if torch.backends.mps.is_available():
+    return torch.device("mps")
+  elif torch.cuda.is_available():
+    return torch.device("cuda")
+  else:
+    return torch.device("cpu")
+
+
+device = get_device()
+print(f"\nUsing device: {str(device).upper()}\n")
+
+# Pre-trained model Name
 MODEL_NAME = 'bert-base-uncased'
 
-# 1. Load Pre-trained Model
+# Load Pre-trained Model
 model = BertForSequenceClassification.from_pretrained(MODEL_NAME)
 
-# 2. Load Saved Weights
-model.load_state_dict(torch.load('models/2/paper_b_99_dl_bert_train.pth'))
+# Load Saved Weights
+model.load_state_dict(torch.load('models/2/paper_b_hop_bert_reclass.pth'))
 
-# 3. Prepare Model for Evaluation
+# Move model to device
+model.to(device)
+
+# Prepare Model for Evaluation
 model.eval()
 
-# 4. Preprocess Input Data
+# Initialize Tokenizer
 tokenizer = BertTokenizer.from_pretrained(MODEL_NAME)
 
-file_path = 'new_text.txt'
-with open(file_path, 'r') as file:
-    lines = file.readlines()
 
-def preprocess(text):
-    inputs = tokenizer(text, padding=True, truncation=True, max_length=512, return_tensors="pt")
-    return inputs
+def predict(_model, _text):
+  # Split the input text into two sentences
+  sentence1, sentence2 = _text.split('[SEP]')
+
+  # Encode the pair of sentences, adding special tokens, and ensuring PyTorch tensor output
+  input_ids = tokenizer.encode(
+    text=sentence1.strip(),
+    text_pair=sentence2.strip(),
+    add_special_tokens=True,
+    max_length=512,
+    truncation=True,
+    return_tensors="pt"
+  )
+
+  # Assuming the model and tokenizer are on the same device, move input_ids to model's device
+  input_ids = input_ids.to(device)
+
+  # If your model expects attention masks, you would need to generate them manually here
+  # For simplicity, this step is omitted
+
+  # Prediction step without computing gradients for efficiency
+  with torch.no_grad():
+    outputs = _model(input_ids)
+  logits = outputs.logits
+
+  # Convert logits to probabilities
+  _probabilities = torch.nn.functional.softmax(logits, dim=1)
+
+  # Convert to numpy arrays for easier handling
+  _probabilities = _probabilities.cpu().numpy()
+
+  return _probabilities
 
 
-# 5. Make Predictions
-def predict(text):
-    inputs = preprocess(text)
-    with torch.no_grad():
-        outputs = model(**inputs)
-    logits = outputs.logits
-    probabilities = F.softmax(logits, dim=1)
-    return probabilities
+# Example usage
+text = "Tokyo is reach. [SEP] Yes it is reach"
+probabilities = predict(model, text)
+print("Probabilities:", probabilities)
 
-for line in lines:
-    data_point = line.strip()
-    result = predict(data_point)
-    print(result)
-
-''''# Example
-text = "Tokiyo is reach. [SEP] Yes it is reach"
-prediction = predict(text)
-print(prediction)
-'''
+# text = "That's the only explanation for why Saddam Hussein does not want inspectors in from the U.N. [SEP] Iraq continues to be unable to say that its neighbors have a right to exist, like Kuwait."

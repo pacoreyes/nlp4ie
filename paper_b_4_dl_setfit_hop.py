@@ -32,7 +32,7 @@ class_names = list(LABEL_MAP.keys())
 
 # Initialize constants
 SEED = 42
-NUM_TRIALS = 15
+NUM_TRIALS = 10
 
 
 def set_seed(seed_value):
@@ -210,9 +210,9 @@ model_id = "sentence-transformers/paraphrase-mpnet-base-v2"
 
 
 # Load datasets
-dataset_training_route = "shared_data/dataset_3_4_training_anonym.jsonl"
-dataset_validation_route = "shared_data/dataset_3_5_validation_anonym.jsonl"
-dataset_test_route = "shared_data/dataset_3_6_test_anonym.jsonl"
+dataset_training_route = "shared_data/dataset_3_1_training.jsonl"
+dataset_validation_route = "shared_data/dataset_3_2_validation.jsonl"
+dataset_test_route = "shared_data/dataset_3_3_test.jsonl"
 dataset_training = load_jsonl_file(dataset_training_route)
 dataset_validation = load_jsonl_file(dataset_validation_route)
 dataset_test = load_jsonl_file(dataset_test_route)
@@ -227,7 +227,7 @@ dataset_test = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text
 
 dataset_training = dataset_training + dataset_test
 
-dataset_test = load_jsonl_file("datasets/3/bootstrap_1/dataset_3_7_test_anonym.jsonl")
+dataset_test = load_jsonl_file("shared_data/dataset_3_7_test_master.jsonl")
 
 dataset_test = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text"]}
                 for datapoint in dataset_test]
