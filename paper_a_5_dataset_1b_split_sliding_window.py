@@ -46,9 +46,10 @@ tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=Tru
 # Load the JSON file
 dataset = load_jsonl_file("shared_data/dataset_1_3_1b_preprocessed.jsonl")
 # Shuffle the dataset
-random.shuffle(dataset)
+# random.shuffle(dataset)
 
 temp = "shared_data/_temp.jsonl"
+empty_json_file(temp)
 # temp_anonym = "shared_data/_temp_anonym.jsonl"
 
 output_dataset_train = "shared_data/dataset_1_6_1b_train.jsonl"
@@ -70,6 +71,7 @@ dialogic_counter = 0
 
 # Process each text
 for idx, datapoint in tqdm(enumerate(dataset), desc=f"Processing {len(dataset)} datapoints", total=len(dataset)):
+  # print(datapoint["id"])
   idx = int(idx)
   doc = nlp(datapoint['text'])
   sentences = [sent.text for sent in doc.sents]
