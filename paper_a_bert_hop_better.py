@@ -28,7 +28,7 @@ REVERSED_LABEL_MAP = {0: "monologic", 1: "dialogic"}
 MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BERT model
 SEED = 42  # 42, 1234, 2024
 NUM_TRIALS = 20  # Number of trials for hyperparameter optimization
-VALIDATION_STEP_INTERVAL = 20  # Interval for validation step for early stopping
+VALIDATION_STEP_INTERVAL = 30  # Interval for validation step for early stopping
 
 print("############################################")
 print(f"Number of trials for hyperparameter optimization: {NUM_TRIALS}")
@@ -185,6 +185,9 @@ class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
 
 # Optuna objective function for hyperparameter optimization
 def objective(_trial):
+  # Initialize trial number
+  trial_number = _trial.number
+
   # Initialize early stopping
   early_stopping = EarlyStopping(patience=7, min_delta=0.001)
 
@@ -323,7 +326,7 @@ def objective(_trial):
   plt.ylabel("Loss")
   plt.title("Training and Validation Losses per Epoch")
   plt.legend()
-  plt.savefig("images/paper_a_3_bert_losses.png")
+  plt.savefig(f"images/paper_a_1_bert_losses_trial{trial_number}.png")
   plt.close()
 
   """ END of training /validation loop ------------------- """
@@ -346,7 +349,7 @@ def objective(_trial):
   softmax = torch.nn.Softmax(dim=1)
 
   # Initialize JSONL file for misclassified examples
-  misclassified_output_file = "shared_data/dataset_1_8_1b_misclassified_examples.jsonl"
+  misclassified_output_file = f"shared_data/dataset_1_8_1b_misclassified_examples_trial_{trial_number}.jsonl"
   empty_json_file(misclassified_output_file)
 
   for i, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
@@ -409,7 +412,7 @@ def objective(_trial):
   plot_confusion_matrix(test_true_labels,
                         test_predictions,
                         class_names,
-                        "paper_b_2_bert_confusion_matrix.png",
+                        f"paper_a_2_bert_confusion_matrix_trial_{trial_number}.png",
                         "Confusion Matrix for BERT Model",
                         values_fontsize=22
                         )
