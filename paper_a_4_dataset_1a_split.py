@@ -4,7 +4,7 @@ import random
 import numpy as np
 import torch
 
-from lib.utils import load_jsonl_file, save_jsonl_file
+from lib.utils import load_jsonl_file, save_jsonl_file, empty_json_file
 from lib.utils2 import split_stratify_dataset
 
 SEED = 42
@@ -22,6 +22,14 @@ def set_seed(seed_value):
 
 # Set seed for reproducibility
 set_seed(SEED)
+
+# Set the path and name of the output JSON-L files
+output_dataset_train = "shared_data/dataset_1_4_1a_train.jsonl"
+output_dataset_test = "shared_data/dataset_1_4_1a_test.jsonl"
+
+# Empty the output JSONL files
+empty_json_file(output_dataset_train)
+empty_json_file(output_dataset_test)
 
 # Load the JSON file
 dataset = load_jsonl_file("shared_data/dataset_1_2_1a_preprocessed.jsonl")
@@ -48,5 +56,5 @@ print("Train set:", counter_train)
 print("Test set:", counter_test)
 
 # Save the datasets
-save_jsonl_file(train_set, "shared_data/dataset_1_4_1a_train.jsonl")
-save_jsonl_file(test_set, "shared_data/dataset_1_4_1a_test.jsonl")
+save_jsonl_file(train_set, output_dataset_train)
+save_jsonl_file(test_set, output_dataset_test)

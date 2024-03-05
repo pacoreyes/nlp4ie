@@ -25,6 +25,9 @@ df = pd.DataFrame(dataset_train + dataset_test)
 df_monologic = df[df['label'] == "monologic"]
 df_dialogic = df[df['label'] == "dialogic"]
 
+pprint(df_monologic.head())
+pprint(df_dialogic.head())
+
 
 def calculate_statistics(column: List[int]) -> dict:
   """Calculate basic statistics for a given column."""
@@ -53,7 +56,7 @@ ms_features = [
   'lexical_d',
   'interjection_d',
   'modal_verb_d',
-  'discourse_markers_d'
+  'discourse_marker_d'
 ]
 
 # Initialize dictionaries to store the results
@@ -61,7 +64,7 @@ monologic_stats = {}
 dialogic_stats = {}
 
 # Convert DataFrame to JSON serializable (list of dictionaries)
-features = df.to_dict(orient='records')
+# features = df.to_dict(orient='records')
 
 # Calculate the statistics for each feature
 for feature in tqdm(ms_features, desc="Calculating statistics", total=len(ms_features)):
@@ -89,6 +92,11 @@ write_to_google_sheet(spreadsheet_5, "monologic_desc_stat", monologic_stats)
 
 # Store the dialogic dataframe on a Google Sheet
 write_to_google_sheet(spreadsheet_5, "dialogic_desc_stat", dialogic_stats)
+
+# Save starts to Excel in two sheets
+with pd.ExcelWriter("shared_data/paper_a_descriptive_statistics.xlsx") as writer:
+  df_monologic_stats.to_excel(writer, sheet_name="monologic")
+  df_dialogic_stats.to_excel(writer, sheet_name="dialogic")
 
 print("Descriptive statistics for monologic")
 pprint(df_monologic_stats)

@@ -3,6 +3,8 @@ import os
 import random
 # from pprint import pprint
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
 import spacy
 from tqdm import tqdm
 from transformers import BertTokenizer
@@ -43,8 +45,11 @@ tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=Tru
 
 # Load the JSON file
 dataset = load_jsonl_file("shared_data/dataset_1_3_1b_preprocessed.jsonl")
+# Shuffle the dataset
+random.shuffle(dataset)
 
 temp = "shared_data/_temp.jsonl"
+empty_json_file(temp)
 temp_anonym = "shared_data/_temp_anonym.jsonl"
 
 output_dataset_train = "shared_data/dataset_1_6_1b_train.jsonl"
@@ -56,8 +61,7 @@ output_dataset_validation_anonym = "shared_data/dataset_1_6_1b_validation_anonym
 output_dataset_test_anonym = "shared_data/dataset_1_6_1b_test_anonym.jsonl"
 
 # Empty the output JSONL files
-output_files = [output_dataset_train, output_dataset_validation, output_dataset_test, output_dataset_train_anonym,
-                output_dataset_validation_anonym, output_dataset_test_anonym, temp, temp_anonym]
+output_files = [output_dataset_train, output_dataset_validation, output_dataset_test]
 for file in output_files:
   empty_json_file(file)
 
@@ -67,6 +71,7 @@ dialogic_counter = 0
 
 # Process each text
 for idx, datapoint in tqdm(enumerate(dataset), desc=f"Processing {len(dataset)} datapoints", total=len(dataset)):
+  # print(datapoint["id"])
   idx = int(idx)
   doc = nlp(datapoint['text'])
   sentences = [sent.text for sent in doc.sents]
