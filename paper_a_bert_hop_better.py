@@ -323,7 +323,7 @@ def objective(_trial):
   plt.ylabel("Loss")
   plt.title("Training and Validation Losses per Epoch")
   plt.legend()
-  plt.savefig("images/paper_b_3_bert_losses.png")
+  plt.savefig("images/paper_a_3_bert_losses.png")
   plt.close()
 
   """ END of training /validation loop ------------------- """
@@ -447,7 +447,7 @@ def objective(_trial):
   # Save the best model only if the current trial achieves the best accuracy
   if test_accuracy > _trial.user_attrs.get("best_test_accuracy", 0):
     _trial.set_user_attr("best_test_accuracy", test_accuracy)
-    best_model_path = f"models/2/paper_b_hop_bert_reclass.pth"
+    best_model_path = f"models/1/paper_a_hop_bert.pth"
     torch.save(model.state_dict(), best_model_path)
     _trial.set_user_attr("best_model_path", best_model_path)
 
