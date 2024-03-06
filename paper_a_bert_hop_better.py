@@ -7,7 +7,7 @@ import torch
 import torch.optim as optim
 from sklearn.metrics import (confusion_matrix, roc_auc_score, matthews_corrcoef, accuracy_score,
                              precision_recall_fscore_support)
-from sklearn.model_selection import train_test_split
+# from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, TensorDataset
@@ -15,7 +15,7 @@ from tqdm import tqdm
 from transformers import BertTokenizer, BertForSequenceClassification, get_linear_schedule_with_warmup
 
 from lib.utils import load_jsonl_file
-from lib.utils2 import balance_classes_in_dataset
+# from lib.utils2 import balance_classes_in_dataset
 from lib.visualizations import plot_confusion_matrix
 
 
@@ -46,6 +46,11 @@ def get_device():
     return torch.device("cpu")
 
 
+# Set device to CUDA, MPS, or CPU
+device = get_device()
+print(f"\nUsing device: {str(device).upper()}\n")
+
+
 def set_seed(seed_value):
   """Set seed for reproducibility."""
   random.seed(seed_value)
@@ -56,26 +61,8 @@ def set_seed(seed_value):
   torch.backends.cudnn.benchmark = False
 
 
-def create_dataset(_df):
-  _texts = _df['text'].tolist()
-  _labels = _df['label'].tolist()
-
-  _input_ids, _attention_masks = preprocess(_texts, tokenizer, device, max_length=MAX_LENGTH)
-  return TensorDataset(_input_ids, _attention_masks, torch.tensor(_labels))
-
-
-def preprocess(_texts, _tokenizer, _device, max_length=MAX_LENGTH):
-  """Tokenize and preprocess texts."""
-  inputs = _tokenizer(_texts, return_tensors="pt", truncation=True, padding=True, max_length=max_length)
-  return inputs["input_ids"].to(_device), inputs["attention_mask"].to(_device)
-
-
-# Set device to CUDA, MPS, or CPU
-device = get_device()
-print(f"\nUsing device: {str(device).upper()}\n")
-
-# Load dataset
-data_file = "shared_data/dataset_1_4_sliced.jsonl"
+# Set seed for reproducibility
+set_seed(SEED)
 
 # Load BERT model
 model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
@@ -84,19 +71,74 @@ model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
 # Move model to device
 model.to(device)
 
+# Load the BERT tokenizer
+tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+
+"""# Load dataset
+data_file = "shared_data/dataset_1_4_sliced.jsonl"
+
 # Load and preprocess the dataset
 dataset = load_jsonl_file(data_file)
 
 # Balance dataset
-dataset = balance_classes_in_dataset(dataset, "monologic", "dialogic", "label", SEED)
+dataset = balance_classes_in_dataset(dataset, "monologic", "dialogic", "label", SEED)"""
 
-# Set seed for reproducibility
-set_seed(SEED)
-# torch.use_deterministic_algorithms(True)
 
-# Load the BERT tokenizer
-tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+# Load datasets
+train_set = load_jsonl_file("shared_data/dataset_1_6_1b_train.jsonl")
+val_set = load_jsonl_file("shared_data/dataset_1_6_1b_validation.jsonl")
+test_set = load_jsonl_file("shared_data/dataset_1_6_1b_test.jsonl")
 
+# Convert to pandas DataFrame for stratified splitting
+df_train = pd.DataFrame({
+    "id": [entry["id"] for entry in train_set],
+    "text": [entry["text"] for entry in train_set],
+    "label": [LABEL_MAP[entry["label"]] for entry in train_set],
+    "metadata": [entry["metadata"] for entry in train_set]
+})
+
+df_val = pd.DataFrame({
+    "id": [entry["id"] for entry in val_set],
+    "text": [entry["text"] for entry in val_set],
+    "label": [LABEL_MAP[entry["label"]] for entry in val_set],
+    "metadata": [entry["metadata"] for entry in val_set]
+})
+
+df_test = pd.DataFrame({
+    "id": [entry["id"] for entry in test_set],
+    "text": [entry["text"] for entry in test_set],
+    "label": [LABEL_MAP[entry["label"]] for entry in test_set],
+    "metadata": [entry["metadata"] for entry in test_set]
+})
+
+
+def create_dataset(_df):
+  _texts = _df['text'].tolist()
+  _labels = _df['label'].tolist()
+  _ids = _df['id'].tolist()  # keep ids as a list of strings
+  # Tokenize and preprocess texts
+  _input_ids, _attention_masks = preprocess(_texts, tokenizer, device, max_length=MAX_LENGTH)
+  # Create TensorDataset without ids, since they are strings
+  return TensorDataset(_input_ids, _attention_masks, torch.tensor(_labels)), _ids
+
+
+def preprocess(_texts, _tokenizer, _device, max_length=MAX_LENGTH):
+  """Tokenize and preprocess texts."""
+  inputs = _tokenizer(_texts, return_tensors="pt", truncation=True, padding=True, max_length=max_length)
+  return inputs["input_ids"].to(_device), inputs["attention_mask"].to(_device)
+
+
+# Create TensorDatasets
+train_dataset, train_ids = create_dataset(df_train)
+val_dataset, val_ids = create_dataset(df_val)
+test_dataset, test_ids = create_dataset(df_test)
+
+# Calculate class weights
+labels = df_train["label"].tolist()
+class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(labels), y=labels)
+class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
+
+"""
 sentences = [entry["text"] for entry in dataset]
 labels = [entry["label"] for entry in dataset]
 
@@ -111,15 +153,15 @@ train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.
 
 # Split the remaining data equally to get a validation set and a test set
 val_df, test_df = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5, random_state=SEED)
-
-# Create TensorDatasets
+"""
+"""# Create TensorDatasets
 train_dataset = create_dataset(train_df)
 val_dataset = create_dataset(val_df)
 test_dataset = create_dataset(test_df)
 
 # Calculate class weights
 class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(labels), y=labels)
-class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
+class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)"""
 
 # Create DataLoaders
 train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE)
