@@ -27,8 +27,8 @@ REVERSED_LABEL_MAP = {0: "monologic", 1: "dialogic"}
 # Initialize constants
 MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BERT model
 SEED = 42  # 42, 1234, 2024
-NUM_TRIALS = 20  # Number of trials for hyperparameter optimization
-VALIDATION_STEP_INTERVAL = 30  # Interval for validation step for early stopping
+NUM_TRIALS = 30  # Number of trials for hyperparameter optimization
+VALIDATION_STEP_INTERVAL = 20  # Interval for validation step for early stopping
 
 print("############################################")
 print(f"Number of trials for hyperparameter optimization: {NUM_TRIALS}")
@@ -259,7 +259,7 @@ def objective(_trial):
       scheduler.step()
       total_train_loss += loss.item()
 
-      """# Check for early stopping validation after specified steps
+      # Check for early stopping validation after specified steps
       if (step + 1) % VALIDATION_STEP_INTERVAL == 0 or (step + 1) == len(train_dataloader):
         # Switch to evaluation mode
         model.eval()
@@ -284,7 +284,7 @@ def objective(_trial):
           break
 
     if early_stopping.early_stop:
-      break"""
+      break
 
     # Calculate average training loss for this epoch
     avg_train_loss = total_train_loss / len(train_dataloader)
@@ -326,7 +326,7 @@ def objective(_trial):
   plt.ylabel("Loss")
   plt.title("Training and Validation Losses per Epoch")
   plt.legend()
-  plt.savefig(f"images/paper_a_1_bert_losses_trial{trial_number}.png")
+  plt.savefig(f"images/paper_a_1_bert_losses_trial_{trial_number}.png")
   plt.close()
 
   """ END of training /validation loop ------------------- """
