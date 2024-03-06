@@ -13,7 +13,7 @@ from lib.utils2 import remove_duplicated_datapoints
     It also creates a parallel anonymized dataset. 
     The dataset is saved in a Google Sheet and in JSONL files. """
 
-SEED = 42
+SEED = 1234
 ANONYMIZE_TARGET = False
 
 # Set seed for reproducibility

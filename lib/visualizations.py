@@ -195,3 +195,33 @@ def plot_2x2_feature_boxplots(features_data, title, image_name):
   # plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # Adjust layout to make room for the suptitle
   plt.savefig(f'images/{image_name}', format='png', bbox_inches='tight', dpi=300)
   # plt.show()
+
+
+def plot_correlation_heatmap_double(corr_1, corr_2, title_1, title_2, feature_names, image_name):
+  """
+  Plots two heatmaps side by side for the given correlation matrices.
+  :param corr_1: 2D array, correlation matrix 1
+  :param corr_2: 2D array, correlation matrix 2
+  :param title_1: str, title for the first heatmap
+  :param title_2: str, title for the second heatmap
+  :param feature_names: list, names of the features
+  :param image_name: str, name of the image to save
+  """
+  # Create a figure with two subplots
+  fig, ax = plt.subplots(ncols=2, figsize=(20, 8))
+
+  # Heatmap for corr_1 with two decimal places in annotation
+  sns.heatmap(corr_1, cmap='Greens', annot=True, fmt=".2f", ax=ax[0], xticklabels=feature_names,
+              yticklabels=feature_names)
+  ax[0].set_title(title_1)
+
+  # Heatmap for corr_2 with two decimal places in annotation
+  sns.heatmap(corr_2, cmap='Greens', annot=True, fmt=".2f", ax=ax[1], xticklabels=feature_names,
+              yticklabels=feature_names)
+  ax[1].set_title(title_2)
+
+  plt.tight_layout()
+  plt.savefig(image_name)
+  plt.close()
+
+  print(f"Heatmap saved successfully in {image_name}!")

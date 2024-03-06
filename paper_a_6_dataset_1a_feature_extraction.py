@@ -44,8 +44,7 @@ empty_json_file(test_output_file)
 # Feature 1: Sentence length, a list of the length of all sentences, excluding punctuation
 def measure_sentence_length(_sentences):
   # Make a list of the length of all sentences, excluding punctuation
-  sentence_length_count = [len([token for token in sent if token.is_alpha]) for sent in _sentences]
-  return sentence_length_count
+  return [len([token for token in sent if token.is_alpha]) for sent in _sentences]
 
 
 # Feature 2: Word length, a list of the length of all words, excluding punctuation
