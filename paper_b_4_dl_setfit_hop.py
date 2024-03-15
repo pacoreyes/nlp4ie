@@ -114,7 +114,7 @@ def compute_metrics(y_pred, y_test):
 
 class EmbeddingPlotCallback(TrainerCallback):
   """Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
-  # throughout training. """
+  # throughout training. LARGE GREEN/ORANGE"""
 
   def on_evaluate(self, args, state, control, **kwargs):
     train_embeddings = trainer.model.encode(train_dataset["text"])
@@ -157,7 +157,7 @@ class EmbeddingPlotCallback(TrainerCallback):
 
 """class EmbeddingPlotCallback(TrainerCallback):
   # Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
-  # throughout training.
+  # throughout training SMALL YELLOW/PURPLE.
 
   def on_evaluate(self, args, state, control, **kwargs):
     train_embeddings = trainer.model.encode(train_dataset["text"])

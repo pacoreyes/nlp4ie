@@ -3,21 +3,20 @@ This script calculates the descriptive statistics for the features extracted fro
 features extracted from the texts.
 """
 import os
-
 from pprint import pprint
-from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from scipy import stats
-from scipy.stats import skew, kurtosis
+from scipy.stats import skew, kurtosis, shapiro
 from tqdm import tqdm
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import StandardScaler
+from sklearn import preprocessing
 
 from lib.utils import load_jsonl_file, save_jsonl_file
-# from db import spreadsheet_5
 from lib.visualizations import plot_correlation_heatmap_double
 
 # Load the data
@@ -32,9 +31,9 @@ df_speech = df[df['label'] == "monologic"]
 df_interview = df[df['label'] == "dialogic"]
 
 
-def calculate_statistics(column: List[int]) -> dict:
+def calculate_statistics(column):
   """Calculate basic statistics for a given column."""
-  stats = {
+  return {
     'mean': f"{np.mean(column):.2f}",
     'median': np.median(column),
     'mode': np.argmax(np.bincount(column)) if column else np.nan,
@@ -46,7 +45,6 @@ def calculate_statistics(column: List[int]) -> dict:
     'skewness': f"{skew(np.array(column)):.2f}",
     'kurtosis': f"{kurtosis(column):.2f}",
   }
-  return stats
 
 
 features = {
@@ -119,12 +117,12 @@ with open("shared_data/paper_a_2_interview_stats_table.html", "w") as file:
 """ ############################## """
 
 
-def aggregate_features(df):
+def aggregate_features(_df):
   aggregated_data = []
-  for _, row in df.iterrows():
+  for _, row in _df.iterrows():
     aggregated_row = {}
-    for feature in ms_features:
-      aggregated_row[feature] = np.mean(row[feature]) if row[feature] else np.nan
+    for _feature in ms_features:
+      aggregated_row[_feature] = np.mean(row[_feature]) if row[_feature] else np.nan
     aggregated_data.append(aggregated_row)
   return pd.DataFrame(aggregated_data)
 
@@ -248,27 +246,27 @@ num_rows = num_features  # Each feature gets a row with 2 plots
 fig, axs = plt.subplots(num_rows, 2, figsize=(14, 6 * num_rows))
 
 for i, feature in enumerate(ms_features):
-    # Adjust the index if num_rows > 1, otherwise keep it simple for a single feature
-    if num_features > 1:
-        ax_hist, ax_box = axs[i, 0], axs[i, 1]
-    else:
-        ax_hist, ax_box = axs[0], axs[1]
+  # Adjust the index if num_rows > 1, otherwise keep it simple for a single feature
+  if num_features > 1:
+      ax_hist, ax_box = axs[i, 0], axs[i, 1]
+  else:
+      ax_hist, ax_box = axs[0], axs[1]
 
-    fig.suptitle(f'Comparative Distribution by Class', fontsize=16)
+  fig.suptitle(f'Comparative Distribution by Class', fontsize=16)
 
-    # Histograms
-    ax_hist.hist(df_speech_mean[feature], bins=20, alpha=0.5, label='Speech')
-    ax_hist.hist(df_interview_mean[feature], bins=20, alpha=0.5, label='Interview')
-    ax_hist.set_title(f'Histogram - {feature_names[i]}')
-    ax_hist.set_xlabel(feature_names[i])
-    ax_hist.set_ylabel('Frequency')
-    ax_hist.legend()
+  # Histograms
+  ax_hist.hist(df_speech_mean[feature], bins=20, alpha=0.5, label='Speech')
+  ax_hist.hist(df_interview_mean[feature], bins=20, alpha=0.5, label='Interview')
+  ax_hist.set_title(f'Histogram - {feature_names[i]}')
+  ax_hist.set_xlabel(feature_names[i])
+  ax_hist.set_ylabel('Frequency')
+  ax_hist.legend()
 
-    # Box plots
-    data_to_plot = [df_speech_mean[feature], df_interview_mean[feature]]
-    ax_box.boxplot(data_to_plot, patch_artist=True, labels=['Speech', 'Interview'])
-    ax_box.set_title(f'Box Plot - {feature_names[i]}')
-    ax_box.set_ylabel(feature_names[i])
+  # Box plots
+  data_to_plot = [df_speech_mean[feature], df_interview_mean[feature]]
+  ax_box.boxplot(data_to_plot, patch_artist=True, labels=['Speech', 'Interview'])
+  ax_box.set_title(f'Box Plot - {feature_names[i]}')
+  ax_box.set_ylabel(feature_names[i])
 
 # Adjust layout
 plt.tight_layout(rect=[0, 0.03, 1, 0.95])
@@ -276,6 +274,7 @@ plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 plt.savefig('images/paper_a_10_comparative_features.png')
 # Optionally, you can display the figure in the notebook as well
 # plt.show()
+plt.close()
 
 print("Generated plots for all features from both classes")
 print("--------------------------------------------------------------")
@@ -295,14 +294,14 @@ sns.set(style="whitegrid")
 
 
 # Define a function to create box plots for each feature
-def plot_feature_boxplots(df, title, filename, feature_names):
+def plot_feature_boxplots(_df, _title, _filename, _feature_names):
   plt.figure(figsize=(20, 10))
-  df.drop(['id', 'label'], axis=1).plot(kind='box', vert=False)
+  _df.drop(['id', 'label'], axis=1).plot(kind='box', vert=False)
   # rename column names to feature names using the mapping "features"
-  plt.yticks(ticks=range(1, len(feature_names) + 1), labels=feature_names)
+  plt.yticks(ticks=range(1, len(_feature_names) + 1), labels=_feature_names)
 
-  plt.title(title)
-  plt.savefig(filename)
+  plt.title(_title)
+  plt.savefig(_filename)
   plt.close()
 
 
@@ -322,29 +321,93 @@ plot_feature_boxplots(
 
 """ ############################## """
 
-combined_df = pd.concat([df_speech_mean, df_interview_mean], ignore_index=True)
+# Calculate the variance for each feature for interviews and speeches separately
+var_interviews = df_speech_mean.drop(columns=['id', 'label']).var()
+var_speeches = df_interview_mean.drop(columns=['id', 'label']).var()
 
-# Applying Z-score normalization
-scaler = StandardScaler()
-combined_df_scaled = combined_df.copy()
-combined_df_scaled[ms_features] = scaler.fit_transform(combined_df[ms_features])
+# Prepare data for plotting
+var_df = pd.DataFrame({'Speech': var_speeches, 'Interview': var_interviews})
 
-all_datapoints = combined_df_scaled.to_dict(orient='records')
+# Plotting the variance for each class separately
+plt.figure(figsize=(12, 7))
+var_df.plot(kind='bar', color={'Speech': '#6EC173', 'Interview': '#147E3A'})
+plt.title('Variance of Linguistic Features by Class')
+plt.ylabel('Variance')
+plt.xlabel('Feature')
+plt.xticks(rotation=45, ha='right', labels=feature_names, ticks=range(0, len(feature_names)))
+plt.legend(title='Class')
+plt.grid(axis='y', linestyle='--')
+plt.tight_layout()
+plt.savefig('images/paper_a_14_variance_by_class.png')
 
-# Split the data back into dataset_train and dataset_test, use the ids to split the data iteratively
+""" ############################## """
 
-dataset_train_scaled = []
-dataset_test_scaled = []
+# Initialize a dictionary to hold features that may require normalization
+features_require_normalization = {'speech': [], 'interview': []}
+
+
+# Function to test a single dataframe and class name
+def test_normality(df, class_name):
+    for feature in ms_features:
+        stat, p = shapiro(df[feature])
+        if p <= 0.05:  # Using alpha = 0.05
+            print(f"{class_name} - {feature}: p-value = {p}. May require normalization.")
+            features_require_normalization[class_name].append(feature)
+        else:
+            print(f"{class_name} - {feature}: p-value = {p}. Normal distribution **.")
+
+
+# Run the Shapiro-Wilk test for each class
+test_normality(df_speech_mean, 'speech')
+test_normality(df_interview_mean, 'interview')
+
+# Print the summary of features that may require normalization
+print("\nFeatures that may require normalization:")
+pprint(features_require_normalization)
 
 # Make a list of all the ids in the dataset
 train_ids = [item['id'] for item in dataset_train]
-# test_ids = [item['id'] for item in dataset_test]
+test_ids = [item['id'] for item in dataset_test]
 
-for i, item in enumerate(all_datapoints):
+all_datapoints = [df_speech_mean, df_interview_mean]
+all_datapoints = pd.concat(all_datapoints, ignore_index=True)
+print(all_datapoints)
+
+# Filter the dataset_train and dataset_test based on the ids
+dataset_train = []
+for idx, item in all_datapoints.iterrows():
   if item['id'] in train_ids:
-    dataset_train_scaled.append(item)
-  else:
-    dataset_test_scaled.append(item)
+    dataset_train.append(item)
+
+# Convert to dataframe
+dataset_train_df = pd.DataFrame(dataset_train)
+
+pprint(dataset_train_df)
+
+dataset_test = []
+for idx, item in all_datapoints.iterrows():
+  if item['id'] in test_ids:
+    dataset_test.append(item)
+
+# Convert to dataframe
+dataset_test_df = pd.DataFrame(dataset_test)
+
+# Applying Min-Max scaling
+# scaler = MinMaxScaler()
+min_max_scaler = preprocessing.MinMaxScaler()
+
+# Initializing the StandardScaler
+# scaler = StandardScaler()
+
+dataset_train_df_scaled = dataset_train_df.copy()
+dataset_train_df_scaled[ms_features] = min_max_scaler.fit_transform(dataset_train_df[ms_features])
+# dataset_train_df_scaled[ms_features] = scaler.fit_transform(dataset_train_df[ms_features])
+dataset_train_scaled = dataset_train_df_scaled.to_dict(orient='records')
+
+dataset_test_df_scaled = dataset_test_df.copy()
+dataset_test_df_scaled[ms_features] = min_max_scaler.transform(dataset_test_df[ms_features])
+# dataset_test_df_scaled[ms_features] = scaler.transform(dataset_test_df[ms_features])
+dataset_test_scaled = dataset_test_df_scaled.to_dict(orient='records')
 
 # Save the train data to a JSONL file
 save_jsonl_file(
