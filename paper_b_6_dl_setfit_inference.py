@@ -10,12 +10,14 @@ from lib.utils2 import remove_duplicated_datapoints, remove_examples_in_dataset
 
 
 # Initialize constants
-GOOGLE_SHEET = "dataset3"
+GOOGLE_SHEET = "dataset3_nitin"
 
 # Load dataset
 # dataset = load_jsonl_file("shared_data/dataset_3_7_unlabeled_sentences_1.jsonl")
 # dataset = load_jsonl_file("shared_data/dataset_3_9_unseen_unlabeled_sentences.jsonl")
-dataset = load_jsonl_file("shared_data/_123/argumentative_sentences.jsonl")
+#dataset = load_jsonl_file("shared_data/_123/argumentative_sentences.jsonl")
+dataset = load_jsonl_file("shared_data/dataset_2_unlabeled_batch2.jsonl")
+
 
 # Load dataset3
 dataset_3 = read_from_google_sheet(spreadsheet_4, "dataset_3_it2")
@@ -25,7 +27,7 @@ print("##############################################")
 dataset = remove_duplicated_datapoints(dataset)
 print("##############################################")
 
-dataset = dataset[:2000]
+dataset = dataset[:4000]
 
 
 def get_device():
@@ -39,7 +41,7 @@ def get_device():
 
 
 # Load model
-model_setfit_path = "models/3"
+model_setfit_path = "models/8"
 model = SetFitModel.from_pretrained(model_setfit_path, local_files_only=True)
 
 # Get best device

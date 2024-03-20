@@ -307,6 +307,7 @@ early_stopping_callback = EarlyStoppingCallback(early_stopping_patience=3)
 trainer.callback_handler.add_callback(embedding_plot_callback)
 trainer.callback_handler.add_callback(early_stopping_callback)
 
+'''
 # Add training arguments
 arguments = TrainingArguments(
   evaluation_strategy="epoch",
@@ -316,6 +317,19 @@ arguments = TrainingArguments(
   metric_for_best_model="embedding_loss",
   seed=SEED
 )
+'''
+
+# Add training arguments
+arguments = TrainingArguments(
+  evaluation_strategy="steps",
+  save_strategy="steps",
+  eval_steps=1000,
+  save_steps=1000,
+  load_best_model_at_end=True,
+  metric_for_best_model="embedding_loss",
+  seed=SEED
+)
+
 trainer.args = arguments
 
 # Train best model
@@ -326,5 +340,5 @@ metrics = trainer.evaluate(test_dataset, "test")
 print(f"\nMetrics: {metrics}")
 
 # Save best model
-trainer.model.save_pretrained("models/3")
+trainer.model.save_pretrained("models/9")
 print("\nModel saved successfully!\n")

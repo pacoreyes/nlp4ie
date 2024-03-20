@@ -45,10 +45,17 @@ LABEL_CLASS_2 = LABEL_MAP["1"]
 
 # Initialize path and name of output JSON-L files and Google Sheets
 output_spreadsheet = "dataset_3"
-
+'''
 output_dataset_training = "shared_data/dataset_2_1_1a_train.jsonl"
 output_dataset_validation = "shared_data/dataset_2_1_1a_validation.jsonl"
 output_dataset_test = "shared_data/dataset_2_1_1a_test.jsonl"
+output_dataset_training_anonym = "shared_data/dataset_3_4_training_anonym.jsonl"
+output_dataset_validation_anonym = "shared_data/dataset_3_5_validation_anonym.jsonl"
+output_dataset_test_anonym = "shared_data/dataset_3_6_test_anonym.jsonl"
+'''
+output_dataset_training = "shared_data/dataset_3_1_training.jsonl"
+output_dataset_validation = "shared_data/dataset_3_2_validation.jsonl"
+output_dataset_test = "shared_data/dataset_3_3_test.jsonl"
 output_dataset_training_anonym = "shared_data/dataset_3_4_training_anonym.jsonl"
 output_dataset_validation_anonym = "shared_data/dataset_3_5_validation_anonym.jsonl"
 output_dataset_test_anonym = "shared_data/dataset_3_6_test_anonym.jsonl"
