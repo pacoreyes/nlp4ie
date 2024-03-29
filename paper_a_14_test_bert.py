@@ -53,7 +53,8 @@ set_seed(SEED)
 BERT_MODEL = 'bert-base-uncased'
 
 # Assuming you've saved your best model to a path during training
-MODEL_PATH = "models/1/paper_a_x_dl_bert_train_hop_bert.pth"
+MODEL_PATH = "models/1/paper_a_bert_solo_anonym.pth"
+# MODEL_PATH = "models/1/paper_a_bert_solo_anonym.pth"
 
 # Load the BERT tokenizer
 tokenizer = BertTokenizer.from_pretrained(BERT_MODEL)
@@ -70,7 +71,7 @@ print("• Loading Saved Weights...")
 model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
 
 # Load test set
-test_set = load_jsonl_file("shared_data/dataset_1_6_1b_test.jsonl")
+test_set = load_jsonl_file("shared_data/dataset_1_6_1b_test_anonym.jsonl")
 
 df_test = pd.DataFrame({
     "id": [entry["id"] for entry in test_set],
@@ -112,7 +113,7 @@ all_probabilities = []
 softmax = torch.nn.Softmax(dim=1)
 
 # Initialize JSONL file for misclassified examples
-misclassified_output_file = "shared_data/dataset_1_8_2b_misclassified_examples.jsonl"
+misclassified_output_file = "shared_data/dataset_1_8_2b_misclassified_examples_anonym.jsonl"
 empty_json_file(misclassified_output_file)
 
 for i, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
@@ -173,7 +174,7 @@ df_cm = pd.DataFrame(cm, index=class_names, columns=class_names)
 plot_confusion_matrix(test_true_labels,
                       test_predictions,
                       class_names,
-                      "paper_a_2_bert_confusion_matrix.png",
+                      "paper_a_1_bert_confusion_matrix_anonym.png",
                       "Confusion Matrix for BERT Model",
                       values_fontsize=22
                       )

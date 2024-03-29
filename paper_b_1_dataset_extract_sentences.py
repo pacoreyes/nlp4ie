@@ -29,7 +29,7 @@ nlp = spacy.load("en_core_web_sm")
 nlp_trf = spacy.load("en_core_web_trf")
 
 text_col_ref = firestore_db.collection("texts2")
-sentences_col_ref = firestore_db.collection("sentences4")
+sentences_col_ref = firestore_db.collection("sentences5")
 
 speeches_ids = load_txt_file("shared_data/text_ids_speeches.txt")
 interviews_ids = load_txt_file("shared_data/text_ids_interviews.txt")
@@ -60,9 +60,9 @@ rule_frames = [{k: v.split(",") if k == "object" else v for k, v in frame.items(
 rule_frame_names = set(frame["name"] for frame in rule_frames)
 
 # define IP address and port
-IP = "141.43.202.175"
-# IP = "localhost"
-PORT = "5000"
+# IP = "141.43.202.175"
+IP = "localhost"
+PORT = "5001"
 
 
 @functools.lru_cache(maxsize=None)

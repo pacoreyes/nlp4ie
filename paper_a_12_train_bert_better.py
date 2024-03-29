@@ -7,7 +7,6 @@ import torch
 import torch.optim as optim
 from sklearn.metrics import (confusion_matrix, roc_auc_score, matthews_corrcoef, accuracy_score,
                              precision_recall_fscore_support)
-# from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, TensorDataset
@@ -15,7 +14,6 @@ from tqdm import tqdm
 from transformers import BertTokenizer, BertForSequenceClassification, get_linear_schedule_with_warmup
 
 from lib.utils import load_jsonl_file
-# from lib.utils2 import balance_classes_in_dataset
 from lib.visualizations import plot_confusion_matrix
 
 
@@ -74,20 +72,14 @@ model.to(device)
 # Load the BERT tokenizer
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
-"""# Load dataset
-data_file = "shared_data/dataset_1_4_sliced.jsonl"
-
-# Load and preprocess the dataset
-dataset = load_jsonl_file(data_file)
-
-# Balance dataset
-dataset = balance_classes_in_dataset(dataset, "monologic", "dialogic", "label", SEED)"""
-
-
 # Load datasets
-train_set = load_jsonl_file("shared_data/dataset_1_6_1b_train.jsonl")
-val_set = load_jsonl_file("shared_data/dataset_1_6_1b_validation.jsonl")
-test_set = load_jsonl_file("shared_data/dataset_1_6_1b_test.jsonl")
+# train_set = load_jsonl_file("shared_data/dataset_1_6_1b_train.jsonl")
+# val_set = load_jsonl_file("shared_data/dataset_1_6_1b_validation.jsonl")
+# test_set = load_jsonl_file("shared_data/dataset_1_6_1b_test.jsonl")
+
+train_set = load_jsonl_file("shared_data/dataset_1_6_1b_train_anonym.jsonl")
+val_set = load_jsonl_file("shared_data/dataset_1_6_1b_validation_anonym.jsonl")
+test_set = load_jsonl_file("shared_data/dataset_1_6_1b_test_anonym.jsonl")
 
 # Convert to pandas DataFrame for stratified splitting
 df_train = pd.DataFrame({
@@ -138,31 +130,6 @@ labels = df_train["label"].tolist()
 class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(labels), y=labels)
 class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
 
-"""
-sentences = [entry["text"] for entry in dataset]
-labels = [entry["label"] for entry in dataset]
-
-# Convert labels from string to int
-labels = [LABEL_MAP[label] for label in labels]
-
-# Convert to pandas DataFrame for stratified splitting
-df = pd.DataFrame({"text": sentences, "label": labels})
-
-# Stratified split of the data to obtain the train and the remaining data
-train_df, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.2, random_state=SEED)
-
-# Split the remaining data equally to get a validation set and a test set
-val_df, test_df = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5, random_state=SEED)
-"""
-"""# Create TensorDatasets
-train_dataset = create_dataset(train_df)
-val_dataset = create_dataset(val_df)
-test_dataset = create_dataset(test_df)
-
-# Calculate class weights
-class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(labels), y=labels)
-class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)"""
-
 # Create DataLoaders
 train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE)
 val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=BATCH_SIZE)
@@ -174,8 +141,6 @@ total_steps = len(train_dataloader) * NUM_EPOCHS
 scheduler = get_linear_schedule_with_warmup(optimizer,
                                             num_warmup_steps=WARMUP_STEPS,
                                             num_training_steps=total_steps)
-
-# scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
 
 # Initialize the gradient scaler only if the device is a GPU
 use_cuda = device.type == "cuda"
@@ -294,7 +259,7 @@ plt.figure()
 plot_confusion_matrix(test_true_labels,
                       test_predictions,
                       class_names,
-                      "paper_b_2_dl_bert_model_confusion_matrix.png",
+                      "paper_a_1_bert_confusion_matrix_anonym.png",
                       "Confusion Matrix for BERT Model",
                       values_fontsize=22
                       )
@@ -336,7 +301,7 @@ print()
 
 # print("Test Class-wise metrics:")
 for i, class_name in enumerate(class_names):
-  print(f"{class_name}: Precision = {precision[i]:.2f}, Recall = {recall[i]:.2f}, F1 = {f1[i]:.2f}")
+  print(f"{class_name}: Precision = {precision[i]:.3f}, Recall = {recall[i]:.3f}, F1 = {f1[i]:.3f}")
 
 print()
 print("Hyperparameters:")
@@ -357,25 +322,58 @@ plt.plot(range(1, NUM_EPOCHS + 1), val_losses, label="Validation Loss", color="b
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.legend()
-plt.savefig("images/paper_b_1_dl_bert_model_losses.png")
+plt.savefig("images/paper_a_1_bert_losses_anonym.png")
 plt.close()
+
+# Save the model in the 'models' directory
+# torch.save(model.state_dict(), 'models/1/paper_a_bert_solo.pth')
+torch.save(model.state_dict(), 'models/1/paper_a_bert_solo_anonym.pth')
+
 
 """
 Model: BERT
 
-- Accuracy: 0.983
-- Precision: 0.983
-- Recall: 0.983
-- F1 Score: 0.983
-- AUC-ROC: 0.995
-- Matthews Correlation Coefficient (MCC): 0.967
+- Accuracy: 0.981
+- Precision: 0.981
+- Recall: 0.981
+- F1 Score: 0.981
+- AUC-ROC: 0.993
+- Matthews Correlation Coefficient (MCC): 0.962
 - Confusion Matrix:
            monologic  dialogic
-monologic        268         4
-dialogic           5       267
+monologic        231         3
+dialogic           6       228
 
-monologic: Precision = 0.97, Recall = 0.95, F1 = 0.96
-dialogic: Precision = 0.95, Recall = 0.97, F1 = 0.96
+monologic: Precision = 0.95, Recall = 0.93, F1 = 0.94
+dialogic: Precision = 0.93, Recall = 0.96, F1 = 0.94
+
+Hyperparameters:
+- Learning Rate: 1.6e-05
+- Batch Size: 16
+- Warmup Steps: 700
+- Number of Epochs: 4
+- Weight Decay: 0.001
+- Dropout Rate: 0.2
+---
+- Seed: 1234
+
+---------------------------------------------------------------
+
+Model: BERT
+
+- Accuracy: 0.974
+- Precision: 0.974
+- Recall: 0.974
+- F1 Score: 0.974
+- AUC-ROC: 0.995
+- Matthews Correlation Coefficient (MCC): 0.949
+- Confusion Matrix:
+           monologic  dialogic
+monologic        227         7
+dialogic           5       229
+
+monologic: Precision = 0.97, Recall = 0.91, F1 = 0.94
+dialogic: Precision = 0.91, Recall = 0.97, F1 = 0.94
 
 Hyperparameters:
 - Learning Rate: 1.6e-05

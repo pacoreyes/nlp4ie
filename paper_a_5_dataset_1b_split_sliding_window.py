@@ -17,9 +17,9 @@ from lib.ner_processing import anonymize_text
 
 # Set spaCy to use GPU if available
 if spacy.prefer_gpu():
-    print("spaCy is using GPU!")
+  print("spaCy is using GPU!")
 else:
-    print("GPU not available, spaCy is using CPU instead.")
+  print("GPU not available, spaCy is using CPU instead.")
 
 SEED = 42
 
@@ -61,7 +61,8 @@ output_dataset_validation_anonym = "shared_data/dataset_1_6_1b_validation_anonym
 output_dataset_test_anonym = "shared_data/dataset_1_6_1b_test_anonym.jsonl"
 
 # Empty the output JSONL files
-output_files = [output_dataset_train, output_dataset_validation, output_dataset_test]
+output_files = [output_dataset_train, output_dataset_validation, output_dataset_test,
+                output_dataset_train_anonym, output_dataset_validation_anonym, output_dataset_test_anonym]
 for file in output_files:
   empty_json_file(file)
 

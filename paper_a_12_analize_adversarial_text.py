@@ -1,273 +1,271 @@
-# from pprint import pprint
+from pprint import pprint
+import random
+# from collections import Counter
+import statistics
 
-from scipy.stats import chi2_contingency
-import matplotlib.pyplot as plt
-import seaborn as sns
-# import numpy as np
+import spacy
+from tqdm import tqdm
+from sklearn.preprocessing import MinMaxScaler
 import pandas as pd
+import matplotlib.pyplot as plt
 
-# from lib.utils import save_row_to_jsonl_file
+# from db import firestore_db
+from lib.utils import load_jsonl_file, save_json_file, load_json_file
+# from lib.linguistic_utils import check_if_has_one_word_or_more
+from lib.measure_features import (
+  measure_sentence_length, measure_word_length, measure_sentence_complexity, measure_passive_voice_use,
+  measure_lexical_density, measure_nominalization_use, measure_personal_pronoun_use, measure_interjections_use,
+  measure_modal_verbs_use, measure_discourse_markers_use)
+from lib.ner_processing import custom_anonymize_text
 
-speech_frequencies = [
-  ('people', 5173),
-  ('year', 3404),
-  ('go', 3237),
-  ('want', 3227),
-  ('know', 3210),
-  ('country', 3041),
-  ('work', 2760),
-  ('america', 2558),
-  ('great', 2310),
-  ('time', 2286),
-  ('world', 2261),
-  ('good', 2207),
-  ('say', 2161),
-  ('come', 2114),
-  ('american', 2056),
-  ('get', 1958),
-  ('like', 1897),
-  ('think', 1874),
-  ('new', 1864),
-  ('job', 1772),
-  ('nation', 1677),
-  ('president', 1672),
-  ('need', 1627),
-  ('way', 1624),
-  ('help', 1623),
-  ('government', 1579),
-  ('right', 1559),
-  ('thing', 1531),
-  ('united', 1497),
-  ('today', 1419),
-  ('state', 1418),
-  ('child', 1324),
-  ('states', 1317),
-  ('day', 1298),
-  ('tell', 1294),
-  ('life', 1284),
-  ('man', 1223),
-  ('thank', 1142),
-  ('believe', 1128),
-  ('family', 1074),
-  ('congress', 1065),
-  ('americans', 1054),
-  ('million', 1054),
-  ('look', 1045),
-  ('lot', 1045),
-  ('let', 1045),
-  ('take', 987),
-  ('school', 987),
-  ('well', 953),
-  ('mean', 930)
-]
+if spacy.prefer_gpu():
+    print("spaCy is using GPU!")
+else:
+    print("GPU not available, spaCy is using CPU instead.")
 
-interview_frequencies = [
-  ('think', 6736),
-  ('people', 5721),
-  ('go', 4835),
-  ('know', 3855),
-  ('thing', 2772),
-  ('say', 2752),
-  ('get', 2714),
-  ('want', 2549),
-  ('country', 2501),
-  ('time', 2377),
-  ('work', 2306),
-  ('year', 2276),
-  ('way', 2104),
-  ('come', 2065),
-  ('president', 2060),
-  ('like', 2010),
-  ('lot', 1964),
-  ('entity', 1949),
-  ('good', 1830),
-  ('look', 1735),
-  ('talk', 1730),
-  ('try', 1671),
-  ('right', 1626),
-  ('united', 1385),
-  ('government', 1320),
-  ('issue', 1298),
-  ('world', 1293),
-  ('believe', 1275),
-  ('american', 1221),
-  ('need', 1216),
-  ('states', 1211),
-  ('mean', 1185),
-  ('question', 1154),
-  ('problem', 1110),
-  ('ask', 1088),
-  ('let', 1070),
-  ('take', 1068),
-  ('help', 1060),
-  ('job', 1053),
-  ('tell', 1032),
-  ('kind', 1026),
-  ('important', 997),
-  ('deal', 996),
-  ('state', 993),
-  ('happen', 970),
-  ('great', 951),
-  ('sure', 949),
-  ('new', 922),
-  ('congress', 915),
-  ('fact', 906)
-]
+nlp = spacy.load("en_core_web_trf")
 
-# Convert the top 10 tuples to dictionaries for easier access
-speech_frequencies_dict = dict(speech_frequencies[:50])
-interview_frequencies_dict = dict(interview_frequencies[:50])
-
-# Generate a combined list of unique terms from the top 10 of each class for comparison
-combined_terms = list(set(speech_frequencies_dict.keys()) | set(interview_frequencies_dict.keys()))
-
-# chi_square_results = {}
-
-# Assuming total counts for speech and interview represent the sum of frequencies for their top 10 terms
-total_speech = sum(speech_frequencies_dict.values())
-total_interview = sum(interview_frequencies_dict.values())
-
-chi_square_calcs = {}
-chi_square_results = []
-
-for term in combined_terms:
-  # Frequencies of the term in each class
-  freq_speech = speech_frequencies_dict.get(term, 0)
-  freq_interview = interview_frequencies_dict.get(term, 0)
-
-  # Contingency table for the term across the two classes
-  contingency_table = [
-    [freq_speech, total_speech - freq_speech],  # Frequency in speech and remaining frequency in speech
-    [freq_interview, total_interview - freq_interview]  # Frequency in interview and remaining frequency in interview
-  ]
-
-  # Performing the Chi-square test
-  chi2_stat, p_value, dof, expected = chi2_contingency(contingency_table)
-
-  if p_value < 0.001:
-    # Determine which class may be biased with this term
-    biased_class = "speech" if freq_speech > expected[0][0] else "interview"
-    # Determine the frequency from the appropriate list
-    if biased_class == "speech":
-      frequency = speech_frequencies_dict[term]
-    else:
-      frequency = interview_frequencies_dict[term]
-
-    chi_square_calcs[term] = {
-      "statistic": chi2_stat,
-      "p-value": p_value,
-      "biased class": biased_class,
-      "frequency": frequency
-    }
-
-    # Create JSONL row
-    row = {
-      "term": term,
-      "statistic": chi2_stat,
-      "p-value": p_value,
-      "biased_class": biased_class,
-      "frequency": frequency
-    }
-    chi_square_results.append(row)
-    # save_row_to_jsonl_file(row, "data.jsonl")
-
-df = pd.DataFrame(chi_square_results)
-
-# Normalize the Chi2 Statistic for better color mapping
-df['statistic_norm'] = (df['statistic'] - df['statistic'].min()) / (df['statistic'].max() - df['statistic'].min())
-
-# Create a pivot table for the heatmap
-pivot_table = df.pivot(columns=["term", "biased_class", "p-value", "statistic_norm", "statistic", "frequency"])
-
-# Sort the pivot table by biased class and normalized statistic
-sorted_words = df.sort_values(by=['biased_class', 'p-value'], ascending=[True, False])['term']
-pivot_table = pivot_table.reindex(sorted_words)
-
-# Define a custom colormap: red for 'speech', blue for 'interview'
-colors = ["red" if cls == "speech" else "blue" for cls in df.sort_values(
-  by=['biased_class', 'statistic_norm'], ascending=[True, False])['biased_class']]
-
-cmap = sns.blend_palette(colors, as_cmap=True)
-
-speech_df = df[df['biased_class'] == 'speech'].sort_values(by='statistic_norm', ascending=False).set_index('term')
-# Trim the dataframe to the top 25 terms
-speech_df = speech_df.head(25)
-
-interview_df = df[df['biased_class'] == 'interview'].sort_values(by='statistic_norm', ascending=False).set_index('term')
-interview_df = interview_df.head(25)
-
-# Define the color map using lighter colors
-light_red_cmap = sns.light_palette("red", as_cmap=True)
-light_blue_cmap = sns.light_palette("blue", as_cmap=True)
-
-sns.set(font_scale=1.4)
-
-fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(8, 12), gridspec_kw={'width_ratios': [1, 1]})
-
-interview_df['formatted_frequency'] = interview_df['frequency'].apply(lambda x: f"{x:,}")
-interview_df['formatted_frequency'] = interview_df['formatted_frequency'].astype(str)
-
-speech_df['formatted_frequency'] = speech_df['frequency'].apply(lambda x: f"{x:,}")
-speech_df['formatted_frequency'] = speech_df['formatted_frequency'].astype(str)
-
-# Plotting the Speech heatmap on the first axes
-# sns.heatmap(speech_df[['statistic_norm']], annot=True, fmt=".2f", cmap=light_red_cmap, cbar=False, ax=ax1)
-sns.heatmap(
-  speech_df[['statistic_norm']],
-  # annot=speech_df[['frequency']].values,
-  annot=speech_df[['formatted_frequency']].values.astype(str),
-  fmt="s",
-  cmap=light_red_cmap,
-  cbar=False,
-  ax=ax1,
-  annot_kws={'size': 14},
-  xticklabels=[]
-)
-
-ax1.set_title('Speech', pad=16, fontsize=16)
-# ax1.set_xlabel('statistic_norm')
-ax1.set_ylabel('')
-ax1.set_xlabel('')
-ax1.tick_params(axis='y', rotation=0)
-
-# Plotting the Interview heatmap on the second axes
-# sns.heatmap(interview_df[['statistic_norm']], annot=True, fmt=".2f", cmap=light_blue_cmap, cbar=False, ax=ax2)
-sns.heatmap(
-  interview_df[['statistic_norm']],
-  # annot=interview_df[['frequency']].values,
-  annot=interview_df[['formatted_frequency']].values.astype(str),
-  fmt="s",
-  cmap=light_blue_cmap,
-  cbar=False,
-  ax=ax2,
-  annot_kws={'size': 14},
-  xticklabels=[]
-)
-ax2.set_title('Interview', pad=16, fontsize=16)
-ax2.set_ylabel('')
-ax2.set_xlabel('')
-ax2.tick_params(axis='y', rotation=0)  # Set the y-tick labels to horizontal
-
-# Set the x-axis label for both heatmaps
-ax1.set_xlabel('Word Frequency', fontsize=16)
-ax2.set_xlabel('Word Frequency', fontsize=16)
-
-# Adjust the layout
-# plt.title('Test')
-# plt.suptitle('Chi-Square Analysis of Word Frequency Bias in Political Speeches and Interviews')
-plt.tight_layout(rect=(0, 0.03, 1, 0.99))  # Adjust the padding to provide space for the main title
-
-plt.savefig('images/paper_a_17_chi2_word_bias_heatmap.png', dpi=300, bbox_inches='tight')
-plt.close()
-
-# Sort the results by p-value
-chi_square_calcs = {
-  term: results for term, results in sorted(chi_square_calcs.items(), key=lambda item: item[1]['p-value'])
+features_map = {
+  "sentence_length": "Sentence Length",
+  "word_length": "Word Length",
+  "sentence_complexity": "Sentence Complexity",
+  "passive_voice_freq": "Passive Voice Freq",
+  "lexical_freq": "Lexical Word Freq",
+  "nominalization_freq": "Nominalization Freq",
+  "personal_pronoun_freq": "Personal Pronoun Freq",
+  "interjection_freq": "Interjection Freq",
+  "modal_verb_freq": "Modal Verb Freq",
+  "discourse_marker_freq": "Discourse Marker Freq"
 }
 
-for term, results in chi_square_calcs.items():
-  chi2_stat = results['statistic']
-  p_value = results['p-value']
-  biased_class = results['biased class']
-  frequency = results['frequency']
-  print(f"'{term} ({frequency})' (p-value: {p_value} / stats: {chi2_stat:.3f}) signals bias to '{biased_class}' class.")
+
+def save_txt_file(content, file_path):
+  with open(file_path, 'w', encoding='utf-8') as file:
+    file.write(content)
+
+
+def read_text_from_file(file_path):
+  with open(file_path, 'r', encoding='utf-8') as file:
+    content = file.read()
+  return content
+
+
+neutral_verbs = [
+  "run", "observe", "manage", "organize", "develop", "maintain", "compare", "describe",
+  "report", "examine", "determine", "record", "address", "identify", "access", "create",
+  "follow", "measure", "discuss", "review", "conduct", "analyze", "present", "apply",
+  "utilize", "suggest", "consider", "calculate", "synthesize",
+  "quantify", "evaluate", "interpret", "formulate", "validate", "investigate", "correlate", "optimize",
+  "integrate", "specify", "simulate", "modify", "fabricate", "illustrate", "derive", "adapt", "enumerate",
+  "diagnose", "explore", "implement", "innovate", "elucidate", "catalog", "classify", "deconstruct",
+  "replicate", "benchmark", "standardize", "characterize"
+]
+
+neutral_verbs = list(set(neutral_verbs))
+
+neutral_adverbs = [
+  "objectively", "clearly", "publicly", "officially", "directly", "generally", "globally",
+  "nationally", "locally", "effectively", "efficiently", "equally", "precisely", "simply",
+  "specifically", "historically", "legally", "politically", "practically", "formally",
+  "objectively", "clearly", "publicly", "officially", "directly", "generally", "globally",
+  "nationally", "locally", "effectively", "efficiently", "equally", "precisely", "simply",
+  "specifically", "historically", "legally", "politically", "practically", "formally",
+  "methodically", "analytically", "systematically", "empirically", "theoretically",
+  "technically", "experimentally", "quantitatively", "qualitatively", "innovatively",
+  "strategically", "academically", "conceptually", "environmentally", "sustainably",
+  "ethically", "culturally", "intuitively", "diagnostically", "holistically",
+  "statistically", "comprehensively", "dynamically", "virtually", "procedurally"
+]
+
+neutral_adverbs = list(set(neutral_adverbs))
+
+neutral_nouns = [
+  'candy', 'road', 'table', 'window', 'book', 'chair', 'tree', 'water', 'light', 'phone', 'paper', 'car',
+  'glass', 'music', 'art', 'food', 'house', 'garden', 'computer', 'river', 'mountain', 'city', 'village',
+  'cloud', 'rain', 'snow', 'sand', 'forest', 'beach', 'bridge', 'candy', 'road', 'table', 'window', 'book',
+  'chair', 'tree', 'water', 'light', 'phone', 'paper', 'car',
+  'glass', 'music', 'art', 'food', 'house', 'garden', 'computer', 'river', 'mountain', 'city', 'village',
+  'cloud', 'rain', 'snow', 'sand', 'forest', 'beach', 'bridge',
+  'lake', 'island', 'field', 'moon', 'star', 'planet', 'ocean', 'flower', 'rock', 'hill', 'valley', 'tree',
+  'grass', 'leaf', 'bird', 'fish', 'animal', 'sky', 'sun', 'tea', 'coffee', 'cake', 'bicycle', 'train',
+  'airplane', 'ship', 'pen', 'pencil', 'notebook', 'basket', 'fence', 'path', 'stream', 'cave', 'cliff', 'desert'
+]
+
+neutral_nouns = list(set(neutral_nouns))
+
+bias_words = [
+  'family', 'well', 'go', 'year', 'look', 'like', 'life', 'time', 'good', 'america', 'ask', 'come',
+  'government', 'man', 'state', 'states', 'want', 'president', 'problem', 'american', 'kind', 'tell',
+  'think', 'try', 'world', 'today', 'country', 'child', 'fact', 'people', 'day', 'believe', 'need', 'thing',
+  'united', 'great', 'say', 'important', 'nation', 'help', 'deal', 'get', 'lot', 'new', 'right', 'school',
+  'entity', 'mean', 'know', 'million', 'thank', 'take', 'issue', 'americans', 'way', 'congress', 'sure',
+  'let', 'talk', 'question', 'work', 'happen', 'job'
+]
+
+# ref_coll_adversarial = firestore_db.collection("adversarial")
+
+dataset_test = load_jsonl_file("shared_data/dataset_1_6_1b_test.jsonl")
+
+bias_words = set(bias_words)
+# print(neutral_nouns)
+
+IGNORE_LIST = [5557, 5742, 5847, 3381, 3405, 3701]
+SETUP = False
+
+# Divide the dataset into two classes
+speech_class = [datapoint for datapoint in dataset_test
+                if datapoint["label"] == "monologic" and datapoint["id"] not in IGNORE_LIST]
+interview_class = [datapoint for datapoint in dataset_test
+                   if datapoint["label"] == "dialogic" and datapoint["id"] not in IGNORE_LIST]
+
+speech_class = speech_class[:30]
+interview_class = interview_class[:30]
+
+dataset = speech_class + interview_class
+
+DATASET_PATH = "shared_data/adversarial"
+
+if SETUP:
+  for datapoint in tqdm(dataset, desc=f"Processing {len(dataset)} datapoints"):
+
+    text = datapoint["text"]
+    label = datapoint["label"]
+
+    doc = nlp(text)
+    sentences = list(sent for sent in doc.sents)
+
+    # Measure features
+    features = {
+      "sentence_length": measure_sentence_length(sentences),
+      "word_length": measure_word_length(sentences),
+      "sentence_complexity": measure_sentence_complexity(sentences),
+      "passive_voice_freq": measure_passive_voice_use(sentences),
+      "lexical_word_freq": measure_lexical_density(sentences),
+      "nominalization_freq": measure_nominalization_use(sentences),
+      "personal_pronoun_freq": measure_personal_pronoun_use(sentences),
+      "interjections_freq": measure_interjections_use(sentences),
+      "modal_verbs_freq": measure_modal_verbs_use(sentences),
+      "discourse_marker_freq": measure_discourse_markers_use(sentences)
+    }
+
+    # Calculate mean for each feature
+    for feature, values in features.items():
+      features[feature] = statistics.mean(values)
+
+    slots = {
+      "id": datapoint["id"],
+      "text": text,
+      "label": label,
+      "features": features
+    }
+
+    if label == "monologic":
+      # Save text in a TXT file
+      save_txt_file("", f"{DATASET_PATH}/speech/{datapoint['id']}.txt")
+      save_json_file(slots, f"{DATASET_PATH}/speech/{datapoint['id']}.json")
+    if label == "dialogic":
+      # Save text in a TXT file
+      save_txt_file("", f"{DATASET_PATH}/interview/{datapoint['id']}.txt")
+      save_json_file(slots, f"{DATASET_PATH}/interview/{datapoint['id']}.json")
+
+# ------------------------------
+else:
+  text_id = "5531"
+  text_class = "speech"
+
+  source_data = load_json_file(f"{DATASET_PATH}/{text_class}/{text_id}.json")
+  manipulated_text = read_text_from_file(f"{DATASET_PATH}/{text_class}/{text_id}.txt")
+
+  # text = source_data["text"]
+
+  pprint(manipulated_text)
+
+  modified_tokens = []
+
+  doc = nlp(manipulated_text)
+
+  # Replace bias words with neutral words
+  for token in doc:
+    token_replaced = False
+    # print(token.text, token.pos_, token.tag_)
+    if token.lemma_ in bias_words and not token.is_stop and not token.is_punct:
+      if token.pos_ == "NOUN":
+        random_neutral_noun = random.choice(neutral_nouns)
+        modified_tokens.append(random_neutral_noun + token.whitespace_)
+        token_replaced = True
+        # print(random_neutral_noun)
+      elif token.pos_ == "VERB":
+        random_neutral_verb = random.choice(neutral_verbs)
+        modified_tokens.append(random_neutral_verb + token.whitespace_)
+        token_replaced = True
+      elif token.pos_ == "ADV":
+        random_neutral_adverb = random.choice(neutral_adverbs)
+        modified_tokens.append(random_neutral_adverb + token.whitespace_)
+        token_replaced = True
+    if not token_replaced:
+      modified_tokens.append(token.text_with_ws)
+
+  modified_text = "".join(modified_tokens)
+
+  # Anonymize the text
+  modified_text = custom_anonymize_text(modified_text, nlp)
+
+  doc = nlp(modified_text)
+  sentences = list(sent for sent in doc.sents)
+
+  # Measure features
+  features = {
+    "sentence_length": measure_sentence_length(sentences),
+    "word_length": measure_word_length(sentences),
+    "sentence_complexity": measure_sentence_complexity(sentences),
+    "passive_voice_freq": measure_passive_voice_use(sentences),
+    "lexical_word_freq": measure_lexical_density(sentences),
+    "nominalization_freq": measure_nominalization_use(sentences),
+    "personal_pronoun_freq": measure_personal_pronoun_use(sentences),
+    "interjections_freq": measure_interjections_use(sentences),
+    "modal_verbs_freq": measure_modal_verbs_use(sentences),
+    "discourse_marker_freq": measure_discourse_markers_use(sentences)
+  }
+  # Calculate mean for each feature
+  for feature, values in features.items():
+    features[feature] = statistics.mean(values)
+
+  source_data["manipulated_text"] = modified_text
+  source_data["manipulated_features"] = features
+
+  save_json_file(source_data, f"{DATASET_PATH}/{text_class}/{text_id}.json")
+
+  print()
+  pprint(modified_text)
+  print(f"Class: {text_class}")
+
+  pprint(source_data["features"])
+  pprint(source_data["manipulated_features"])
+
+  """# Use min-max scaling to normalize the features
+  combined_data = pd.DataFrame([source_data["features"], source_data["manipulated_features"]])
+
+  scaler = MinMaxScaler()
+  combined_data_scaled = scaler.fit_transform(combined_data)"""
+
+  before_manipulation = source_data["features"]
+  after_manipulation = source_data["manipulated_features"]
+
+  features = list(before_manipulation.keys())
+  feature_names = list(features_map.values())
+
+  before_values = [before_manipulation[feature] for feature in features]
+  after_values = [after_manipulation[feature] for feature in features]
+
+  # Plotting
+  x = range(len(features))
+  plt.figure(figsize=(12, 8))
+  plt.bar(x, before_values, width=0.4, label='Before Treatment', color='blue', align='center')
+  plt.bar(x, after_values, width=0.4, label='After Treatment', color='red', align='edge')
+  plt.xlabel('Feature')
+  plt.ylabel('Frequency')
+  plt.title('Comparison of Features Before and After Treatment')
+  plt.xticks(x, feature_names, rotation='vertical')
+  plt.legend()
+  plt.tight_layout()
+  plt.show()

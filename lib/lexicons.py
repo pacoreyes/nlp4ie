@@ -335,3 +335,55 @@ oppose_adj = {
   "terrible",
   "dangerous",
   }
+
+neutral_verbs = [
+  "run", "observe", "manage", "organize", "develop", "maintain", "compare", "describe",
+  "report", "examine", "determine", "record", "address", "identify", "access", "create",
+  "follow", "measure", "discuss", "review", "conduct", "analyze", "present", "apply",
+  "utilize", "suggest", "consider", "calculate", "synthesize",
+  "quantify", "evaluate", "interpret", "formulate", "validate", "investigate", "correlate", "optimize",
+  "integrate", "specify", "simulate", "modify", "fabricate", "illustrate", "derive", "adapt", "enumerate",
+  "diagnose", "explore", "implement", "innovate", "elucidate", "catalog", "classify", "deconstruct",
+  "replicate", "benchmark", "standardize", "characterize"
+]
+
+neutral_verbs = list(set(neutral_verbs))
+
+neutral_adverbs = [
+  "objectively", "clearly", "publicly", "officially", "directly", "generally", "globally",
+  "nationally", "locally", "effectively", "efficiently", "equally", "precisely", "simply",
+  "specifically", "historically", "legally", "politically", "practically", "formally",
+  "objectively", "clearly", "publicly", "officially", "directly", "generally", "globally",
+  "nationally", "locally", "effectively", "efficiently", "equally", "precisely", "simply",
+  "specifically", "historically", "legally", "politically", "practically", "formally",
+  "methodically", "analytically", "systematically", "empirically", "theoretically",
+  "technically", "experimentally", "quantitatively", "qualitatively", "innovatively",
+  "strategically", "academically", "conceptually", "environmentally", "sustainably",
+  "ethically", "culturally", "intuitively", "diagnostically", "holistically",
+  "statistically", "comprehensively", "dynamically", "virtually", "procedurally"
+]
+
+neutral_adverbs = list(set(neutral_adverbs))
+
+neutral_nouns = [
+  'candy', 'road', 'table', 'window', 'book', 'chair', 'tree', 'water', 'light', 'phone', 'paper', 'car',
+  'glass', 'music', 'art', 'food', 'house', 'garden', 'computer', 'river', 'mountain', 'city', 'village',
+  'cloud', 'rain', 'snow', 'sand', 'forest', 'beach', 'bridge', 'candy', 'road', 'table', 'window', 'book',
+  'chair', 'tree', 'water', 'light', 'phone', 'paper', 'car',
+  'glass', 'music', 'art', 'food', 'house', 'garden', 'computer', 'river', 'mountain', 'city', 'village',
+  'cloud', 'rain', 'snow', 'sand', 'forest', 'beach', 'bridge',
+  'lake', 'island', 'field', 'moon', 'star', 'planet', 'ocean', 'flower', 'rock', 'hill', 'valley', 'tree',
+  'grass', 'leaf', 'bird', 'fish', 'animal', 'sky', 'sun', 'tea', 'coffee', 'cake', 'bicycle', 'train',
+  'airplane', 'ship', 'pen', 'pencil', 'notebook', 'basket', 'fence', 'path', 'stream', 'cave', 'cliff', 'desert'
+]
+
+neutral_nouns = list(set(neutral_nouns))
+
+bias_words = [
+  'family', 'well', 'go', 'year', 'look', 'like', 'life', 'time', 'good', 'america', 'ask', 'come',
+  'government', 'man', 'state', 'states', 'want', 'president', 'problem', 'american', 'kind', 'tell',
+  'think', 'try', 'world', 'today', 'country', 'child', 'fact', 'people', 'day', 'believe', 'need', 'thing',
+  'united', 'great', 'say', 'important', 'nation', 'help', 'deal', 'get', 'lot', 'new', 'right', 'school',
+  'entity', 'mean', 'know', 'million', 'thank', 'take', 'issue', 'americans', 'way', 'congress', 'sure',
+  'let', 'talk', 'question', 'work', 'happen', 'job'
+]

@@ -95,17 +95,17 @@ class EarlyStopping:
     self.best_score = None
     self.early_stop = False
 
-  def __call__(self, val_loss):
+  def __call__(self, _val_loss):
     if self.best_score is None:
-      self.best_score = val_loss
-    elif val_loss > self.best_score - self.min_delta:
+      self.best_score = _val_loss
+    elif _val_loss > self.best_score - self.min_delta:
       self.counter += 1
       print(f'Early stopping counter: {self.counter} out of {self.patience}')
       if self.counter >= self.patience:
         # print('Early stopping')
         self.early_stop = True
     else:
-      self.best_score = val_loss
+      self.best_score = _val_loss
       self.counter = 0
 
 
@@ -292,7 +292,7 @@ plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.title("Training and Validation Losses per Epoch")
 plt.legend()
-plt.savefig("images/paper_b_3_bert_losses.png")
+plt.savefig("images/paper_a_1x_bert_losses.png")
 plt.close()
 
 """ END of training /validation loop ------------------- """
@@ -318,7 +318,7 @@ all_probabilities = []
 softmax = torch.nn.Softmax(dim=1)
 
 # Initialize JSONL file for misclassified examples
-misclassified_output_file = "shared_data/dataset_2_8_1b_misclassified_examples_reclass.jsonl"
+misclassified_output_file = "shared_data/dataset_1_8_2b_misclassified_examples.jsonl"
 empty_json_file(misclassified_output_file)
 
 for i, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
@@ -381,7 +381,7 @@ df_cm = pd.DataFrame(cm, index=class_names, columns=class_names)
 plot_confusion_matrix(test_true_labels,
                       test_predictions,
                       class_names,
-                      "paper_b_2_bert_confusion_matrix.png",
+                      "paper_a_2_bert_confusion_matrix.png",
                       "Confusion Matrix for BERT Model",
                       values_fontsize=22
                       )
@@ -423,7 +423,7 @@ plt.plot(range(1, NUM_EPOCHS + 1), val_losses, label="Validation Loss", color="b
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.legend()
-plt.savefig("images/paper_a_1_dl_bert_model_losses.png")
+plt.savefig("images/paper_a_1_bert_model_losses.png")
 plt.close()
 
 # Save the model in the 'models' directory
