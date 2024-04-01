@@ -27,11 +27,16 @@ dataset = dataset_train + dataset_validation + dataset_test
 speech_class = [datapoint for datapoint in dataset if datapoint["label"] == "monologic"]
 interview_class = [datapoint for datapoint in dataset if datapoint["label"] == "dialogic"]
 
+"""speech_class = speech_class[:10]
+interview_class = interview_class[:10]"""
+
 texts_by_class = {"speech": speech_class, "interview": interview_class}
 
 # if token.pos_ == 'INTJ']
 
 interjection_freq_by_class = {}
+
+all_interjections = []
 
 for class_label, datapoints in texts_by_class.items():
   print("---")
@@ -41,9 +46,14 @@ for class_label, datapoints in texts_by_class.items():
     doc = nlp(datapoint["text"].lower())
     tokens.extend([token.text for token in doc if token.pos_ == 'INTJ'])
     # tokens.extend([token.lemma_ for token in doc if not token.is_stop and not token.is_punct])
+  all_interjections.extend(tokens)
   interjection_freq_by_class[class_label] = Counter(tokens)
 
 # Output the most common words for each class
-for class_label, word_freq in interjection_freq_by_class.items():
+"""for class_label, word_freq in interjection_freq_by_class.items():
   print(f"Most common interjections in class {class_label}:")
-  pprint(word_freq.most_common(50))
+  pprint(word_freq.most_common(50))"""
+
+all_interjections = list(set(all_interjections))
+
+pprint(all_interjections)

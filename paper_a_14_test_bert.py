@@ -154,10 +154,14 @@ all_probabilities = np.concatenate(all_probabilities, axis=0)
 
 # Calculate and print metrics
 test_accuracy, test_precision, test_recall, test_f1 = None, None, None, None
+macro_precision, macro_recall, macro_f1 = None, None, None
+
 if test_predictions and test_true_labels:
   test_accuracy = accuracy_score(test_true_labels, test_predictions)
   test_precision, test_recall, test_f1, _ = (
     precision_recall_fscore_support(test_true_labels, test_predictions, average=None, zero_division=0))
+  macro_precision, macro_recall, macro_f1, _ = (
+    precision_recall_fscore_support(test_true_labels, test_predictions, average="macro", zero_division=0))
 
   print("\nMetrics for testing:")
   print(f"Accuracy: {test_accuracy}")
@@ -181,9 +185,9 @@ plot_confusion_matrix(test_true_labels,
 
 print("\nModel: BERT\n")
 print(f"- Accuracy: {test_accuracy:.3f}")
-print(f"- Precision: {np.mean(test_precision):.3f}")
-print(f"- Recall: {np.mean(test_recall):.3f}")
-print(f"- F1 Score: {np.mean(test_f1):.3f}")
+print(f"- Precision: {np.mean(macro_precision):.3f}")
+print(f"- Recall: {np.mean(macro_recall):.3f}")
+print(f"- F1 Score: {np.mean(macro_f1):.3f}")
 print(f"- AUC-ROC: {roc_auc:.3f}")
 print(f"- Matthews Correlation Coefficient (MCC): {mcc:.3f}")
 print(f"- Confusion Matrix:")
