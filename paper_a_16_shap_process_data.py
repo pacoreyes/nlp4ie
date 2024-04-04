@@ -22,13 +22,13 @@ nlp = spacy.load("en_core_web_lg")
 Step 1: load datasets
 ########################## """
 
-speech_data_path = "shared_data/dataset_1_9_speech_anonym_shap_features_plot_bar.csv"
-interview_data_path = "shared_data/dataset_1_9_interview_anonym_shap_features_plot_bar.csv"
+speech_data_path = "shared_data/dataset_1_9_speech_shap_features_plot_bar.csv"
+interview_data_path = "shared_data/dataset_1_9_interview_shap_features_plot_bar.csv"
 
 speech_data = pd.read_csv(speech_data_path, index_col=None)
 interview_data = pd.read_csv(interview_data_path, index_col=None)
 
-output_file = "shared_data/dataset_1_10_shap_features_anonym.jsonl"
+output_file = "shared_data/dataset_1_10_shap_features.jsonl"
 empty_json_file(output_file)
 
 # speech_data = speech_data[:500]
@@ -55,6 +55,7 @@ for _class in all_data:
   # passive_voice_freq = []
   personal_pronoun_freq = []
   lexical_word_freq = []
+  word_length = []
   interrogations = []
 
   for index, feature in tqdm(_class["data"].iterrows(),
@@ -109,6 +110,9 @@ for _class in all_data:
         # lexical_word_freq.append(feature.tolist())
         lexical_word_freq.append(value)
 
+      # 2.8 Extract word length
+      word_length.append(len(token.text))
+
     # Then it's a subword
     elif not token.has_vector and not token.is_punct:
       # subwords.append(token.text)
@@ -129,6 +133,7 @@ for _class in all_data:
     "modal_verb_freq": modal_verb_freq,
     "personal_pronoun_freq": personal_pronoun_freq,
     "lexical_word_freq": lexical_word_freq,
+    "word_length": word_length,
   }
   save_row_to_jsonl_file(row, output_file)
   extracted_data.append(row)

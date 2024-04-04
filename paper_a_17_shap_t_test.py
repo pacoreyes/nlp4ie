@@ -4,7 +4,7 @@ import pandas as pd
 from scipy import stats
 from statsmodels.stats.multitest import multipletests
 from scipy.stats import shapiro
-from scipy.stats import skew
+# from scipy.stats import skew
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -17,6 +17,7 @@ features = {
   # "modal_verb_freq": "Modal Verb Freq",
   "personal_pronoun_freq": "Personal Pronoun Freq",
   # "lexical_word_freq": "Lexical Word Freq",
+  "word_length": "Word Length"
 }
 
 # Significance level
@@ -27,7 +28,7 @@ ms_features = list(features.keys())
 feature_names = list(features.values())
 
 # Load the data
-dataset = load_jsonl_file("shared_data/dataset_1_10_shap_features.jsonl")
+dataset = load_jsonl_file("shared_data/dataset_1_10_shap_features_anonym.jsonl")
 
 # Split the dataset into 2 classes
 class_speech = dataset[0]
@@ -44,6 +45,7 @@ df_speech['discourse_marker_freq'] = pd.Series(class_speech['discourse_marker_fr
 # df_speech['modal_verb_freq'] = pd.Series(class_speech['modal_verb_freq'])
 df_speech['personal_pronoun_freq'] = pd.Series(class_speech['personal_pronoun_freq'])
 # df_speech['lexical_word_freq'] = pd.Series(class_speech['lexical_word_freq'])
+df_speech['word_length'] = pd.Series(class_speech['word_length'])
 
 df_interview = pd.DataFrame()
 df_interview['interjection_freq'] = pd.Series(class_interview['interjection_freq'])
@@ -52,6 +54,7 @@ df_interview['discourse_marker_freq'] = pd.Series(class_interview['discourse_mar
 # df_interview['modal_verb_freq'] = pd.Series(class_interview['modal_verb_freq'])
 df_interview['personal_pronoun_freq'] = pd.Series(class_interview['personal_pronoun_freq'])
 # df_interview['lexical_word_freq'] = pd.Series(class_interview['lexical_word_freq'])
+df_interview['word_length'] = pd.Series(class_interview['word_length'])
 
 all_data = [
   {"name": "speech", "data": df_speech},
