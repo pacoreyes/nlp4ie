@@ -1,10 +1,12 @@
 import random
 import os
 # from pprint import pprint
+from collections import Counter
+# import json
 
+from optuna import Trial
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from datasets import Dataset
 from setfit import SetFitModel, Trainer, TrainingArguments
 from transformers import TrainerCallback, EarlyStoppingCallback
@@ -28,15 +30,9 @@ import torch
 LABEL_MAP = {"support": 0, "oppose": 1}
 class_names = list(LABEL_MAP.keys())
 
-
-# Hyperparameters
-BODY_LEARNING_RATE = 0.00021297245427575413
-NUM_EPOCHS = 3
-BATCH_SIZE = 32
-SEED = 36
-MAX_ITER = 117
-SOLVER = "newton-cg"
-# Total optimization steps = 1969
+# Initialize constants
+SEED = 42
+NUM_TRIALS = 5
 
 
 def set_seed(seed_value):
@@ -64,16 +60,30 @@ def get_device():
     return torch.device("cpu")
 
 
-def model_init():
+def model_init(params):
+  params = params or {}
+  max_iter = params.get("max_iter", 100)
+  solver = params.get("solver", "liblinear")
   params = {
     "head_params": {
-      "max_iter": MAX_ITER,
-      "solver": SOLVER,
+      "max_iter": max_iter,
+      "solver": solver,
     }
   }
-  _model = SetFitModel.from_pretrained(model_id, **params)
-  _model.to(device)
-  return _model
+  model = SetFitModel.from_pretrained(model_id, **params)
+  model.to(device)
+  return model
+
+
+def hp_space(trial: Trial):
+  return {
+    "body_learning_rate": trial.suggest_float("body_learning_rate", 1e-6, 1e-3, log=True),
+    "num_epochs": trial.suggest_int("num_epochs", 1, 3),
+    "batch_size": trial.suggest_categorical("batch_size", [16, 32, 64]),
+    "seed": trial.suggest_int("seed", 1, 40),
+    "max_iter": trial.suggest_int("max_iter", 50, 300),
+    "solver": trial.suggest_categorical("solver", ["newton-cg", "lbfgs", "liblinear"]),
+  }
 
 
 def compute_metrics(y_pred, y_test):
@@ -103,36 +113,8 @@ def compute_metrics(y_pred, y_test):
 
 
 class EmbeddingPlotCallback(TrainerCallback):
-  # Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
-  # throughout training.
-
-  def on_evaluate(self, args, state, control, **kwargs):
-    train_embeddings = trainer.model.encode(train_dataset["text"])
-    eval_embeddings = trainer.model.encode(validation_dataset["text"])
-
-    # Determine dataset size to adjust perplexity
-    eval_dataset_size = len(validation_dataset["text"])
-    perplexity_value = min(30, max(5, int(eval_dataset_size / 2)))
-
-    fig, (train_ax, eval_ax) = plt.subplots(ncols=2)
-
-    train_x = TSNE(n_components=2, perplexity=perplexity_value).fit_transform(train_embeddings)
-    train_ax.scatter(*train_x.T, c=train_dataset["label"], label=train_dataset["label"])
-    train_ax.set_title("Training embeddings")
-
-    eval_x = TSNE(n_components=2, perplexity=perplexity_value).fit_transform(eval_embeddings)
-    eval_ax.scatter(*eval_x.T, c=validation_dataset["label"], label=validation_dataset["label"])
-    eval_ax.set_title("Evaluation embeddings")
-
-    fig.suptitle(f"tSNE of training and evaluation embeddings at step {state.global_step} of {state.max_steps}.")
-    fig.savefig(f"images/paper_c_setfit_step_{state.global_step}.png")
-    plt.close(fig)
-
-
-"""
-class EmbeddingPlotCallback(TrainerCallback):
-  # Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
-  # throughout training.
+  """Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
+  # throughout training. LARGE GREEN/ORANGE"""
 
   def on_evaluate(self, args, state, control, **kwargs):
     train_embeddings = trainer.model.encode(train_dataset["text"])
@@ -170,6 +152,33 @@ class EmbeddingPlotCallback(TrainerCallback):
 
     # Save the figure and close the plot to free memory
     fig.savefig(f"images/setfit_step_{state.global_step}.png", bbox_inches='tight')
+    plt.close(fig)
+
+
+"""class EmbeddingPlotCallback(TrainerCallback):
+  # Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
+  # throughout training SMALL YELLOW/PURPLE.
+
+  def on_evaluate(self, args, state, control, **kwargs):
+    train_embeddings = trainer.model.encode(train_dataset["text"])
+    eval_embeddings = trainer.model.encode(validation_dataset["text"])
+
+    # Determine dataset size to adjust perplexity
+    eval_dataset_size = len(validation_dataset["text"])
+    perplexity_value = min(30, max(5, int(eval_dataset_size / 2)))
+
+    fig, (train_ax, eval_ax) = plt.subplots(ncols=2)
+
+    train_x = TSNE(n_components=2, perplexity=perplexity_value).fit_transform(train_embeddings)
+    train_ax.scatter(*train_x.T, c=train_dataset["label"], label=train_dataset["label"])
+    train_ax.set_title("Training embeddings")
+
+    eval_x = TSNE(n_components=2, perplexity=perplexity_value).fit_transform(eval_embeddings)
+    eval_ax.scatter(*eval_x.T, c=validation_dataset["label"], label=validation_dataset["label"])
+    eval_ax.set_title("Evaluation embeddings")
+
+    fig.suptitle(f"tSNE of training and evaluation embeddings at step {state.global_step} of {state.max_steps}.")
+    fig.savefig(f"images/paper_c_setfit_step_{state.global_step}.png")
     plt.close(fig)"""
 
 
@@ -178,14 +187,16 @@ device = get_device()
 print(f"\nUsing device: {str(device).upper()}\n")
 
 # Initialize model
-model_id = "sentence-transformers/all-mpnet-base-v2"
-# model_id = "sentence-transformers/paraphrase-mpnet-base-v2"
+# model_id = "sentence-transformers/all-mpnet-base-v2"
+model_id = "sentence-transformers/paraphrase-mpnet-base-v2"
 # model_id = "BAAI/bge-small-en-v1.5"
 
+
 # Load datasets
-dataset_training_route = "datasets/3/bootstrap_1/dataset_3_1_training.jsonl"
-dataset_validation_route = "datasets/3/bootstrap_1/dataset_3_2_validation.jsonl"
-dataset_test_route = "datasets/3/bootstrap_1/dataset_3_3_test.jsonl"
+dataset_training_route = "datasets/2/seed/dataset_2_train.jsonl"
+dataset_validation_route = "datasets/2/seed/dataset_2_validation.jsonl"
+dataset_test_route = "datasets/2//seed/dataset_2_test.jsonl"
+
 dataset_training = load_jsonl_file(dataset_training_route)
 dataset_validation = load_jsonl_file(dataset_validation_route)
 dataset_test = load_jsonl_file(dataset_test_route)
@@ -198,28 +209,14 @@ dataset_validation = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint
 dataset_test = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text"]}
                 for datapoint in dataset_test]
 
-dataset_training = dataset_training + dataset_test
-
-dataset_training = dataset_training + dataset_test
-
-dataset_test = load_jsonl_file("datasets/3/bootstrap_1/dataset_3_6_test_anonym.jsonl")
-
-dataset_test = [{"label": LABEL_MAP[datapoint["label"]], "text": datapoint["text"]}
-                for datapoint in dataset_test]
-
 # Count and print class distribution
-print("\nDataset:")
-print(f"- training: {len(dataset_training)}")
-print(f"- validation: {len(dataset_validation)}")
-print(f"- test: {len(dataset_test)}")
+train_label_counts = Counter([datapoint['label'] for datapoint in dataset_training])
+val_label_counts = Counter([datapoint['label'] for datapoint in dataset_validation])
+test_label_counts = Counter([datapoint['label'] for datapoint in dataset_test])
 
-
-num_support_test = len([item for item in dataset_test if item["label"] == 0])
-num_oppose_test = len([item for item in dataset_test if item["label"] == 1])
-
-print(f"\nTest set class distribution:")
-print(f"- support: {num_support_test}")
-print(f"- oppose: {num_oppose_test}\n")
+print(f"\nClass distribution in training dataset: {train_label_counts}")
+print(f"Class distribution in validation dataset: {val_label_counts}")
+print(f"Class distribution in test dataset: {test_label_counts}\n")
 
 # Convert training data into a Dataset object
 train_columns = {key: [dic[key] for dic in dataset_training] for key in dataset_training[0]}
@@ -233,66 +230,62 @@ validation_dataset = Dataset.from_dict(val_columns)
 test_columns = {key: [dic[key] for dic in dataset_test] for key in dataset_test[0]}
 test_dataset = Dataset.from_dict(test_columns)
 
-# Initialize callback for embedding plots
-embedding_plot_callback = EmbeddingPlotCallback()
-early_stopping_callback = EarlyStoppingCallback(early_stopping_patience=3)
+# Initialize trainer
+trainer = Trainer(
+  train_dataset=train_dataset,  # training dataset
+  eval_dataset=validation_dataset,  # validation dataset
+  model_init=model_init,  # model initialization function
+)
 
-# Initialize model parameters
+# Perform hyperparameter search
+best_run = trainer.hyperparameter_search(direction="maximize", hp_space=hp_space, n_trials=NUM_TRIALS)
+
+# Print best run information
+print(f"\nBest run: {best_run}")
+
+# Apply the best hyperparameters to the best model
+trainer.apply_hyperparameters(best_run.hyperparameters, final_model=True)
+
+# Initialize callbacks for embedding plots
+embedding_plot_callback = EmbeddingPlotCallback()
+# early_stopping_callback = EarlyStoppingCallback(early_stopping_patience=3)
+
+# Add callbacks to trainer
+trainer.callback_handler.add_callback(embedding_plot_callback)
+# trainer.callback_handler.add_callback(early_stopping_callback)
+
+'''
+# Add training arguments
 arguments = TrainingArguments(
-  body_learning_rate=BODY_LEARNING_RATE,
-  num_epochs=NUM_EPOCHS,
-  batch_size=BATCH_SIZE,
-  seed=SEED,
   evaluation_strategy="epoch",
   save_strategy="epoch",
-  # num_iterations=63,  # Note from the lecturer: I don't know why this number is 69, but it changes the number of steps
   eval_steps=1,
-  # end_to_end=True,
   load_best_model_at_end=True,
   metric_for_best_model="embedding_loss",
+  seed=SEED
+)
+'''
+
+# Add training arguments
+arguments = TrainingArguments(
+  evaluation_strategy="steps",
+  save_strategy="steps",
+  eval_steps=20,
+  # save_steps=20,
+  load_best_model_at_end=True,
+  metric_for_best_model="accuracy",
+  seed=SEED
 )
 
-# Training Loop
-trainer = Trainer(
-  model_init=model_init,
-  args=arguments,
-  train_dataset=train_dataset,
-  eval_dataset=validation_dataset,
-  callbacks=[embedding_plot_callback, early_stopping_callback],
-  # callbacks=[embedding_plot_callback],
-  metric=compute_metrics,
-)
+trainer.args = arguments
 
-# Train model
+# Train best model
 trainer.train()
 
-# Save model
-trainer.model.save_pretrained("models/3")
+# Evaluate best model using the test dataset
+metrics = trainer.evaluate(test_dataset, "test")
+print(f"\nMetrics: {metrics}")
+
+# Save best model
+trainer.model.save_pretrained("models/9")
 print("\nModel saved successfully!\n")
-
-# Evaluate model on test dataset
-metrics = trainer.evaluate(test_dataset)
-
-# Create confusion matrix
-df_cm = pd.DataFrame(metrics['confusion_matrix'], index=class_names, columns=class_names)
-
-# Print metrics and Hyperparameters
-print(f"\nModel: SetFit ({model_id})\n")
-print(f"- Accuracy: {metrics['accuracy']:.3f}")
-print(f"- Precision: {np.mean(metrics['precision']):.3f}")
-print(f"- Recall: {np.mean(metrics['recall']):.3f}")
-print(f"- F1 Score: {np.mean(metrics['f1']):.3f}")
-print(f"- AUC-ROC: {metrics['auc']:.3f}")
-print(f"- Matthews Correlation Coefficient (MCC): {metrics['mcc']:.3f}")
-print(f"- Confusion Matrix:")
-print(df_cm)
-print()
-print("Hyperparameters:")
-print(f"- Body Learning Rate: {BODY_LEARNING_RATE}")
-print(f"- Batch Size: {BATCH_SIZE}")
-print(f"- Number of Epochs: {NUM_EPOCHS}")
-print(f"- Max Iterations: {MAX_ITER}")
-print(f"- Solver: {SOLVER}")
-print("---")
-print(f"- Seed: {SEED}")
-print()

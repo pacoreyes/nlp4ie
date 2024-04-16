@@ -12,7 +12,7 @@ PAGE_SIZE = 10
 
 collections = ["sentences", "sentences2", "sentences3", "sentences4"]
 
-output_batch1 = "shared_data/dataset_2_unlabeled_batch1.jsonl"
+"""output_batch1 = "shared_data/dataset_2_unlabeled_batch1.jsonl"
 output_batch2 = "shared_data/dataset_2_unlabeled_batch2.jsonl"
 output_batch3 = "shared_data/dataset_2_unlabeled_batch3.jsonl"
 output_batch4 = "shared_data/dataset_2_unlabeled_batch4.jsonl"
@@ -21,7 +21,7 @@ output_batch4 = "shared_data/dataset_2_unlabeled_batch4.jsonl"
 empty_json_file(output_batch1)
 empty_json_file(output_batch2)
 empty_json_file(output_batch3)
-empty_json_file(output_batch4)
+empty_json_file(output_batch4)"""
 
 # Load training all datasets
 dataset_training = load_jsonl_file("shared_data/dataset_3_1_training.jsonl")

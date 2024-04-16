@@ -1,33 +1,31 @@
 # from pprint import pprint
 
+import spacy
 import torch
 import tqdm
 from setfit import SetFitModel
+from sklearn.model_selection import train_test_split
 
 from db import spreadsheet_4
-from lib.utils import load_jsonl_file, write_to_google_sheet, read_from_google_sheet
-from lib.utils2 import remove_duplicated_datapoints, remove_examples_in_dataset
+from lib.utils import load_jsonl_file, write_to_google_sheet, save_jsonl_file
 
 
 # Initialize constants
-GOOGLE_SHEET = "dataset3_nitin"
-
-# Load dataset
-# dataset = load_jsonl_file("shared_data/dataset_3_7_unlabeled_sentences_1.jsonl")
-# dataset = load_jsonl_file("shared_data/dataset_3_9_unseen_unlabeled_sentences.jsonl")
-#dataset = load_jsonl_file("shared_data/_123/argumentative_sentences.jsonl")
-dataset = load_jsonl_file("shared_data/dataset_2_unlabeled_batch2.jsonl")
+GOOGLE_SHEET = "dataset_3_final"
 
 
-# Load dataset3
-dataset_3 = read_from_google_sheet(spreadsheet_4, "dataset_3_it2")
-dataset = remove_examples_in_dataset(dataset, dataset_3)
+# Load training all pools
+dataset = load_jsonl_file("datasets/2//seed/dataset_2_unlabeled_cleaned.jsonl")
 
-print("##############################################")
+# Save 10% of the dataset for testing
+dataset, dataset_test = train_test_split(dataset, test_size=0.1, random_state=42)
+save_jsonl_file(dataset_test, "datasets/2//seed/dataset_2_unlabeled_cleaned_test.jsonl")
+
+"""print("##############################################")
 dataset = remove_duplicated_datapoints(dataset)
-print("##############################################")
+print("##############################################")"""
 
-dataset = dataset[:4000]
+# dataset = dataset[:4000]
 
 
 def get_device():
@@ -41,7 +39,7 @@ def get_device():
 
 
 # Load model
-model_setfit_path = "models/8"
+model_setfit_path = "models/_2"
 model = SetFitModel.from_pretrained(model_setfit_path, local_files_only=True)
 
 # Get best device
@@ -83,8 +81,8 @@ for idx, p in tqdm.tqdm(enumerate(predictions_list, start=0), desc=f"Processing 
       [
         dataset[idx]['id'],
         sentences[idx],
-        # dataset[idx]['target'],
-        "",
+        dataset[idx]['target'],
+        # "",
         pred_class,
         pred_score
       ]

@@ -309,14 +309,14 @@ def plot_feature_boxplots(_df, _title, _filename, _feature_names):
 plot_feature_boxplots(
   df_speech_mean,
   'Box Plot of Features for Speech',
-  'images/paper_a_12_speech_feature_boxplots.png',
+  'images/paper_a/paper_a_12_speech_feature_boxplots.png',
   feature_names)
 
 # Plot box plots for interviews
 plot_feature_boxplots(
   df_interview_mean,
   'Box Plot of Features for Interview',
-  'images/paper_a_13_interview_feature_boxplots.png',
+  'images/paper_a/paper_a_13_interview_feature_boxplots.png',
   feature_names)
 
 """ ############################## """
