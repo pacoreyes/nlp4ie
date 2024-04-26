@@ -1,28 +1,33 @@
 import spacy
+from spacy.matcher import PhraseMatcher
 
-nlp = spacy.load("en_core_web_lg")
+# Load the spaCy model
+nlp = spacy.load('en_core_web_lg')
 
+# Create the PhraseMatcher object with the vocabulary of the model
+# Set attr to 'LEMMA' to match on the lemmatized forms of the words
+matcher = PhraseMatcher(nlp.vocab, attr="LEMMA")
 
-def check_adverb_start(doc):
-    adverbs = {"clearly", "plainly", "surely"}
+# List of lemmatized forms you want to match
+lemmas = ["run", "buy", "love", "alarm"]
 
-    # Check if the sentence starts with an adverb
-    if doc[0].text.lower() in adverbs:
-        return True
+# Create pattern docs for each lemma
+patterns = [nlp(lemma) for lemma in lemmas]
 
-    # Check for subordinate clauses that start with an adverb
-    for token in doc:
-        # Find the beginning of a clause
-        if token.dep_ == "mark":
-            # Check if the clause starts with an adverb
-            if token.head.text.lower() in adverbs:
-                return True
+# Add the patterns to the matcher with the rule name 'LEMMA_MATCH'
+matcher.add("LEMMA_MATCH", patterns)
 
-    return False
+# Example text to match against
+text = "She loves running and buying things . He ran to the store and bought some milk."
 
-
-# Example usage:
-text = "He said that, surely, he would come."
+# Process the text
 doc = nlp(text)
 
-print(check_adverb_start(doc))
+# Apply the matcher to the processed doc
+matches = matcher(doc)
+
+# Print the matches found
+print("Matches found:")
+for match_id, start, end in matches:
+    span = doc[start:end]  # The matched span
+    print(span.text, span.start, span.end)

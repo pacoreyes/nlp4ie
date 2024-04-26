@@ -8,7 +8,7 @@ import contractions
 
 from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file
 from lib.semantic_frames import api_get_frames, encode_sentence_frames
-from lib.stance_markers import certainty_adj, certainty_adv
+from lib.stance_markers import certainty_adj, certainty_adv, certainty_verbs, positive_affect_adj
 
 # Set spaCy to use GPU if available
 if spacy.prefer_gpu():
@@ -18,49 +18,6 @@ else:
 
 # load transformer model
 nlp = spacy.load("en_core_web_lg")
-# Initialize matcher
-matcher_certainty_adj = Matcher(nlp.vocab)
-matcher_certainty_adv = Matcher(nlp.vocab)
-
-# Pattern for certainty adjectives
-pattern_certainty_adj1 = [
-  # {"LOWER": {"IN": ["it", "that"]}},
-  {"POS": {"IN": ["PRON", "NOUN"]}},
-  {"POS": "ADV", "OP": "?"},
-  {"LEMMA": {"IN": ["be", "seem"]}},
-  {"LOWER": {"IN": ["apparent", "clear", "definite", "plain", "sure"]}, "POS": "ADJ"}
-]
-#
-pattern_certainty_adj2 = [
-  {"LOWER": {"IN": ["i", "we"]}},
-  {"POS": "ADV", "OP": "?"},
-  {"LEMMA": {"IN": ["be", "seem", "feel"]}},
-  {"LOWER": {"IN": ["convinced", "definite", "sure"]}, "POS": "ADJ"}
-]
-
-matcher_certainty_adj.add("RULE_CERTAINTY_ADJ", [pattern_certainty_adj1, pattern_certainty_adj2])
-
-# Pattern for certainty adverb
-pattern_certainty_adv1 = [
-    {"LEMMA": "be"},  # Matches any form of "to be"
-    {"POS": "ADV"},  # Matches an adverb
-    {"LOWER": {"IN": ["certain", "clear", "realistic", "sure"]}, "POS": "ADJ"}  # Matches the specified adjectives
-]
-
-matcher_certainty_adv.add("RULE_CERTAINTY_ADV", [pattern_certainty_adv1])
-
-
-""" ----------------------------------------------  """
-
-# Separate single token adjectives from multi-token adjectives
-token_level_adj = []
-multi_token_adj = []
-for adj in certainty_adj:
-  doc = nlp(adj)
-  if len(doc) == 1:
-    token_level_adj.append(adj)
-  elif len(doc) > 1:
-    multi_token_adj.append(adj)
 
 # Initialize Afinn sentiment analyzer
 afinn = Afinn()
@@ -92,19 +49,62 @@ def measure_sentence_complexity(_doc):
   return [1 if token.dep_ in ['advcl', 'relcl', 'acl', 'ccomp', 'xcomp'] else 0 for token in _doc if not token.is_punct]
 
 
-def measure_lexical_density(_doc):
+def measure_word_freq(_doc):
   # return len([token for token in _doc if token.pos_ in ['NOUN', 'VERB', 'ADJ', 'ADV']])
   return [1 if token.pos_ in ['NOUN', 'VERB', 'ADJ', 'ADV'] else 0 for token in _doc if not token.is_punct]
 
 
-"""def measure_modal_verbs_use(_doc):
-  mod_verbs = len([token for token in _doc if token.tag_ == 'MD'])
-  return mod_verbs / len(_doc)"""
-
-
-def measure_negation_use(_doc):
+def measure_negation_freq(_doc):
   # return len([token for token in _doc if token.dep_ == "neg"])
   return [1 if token.dep_ == "neg" else 0 for token in _doc if not token.is_punct]
+
+
+def measure_modal_verb_freq(_doc):
+  return [1 if token.tag_ == 'MD' else 0 for token in _doc]
+
+
+def abc(_doc, terms, pos, pole):
+  # Initialize lists
+  single_token = []
+  multi_token = []
+  scores = []
+
+  # Process each string to categorize it
+  for string in terms:
+    doc = nlp(string)
+    # Count the number of tokens in the processed string
+    num_tokens = len([token for token in doc if not token.is_punct])
+    # Categorize based on the number of tokens
+    if num_tokens > 1:
+      multi_token.append(string)
+    else:
+      single_token.append(string)
+
+  # Process each token in the _doc
+  for token in _doc:
+    # Get sentiment score
+    score = afinn.score(token.text)
+    # Check if the token is in the single token list
+    if token.text in single_token and token.pos_ == pos and not token.is_stop:
+      # scores.append(1)
+      if pole == "pos" and score > 0:
+        scores.append(1)
+      elif pole == "neg" and score < 0:
+        scores.append(1)
+    else:
+      scores.append(0)
+
+  if multi_token:
+    for string in multi_token:
+      # Check if the string is in the _doc
+      if string in _doc.text:
+        score = afinn.score(string)
+        if pole == "pos" and score > 0:
+          scores.append(1)
+        elif pole == "neg" and score < 0:
+          scores.append(1)
+
+  return scores
 
 
 def measure_adjective_polarity(_doc, pole):
@@ -165,57 +165,6 @@ def measure_adverb_polarity(_doc, pole):
   return polarity_score
 
 
-"""def measure_certainty_adj(_doc):
-
-  container = []
-
-  for token in _doc:
-    match = False
-    for token_adj in token_level_adj:
-      if token.text == token_adj and token.pos_ == "ADJ":
-        match = True
-        break
-    if match:
-      container.append(1)
-    else:
-      container.append(0)
-
-  # multi-token level
-  # multi_token_container = []
-  for adj in multi_token_adj:
-    if adj in _doc.text:
-      container.append(1)
-    else:
-      container.append(0)
-
-  # patterns
-  matches = matcher_certainty_adj(_doc)
-  if matches:
-    container.append(1)
-  else:
-    container.append(0)
-
-  return container"""
-
-
-def measure_certainty_adj(_doc):
-  # Token level
-  container = [1 if token.text in token_level_adj and token.pos_ == "ADJ" else 0 for token in _doc]
-  # multi-token level
-  container.extend(1 if adj in _doc.text else 0 for adj in multi_token_adj)
-  # patterns
-  container.append(1 if matcher_certainty_adj(_doc) else 0)
-  return container
-
-
-def measure_certainty_adv(_doc):
-  """matches = matcher_certainty_adv(_doc)
-  return [1 if matches else 0]"""
-
-  has_clauses = any(tok.dep_ in ["advcl", "relcl"] for tok in _doc)
-  print(has_clauses)
-
-
 for datapoint in tqdm(dataset, desc=f"Processing {len(dataset)} datapoints"):
   # Remove contractions
   text = contractions.fix(datapoint["text"])
@@ -233,16 +182,15 @@ for datapoint in tqdm(dataset, desc=f"Processing {len(dataset)} datapoints"):
     "label": datapoint["label"],
     "word_length": measure_word_length(doc),
     "sentence_complexity": measure_sentence_complexity(doc),
-    "lexical_density": measure_lexical_density(doc),
-    "negation_use": measure_negation_use(doc),
+    "lexical_word_freq": measure_word_freq(doc),
+    "negation_freq": measure_negation_freq(doc),
+    "modal_verb_freq": measure_modal_verb_freq(doc),
     "pos_adj": measure_adjective_polarity(doc, "pos"),
     "neg_adj": measure_adjective_polarity(doc, "neg"),
     "pos_adv": measure_adverb_polarity(doc, "pos"),
     "neg_adv": measure_adverb_polarity(doc, "neg"),
     "pos_verb": measure_verb_polarity(doc, "pos"),
     "neg_verb": measure_verb_polarity(doc, "neg"),
-    "certainty_adj": measure_certainty_adj(doc),
-    "certainty_adv": measure_certainty_adv(doc)
 
     # "semantic_frames": encoded_frames
   }
