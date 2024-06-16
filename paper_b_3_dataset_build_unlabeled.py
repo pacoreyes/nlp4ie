@@ -15,8 +15,6 @@ pool_3 = load_jsonl_file("shared_data/dataset_2_unlabeled_batch3.jsonl")
 # Combine all pools
 pool_all = pool_0 + pool_1 + pool_2 + pool_3
 
-
-
 # Load datasets iteration 1
 dataset_1_training = load_jsonl_file("datasets/3/bootstrap_1/dataset_3_1_training.jsonl")
 dataset_1_validation = load_jsonl_file("datasets/3/bootstrap_1/dataset_3_2_validation.jsonl")

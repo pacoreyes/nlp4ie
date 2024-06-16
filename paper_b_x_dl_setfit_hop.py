@@ -4,7 +4,7 @@ import os
 from collections import Counter
 # import json
 
-from optuna import Trial
+# import optuna
 import matplotlib.pyplot as plt
 import numpy as np
 from datasets import Dataset
@@ -17,13 +17,6 @@ from sklearn.metrics import (precision_recall_fscore_support,
 from lib.utils import load_jsonl_file
 from lib.visualizations import plot_confusion_matrix
 
-
-""" NOTE: Set this environment variable to avoid CUDA out of memory errors.
-Set them always before importing torch"""
-# os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:21'
-# os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
-# os.environ['PYTORCH_MPS_HIGH_WATERMARK_RATIO'] = "0.0"
-
 import torch
 
 # Initialize label map and class names
@@ -32,7 +25,7 @@ class_names = list(LABEL_MAP.keys())
 
 # Initialize constants
 SEED = 42
-NUM_TRIALS = 5
+NUM_TRIALS = 10
 
 
 def set_seed(seed_value):
@@ -75,11 +68,11 @@ def model_init(params):
   return model
 
 
-def hp_space(trial: Trial):
+def hp_space(trial):
   return {
     "body_learning_rate": trial.suggest_float("body_learning_rate", 1e-6, 1e-3, log=True),
     "num_epochs": trial.suggest_int("num_epochs", 1, 3),
-    "batch_size": trial.suggest_categorical("batch_size", [16, 32, 64]),
+    "batch_size": trial.suggest_categorical("batch_size", [16, 32]),
     "seed": trial.suggest_int("seed", 1, 40),
     "max_iter": trial.suggest_int("max_iter", 50, 300),
     "solver": trial.suggest_categorical("solver", ["newton-cg", "lbfgs", "liblinear"]),
@@ -155,47 +148,18 @@ class EmbeddingPlotCallback(TrainerCallback):
     plt.close(fig)
 
 
-"""class EmbeddingPlotCallback(TrainerCallback):
-  # Simple embedding plotting callback that plots the tSNE of the training and evaluation datasets
-  # throughout training SMALL YELLOW/PURPLE.
-
-  def on_evaluate(self, args, state, control, **kwargs):
-    train_embeddings = trainer.model.encode(train_dataset["text"])
-    eval_embeddings = trainer.model.encode(validation_dataset["text"])
-
-    # Determine dataset size to adjust perplexity
-    eval_dataset_size = len(validation_dataset["text"])
-    perplexity_value = min(30, max(5, int(eval_dataset_size / 2)))
-
-    fig, (train_ax, eval_ax) = plt.subplots(ncols=2)
-
-    train_x = TSNE(n_components=2, perplexity=perplexity_value).fit_transform(train_embeddings)
-    train_ax.scatter(*train_x.T, c=train_dataset["label"], label=train_dataset["label"])
-    train_ax.set_title("Training embeddings")
-
-    eval_x = TSNE(n_components=2, perplexity=perplexity_value).fit_transform(eval_embeddings)
-    eval_ax.scatter(*eval_x.T, c=validation_dataset["label"], label=validation_dataset["label"])
-    eval_ax.set_title("Evaluation embeddings")
-
-    fig.suptitle(f"tSNE of training and evaluation embeddings at step {state.global_step} of {state.max_steps}.")
-    fig.savefig(f"images/paper_c_setfit_step_{state.global_step}.png")
-    plt.close(fig)"""
-
-
 # Set device to CUDA, MPS, or CPU
 device = get_device()
 print(f"\nUsing device: {str(device).upper()}\n")
 
 # Initialize model
-# model_id = "sentence-transformers/all-mpnet-base-v2"
 model_id = "sentence-transformers/paraphrase-mpnet-base-v2"
-# model_id = "BAAI/bge-small-en-v1.5"
 
 
 # Load datasets
-dataset_training_route = "datasets/2/seed/dataset_2_train.jsonl"
-dataset_validation_route = "datasets/2/seed/dataset_2_validation.jsonl"
-dataset_test_route = "datasets/2//seed/dataset_2_test.jsonl"
+dataset_training_route = "shared_data/dataset_2_train.jsonl"
+dataset_validation_route = "shared_data/dataset_2_validation.jsonl"
+dataset_test_route = "shared_data/dataset_2_test.jsonl"
 
 dataset_training = load_jsonl_file(dataset_training_route)
 dataset_validation = load_jsonl_file(dataset_validation_route)
@@ -248,29 +212,20 @@ trainer.apply_hyperparameters(best_run.hyperparameters, final_model=True)
 
 # Initialize callbacks for embedding plots
 embedding_plot_callback = EmbeddingPlotCallback()
-# early_stopping_callback = EarlyStoppingCallback(early_stopping_patience=3)
+early_stopping_callback = EarlyStoppingCallback(
+  early_stopping_patience=1,
+  early_stopping_threshold=1.0
+)
 
 # Add callbacks to trainer
 trainer.callback_handler.add_callback(embedding_plot_callback)
-# trainer.callback_handler.add_callback(early_stopping_callback)
-
-'''
-# Add training arguments
-arguments = TrainingArguments(
-  evaluation_strategy="epoch",
-  save_strategy="epoch",
-  eval_steps=1,
-  load_best_model_at_end=True,
-  metric_for_best_model="embedding_loss",
-  seed=SEED
-)
-'''
+trainer.callback_handler.add_callback(early_stopping_callback)
 
 # Add training arguments
 arguments = TrainingArguments(
   evaluation_strategy="steps",
   save_strategy="steps",
-  eval_steps=20,
+  eval_steps=100,
   # save_steps=20,
   load_best_model_at_end=True,
   metric_for_best_model="accuracy",

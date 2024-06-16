@@ -23,9 +23,6 @@ features = {
 ms_features = list(features.keys())
 feature_names = list(features.values())
 
-# Initialize constants
-SEED = 42
-
 class_names = ["monologic", "dialogic"]
 
 # Load training dataset and extract features

@@ -40,7 +40,7 @@ BERT_MODEL = 'bert-base-uncased'
 MODEL_PATH = 'models/1/paper_a_bert_solo_anonym.pth'
 
 # Initialize tokenizer
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+tokenizer = BertTokenizer.from_pretrained(BERT_MODEL)
 
 # Load the model
 model = BertForSequenceClassification.from_pretrained('bert-base-uncased',

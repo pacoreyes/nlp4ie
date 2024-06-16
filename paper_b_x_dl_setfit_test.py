@@ -15,15 +15,15 @@ from lib.visualizations import plot_confusion_matrix
 
 
 # Load model
-model_setfit_path = "models/3"
+model_setfit_path = "models/22"
 model = SetFitModel.from_pretrained(model_setfit_path, local_files_only=True)
 
 # Set model id
 model_id = "sentence-transformers/paraphrase-mpnet-base-v2"
 
 # Load test dataset
-test_dataset = load_jsonl_file("shared_data/dataset_3_7_test_master.jsonl")
-# test_dataset = read_from_google_sheet(spreadsheet_4, "dataset_3_it2")
+test_dataset = load_jsonl_file("shared_data/dataset_2_test.jsonl")
+# test_dataset = read_from_google_sheet(spreadsheet_4, "dataset_3_test")
 
 # Initialize label map and class names
 LABEL_MAP = {"support": 0, "oppose": 1}
