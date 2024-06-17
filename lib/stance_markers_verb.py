@@ -117,6 +117,10 @@ def create_certainty_verb_phrase(nlp, matcher):
 
 def create_certainty_verb_patterns(matcher):
   # Pattern: the/this/that/it (ADJ) (NOUN) lemma of shows (that)
+  """
+  :param matcher: a spaCy Matcher object
+  :return: a spaCy Matcher object
+  """
   """pattern2 = [
     {"POS": "NOUN"},
     {"LEMMA": "show"},
@@ -369,7 +373,7 @@ con_verb = [
 
 con_verb_phrase = [
   "cannot", "can not", "will not", "won't", "do not", "break down", "take on",
-  "spark concern", "war on",
+  "spark concern",
 ]
 
 
@@ -424,9 +428,9 @@ def create_con_verb_patterns(matcher):
     {"LOWER": "against"},
   ]
   # war on
-  pattern5 = [
+  """pattern5 = [
     {"LOWER": "war on"},
-  ]
+  ]"""
   # must/should not/never be/continue
   """pattern6 = [
     {"LEMMA": {"IN": ["must", "should"]}},
@@ -454,7 +458,7 @@ def create_con_verb_patterns(matcher):
   matcher.add("PRO_VERB_CONCERN", [pattern2])
   matcher.add("PRO_VERB_AGAINST", [pattern3])
   matcher.add("PRO_NOUN_AGAINST", [pattern4])
-  matcher.add("PRO_WAR_ON", [pattern5])
+  # matcher.add("PRO_WAR_ON", [pattern5])
   # matcher.add("PRO_MUST_NOT_BE", [pattern6]) **
   # matcher.add("PRO_HAVE_FIGHT", [pattern7])
   # matcher.add("PRO_MUST_FIGHT", [pattern8])

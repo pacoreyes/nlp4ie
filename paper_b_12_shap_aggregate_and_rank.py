@@ -230,14 +230,14 @@ for d in _shap_values:
   print()
 
 lr_coeff = [
-  {"feature": "polarity_pro", "total": 1.799},
-  {"feature": "positive_affect", "total": 1.798},
-  {"feature": "certainty", "total": 0.035},
-  {"feature": "doubt", "total": 0.085},
-  {"feature": "emphatic", "total": 0.038},
-  {"feature": "hedge", "total": 0.321},
+  {"feature": "polarity_pro", "total": 1.876},
+  {"feature": "positive_affect", "total": 1.827},
+  {"feature": "certainty", "total": 0.070},
+  {"feature": "doubt", "total": 0.119},
+  {"feature": "emphatic", "total": 0.012},
+  {"feature": "hedge", "total": -0.322},
   {"feature": "negative_affect", "total": -2.097},
-  {"feature": "polarity_con", "total": -3.303}
+  {"feature": "polarity_con", "total": -3.300}
 ]
 
 # Processing SHAP values
@@ -262,14 +262,14 @@ pprint(lr_normalized)
 pprint(shap_normalized)
 
 _features = [
-  "Polarity Pro",
-  "Positive Affect",
-  "Epistemic Certainty",
-  "Epistemic Doubt",
-  "Emphatic",
-  "Hedge",
-  "Negative Affect",
-  "Polarity Con"
+  "Pro polarity",
+  "Positive affect",
+  "Certainty",
+  "Doubt",
+  "Emphatics",
+  "Hedges",
+  "Negative affect",
+  "Con polarity"
 ]
 
 # Plotting

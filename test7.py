@@ -1,3 +1,5 @@
+from lib.semantic_frames import frame_names
+
 from lib.stance_markers_adj import (
   positive_adj, positive_adj_phrase,
   negative_adj, negative_adj_phrase,
@@ -42,7 +44,7 @@ from lib.stance_markers_modals import (
   necessity_modal_phrase
 )
 
-all_data = [
+"""all_data = [
   positive_adj, positive_adj_phrase,
   negative_adj, negative_adj_phrase,
   certainty_adj, certainty_adj_phrase,
@@ -72,7 +74,9 @@ all_data = [
   necessity_modal,
   predictive_modal_phrase,
   necessity_modal_phrase
-]
+]"""
+
+all_data = [frame_names]
 
 for items in all_data:
   html = "<p>"
