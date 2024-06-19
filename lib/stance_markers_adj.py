@@ -18,6 +18,7 @@ positive_adj = [
   "collective", "constructive", "cooperative", "dedicated", "democratic", "diplomatic", "honorable", "hospitable",
   "unashamed", "uncensored", "eligible", "interconnected", "multilateral", "multinational", "founding", "no",
   "hardworking", "transformative", "important", "essential", "vital", "necessary", "balanced", "tolerated",
+  "prepared"
 ]
 
 positive_adj_phrase = [
@@ -205,7 +206,7 @@ emphatic_adj = [
   "equal", "open", "vigorous", "easy", "first", "groundbreaking", "historic", "serious", "ultimate", "shared",
   "key", "major", "maximum", "pivotal", "quick", "enormous", "tremendous", "total", "targeted", "clear",
   "unparalleled", "unprecedented", "visible", "crucial", "high", "sophisticated", "reliant", "active", "big",
-  "seamless", "rising", "lasting", "significant", "integral", "very", "heavy", "huge", "prominent",
+  "seamless", "rising", "lasting", "significant", "integral", "very", "heavy", "huge", "prominent", "any",
   "critical", "intense", "new", "longstanding", "countless", "detailed", "common", "economical",
   "central", "decisive", "dominant", "dramatic", "early", "fundamental", "immediate", "endless", "enough",
   "massive", "primary", "recent", "sweeping", "broad", "old", "basic", "bottom", "close", "current", "deep",

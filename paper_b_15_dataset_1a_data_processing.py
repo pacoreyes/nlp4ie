@@ -48,12 +48,12 @@ def calculate_statistics(column):
 
 
 features = {
-  "positive_affect": "Positive Affect",
-  "negative_affect": "Negative Affect",
-  "epistemic_certainty": "Epistemic Certainty",
-  "epistemic_doubt": "Epistemic Doubt",
-  "polarity_pro": "Polarity Pro",
-  "polarity_con": "Polarity Con",
+  "positive_affect": "Positive affect",
+  "negative_affect": "Negative affect",
+  "epistemic_certainty": "Certainty",
+  "epistemic_doubt": "Doubt",
+  "polarity_pro": "Pro polarity",
+  "polarity_con": "Con polarity",
 }
 
 # Make list of keys and list of values
@@ -86,7 +86,7 @@ support_stats = [[item[key] for key in item] for item in support_stats]
 oppose_stats = [[item[key] for key in item] for item in oppose_stats]
 
 # Save starts to Excel in two sheets
-with pd.ExcelWriter("shared_data/paper_a_descriptive_statistics.xlsx") as writer:
+with pd.ExcelWriter("shared_data/paper_b_descriptive_statistics.xlsx") as writer:
   df_support_stats.to_excel(writer, sheet_name="support")
   df_oppose_stats.to_excel(writer, sheet_name="oppose")
 
@@ -305,14 +305,14 @@ def plot_feature_boxplots(_df, _title, _filename, _feature_names):
 plot_feature_boxplots(
   df_support_mean,
   'Box Plot of Features for Suport',
-  'images/paper_a/paper_b_12_support_feature_boxplots.png',
+  'images/paper_b/paper_b_12_support_feature_boxplots.png',
   feature_names)
 
 # Plot box plots for oppose
 plot_feature_boxplots(
   df_oppose_mean,
   'Box Plot of Features for Oppose',
-  'images/paper_a/paper_b_13_oppose_feature_boxplots.png',
+  'images/paper_b/paper_b_13_oppose_feature_boxplots.png',
   feature_names)
 
 """ ############################## """

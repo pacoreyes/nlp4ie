@@ -7,14 +7,14 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from lib.visualizations import plot_correlation_heatmap_double
 
 features = {
-  "positive_affect": "Positive Affect",
-  "negative_affect": "Negative Affect",
-  "epistemic_certainty": "Epistemic Certainty",
-  "epistemic_doubt": "Epistemic Doubt",
+  "positive_affect": "Positive affect",
+  "negative_affect": "Negative affect",
+  "epistemic_certainty": "Certainty",
+  "epistemic_doubt": "Doubt",
   "emphatic": "Emphatics",
   "hedge": "Hedge",
-  "polarity_pro": "Polarity Pro",
-  "polarity_con": "Polarity Con",
+  "polarity_pro": "Pro polarity",
+  "polarity_con": "Con polarity",
 }
 
 # ms_features = list(features.keys())
@@ -197,81 +197,78 @@ print(class_wise_metrics)
 pd.reset_option('^display.', silent=True)
 
 """
-         Iterations 7
                                  Feature  Odds Ratio
-const                              const    1.164406
-positive_affect          positive_affect    6.212204
-negative_affect          negative_affect    0.126551
-epistemic_certainty  epistemic_certainty    1.072766
-epistemic_doubt          epistemic_doubt    1.125921
-emphatic                        emphatic    1.011570
-hedge                              hedge    0.724159
-pro                                  pro    6.525052
-con                                  con    0.036875
+const                              const    0.730645
+positive_affect          positive_affect    5.914431
+negative_affect          negative_affect    0.138092
+epistemic_certainty  epistemic_certainty    1.148120
+epistemic_doubt          epistemic_doubt    1.362438
+emphatic                        emphatic    1.032792
+hedge                              hedge    0.725781
+pro                                  pro    6.468472
+con                                  con    0.065683
                            Logit Regression Results                           
 ==============================================================================
 Dep. Variable:                      y   No. Observations:                 1080
 Model:                          Logit   Df Residuals:                     1071
 Method:                           MLE   Df Model:                            8
-Date:                Mon, 17 Jun 2024   Pseudo R-squ.:                  0.5158
-Time:                        06:57:38   Log-Likelihood:                -362.46
+Date:                Mon, 17 Jun 2024   Pseudo R-squ.:                  0.4465
+Time:                        14:44:50   Log-Likelihood:                -414.34
 converged:                       True   LL-Null:                       -748.60
-Covariance Type:            nonrobust   LLR p-value:                1.938e-161
+Covariance Type:            nonrobust   LLR p-value:                4.288e-139
 =======================================================================================
                           coef    std err          z      P>|z|      [0.025      0.975]
 ---------------------------------------------------------------------------------------
-const                   0.1522      0.303      0.503      0.615      -0.441       0.746
-positive_affect         1.8265      0.201      9.094      0.000       1.433       2.220
-negative_affect        -2.0671      0.255     -8.097      0.000      -2.567      -1.567
-epistemic_certainty     0.0702      0.192      0.366      0.714      -0.306       0.446
-epistemic_doubt         0.1186      0.238      0.498      0.619      -0.348       0.586
-emphatic                0.0115      0.251      0.046      0.964      -0.481       0.504
-hedge                  -0.3227      0.210     -1.537      0.124      -0.734       0.089
-pro                     1.8756      0.207      9.057      0.000       1.470       2.282
-con                    -3.3002      0.214    -15.396      0.000      -3.720      -2.880
+const                  -0.3138      0.274     -1.144      0.252      -0.851       0.224
+positive_affect         1.7774      0.184      9.641      0.000       1.416       2.139
+negative_affect        -1.9798      0.239     -8.284      0.000      -2.448      -1.511
+epistemic_certainty     0.1381      0.177      0.780      0.435      -0.209       0.485
+epistemic_doubt         0.3093      0.222      1.393      0.164      -0.126       0.745
+emphatic                0.0323      0.232      0.139      0.889      -0.422       0.487
+hedge                  -0.3205      0.193     -1.658      0.097      -0.699       0.058
+pro                     1.8669      0.191      9.772      0.000       1.493       2.241
+con                    -2.7229      0.203    -13.417      0.000      -3.121      -2.325
 =======================================================================================
 Logistic Regression scores saved in HTML format to 'shared_data/paper_b_8_logistic_regression_results.html'
 Optimization terminated successfully.
-         Current function value: 0.335674
+         Current function value: 0.384910
          Iterations 7
                          Feature  Odds Ratio
-const                      const    1.220455
-positive_affect  positive_affect    6.179413
-negative_affect  negative_affect    0.125646
-epistemic_doubt  epistemic_doubt    1.128956
-hedge                      hedge    0.727361
-pro                          pro    6.495653
-con                          con    0.036775
+const                      const    0.873687
+positive_affect  positive_affect    5.816746
+negative_affect  negative_affect    0.138268
+hedge                      hedge    0.749200
+pro                          pro    6.126747
+con                          con    0.064484
                            Logit Regression Results                           
 ==============================================================================
 Dep. Variable:                      y   No. Observations:                 1080
-Model:                          Logit   Df Residuals:                     1073
-Method:                           MLE   Df Model:                            6
-Date:                Mon, 17 Jun 2024   Pseudo R-squ.:                  0.5157
-Time:                        06:57:38   Log-Likelihood:                -362.53
+Model:                          Logit   Df Residuals:                     1074
+Method:                           MLE   Df Model:                            5
+Date:                Mon, 17 Jun 2024   Pseudo R-squ.:                  0.4447
+Time:                        14:44:50   Log-Likelihood:                -415.70
 converged:                       True   LL-Null:                       -748.60
-Covariance Type:            nonrobust   LLR p-value:                1.608e-163
+Covariance Type:            nonrobust   LLR p-value:                1.221e-141
 ===================================================================================
                       coef    std err          z      P>|z|      [0.025      0.975]
 -----------------------------------------------------------------------------------
-const               0.1992      0.185      1.076      0.282      -0.164       0.562
-positive_affect     1.8212      0.200      9.100      0.000       1.429       2.213
-negative_affect    -2.0743      0.254     -8.158      0.000      -2.573      -1.576
-epistemic_doubt     0.1213      0.238      0.509      0.611      -0.346       0.588
-hedge              -0.3183      0.210     -1.519      0.129      -0.729       0.092
-pro                 1.8711      0.206      9.099      0.000       1.468       2.274
-con                -3.3030      0.214    -15.428      0.000      -3.723      -2.883
+const              -0.1350      0.158     -0.853      0.394      -0.445       0.175
+positive_affect     1.7607      0.183      9.600      0.000       1.401       2.120
+negative_affect    -1.9786      0.237     -8.340      0.000      -2.444      -1.514
+hedge              -0.2887      0.192     -1.504      0.133      -0.665       0.088
+pro                 1.8127      0.186      9.735      0.000       1.448       2.178
+con                -2.7413      0.202    -13.577      0.000      -3.137      -2.346
 ===================================================================================
-Accuracy: 0.875
-Precision: 0.879
-Recall: 0.870
-F1 Score: 0.874
-AUC-ROC: 0.875
+Accuracy: 0.790
+Precision: 0.822
+Recall: 0.740
+F1 Score: 0.779
+AUC-ROC: 0.790
 Confusion Matrix:
-[[88 12]
- [13 87]]
+[[84 16]
+ [26 74]]
 Class-wise Performance Metrics:
      Class  Precision  Recall  F1 Score
-0  support      0.871   0.880     0.876
-1   oppose      0.879   0.870     0.874
+0  support      0.764   0.840     0.800
+1   oppose      0.822   0.740     0.779
 """

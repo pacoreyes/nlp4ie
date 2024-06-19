@@ -422,11 +422,11 @@ def create_con_verb_patterns(matcher):
     {"LOWER": "against"}
   ]
   # fight (BE) against = fighting against | fight/struggle/effort/aggression/war/prejudices against
-  pattern4 = [
+  """pattern4 = [
     {"POS": "NOUN", "LEMMA": {"IN": ["fight", "struggle", "effort", "aggression", "war", "prejudice", "sanction"]}},
     {"LEMMA": "be", "OP": "?"},
     {"LOWER": "against"},
-  ]
+  ]"""
   # war on
   """pattern5 = [
     {"LOWER": "war on"},
@@ -450,40 +450,37 @@ def create_con_verb_patterns(matcher):
     {"POS": "VERB", "LEMMA": {"IN": ["fight"]}},
   ]"""
   # fight poverty
-  pattern9 = [
+  """pattern9 = [
     {"POS": "VERB", "LEMMA": {"IN": ["fight", "struggle", "battle", "combat"]}},
     {"POS": "NOUN"}
-  ]
+  ]"""
   # matcher.add("PRO_CONCERN_VERB", [pattern1])
   matcher.add("PRO_VERB_CONCERN", [pattern2])
   matcher.add("PRO_VERB_AGAINST", [pattern3])
-  matcher.add("PRO_NOUN_AGAINST", [pattern4])
+  # matcher.add("PRO_NOUN_AGAINST", [pattern4]) **
   # matcher.add("PRO_WAR_ON", [pattern5])
-  # matcher.add("PRO_MUST_NOT_BE", [pattern6]) **
+  # matcher.add("PRO_MUST_NOT_BE", [pattern6])
   # matcher.add("PRO_HAVE_FIGHT", [pattern7])
   # matcher.add("PRO_MUST_FIGHT", [pattern8])
-  matcher.add("PRO_FIGHT_NOUN", [pattern9])
+  # matcher.add("PRO_FIGHT_NOUN", [pattern9]) **
   return matcher
 
 
 """--------------------------------------------------------------------------------------"""
 
 verbs = [
-  "employ", "decide", "deliver", "design", "desire", "discuss", "elect", "explore", "export", "involve",
-  "act", "base", "replace", "proceed", "plan", "speak", "rule", "add", "afford", "appeal",
+  "employ", "decide", "deliver", "design", "desire", "discuss", "elect", "explore", "export", "involve", "tip",
+  "act", "base", "replace", "proceed", "plan", "speak", "rule", "add", "afford", "appeal", "trade", "turn",
   "examine", "track", "want", "belong", "remove", "compete", "spill", "throw", "launch", "listen", "live",
-  "look", "make", "manage", "map", "mark", "match", "meet", "move", "obtain", "operate", "play", "own",
-  "purchase", "recruit", "reflect", "relate", "represent", "return", "run", "see", "share", "shift",
-  "start", "study", "submit", "treat", "use", "view", "vote", "worship", "wrap", "distribute", "ask",
-  "await", "be", "breathe", "call", "change", "claim", "come", "command", "conduct", "consider", "consult",
-  "cross", "culminate", "date", "describe", "do", "drink", "eat", "exist",
+  "look", "make", "manage", "map", "mark", "match", "meet", "move", "obtain", "operate", "play", "own", "test",
+  "purchase", "recruit", "reflect", "relate", "represent", "return", "run", "see", "share", "shift", "ask",
+  "start", "study", "submit", "treat", "use", "view", "vote", "worship", "wrap", "distribute", "await", "be",
+  "breathe", "call", "change", "claim", "come", "command", "conduct", "consider", "consult", "total", "touch",
+  "cross", "culminate", "date", "describe", "do", "drink", "eat", "exist", "weather", "witness", "gather",
   "experience", "fan", "fly", "function", "get", "go", "happen", "harbor", "have", "head", "hire", "hold",
   "house", "import", "last", "lay", "layer", "leave", "lend", "let", "lie", "march", "mean", "mention", "mount",
   "necessitate", "need", "occur", "practice", "predict", "outpace", "outsource", "pass", "put", "ramp", "range",
   "read", "reap", "reapply", "receive", "refer", "regard", "remain", "remember", "request", "require", "reside",
   "resolve", "result", "resume", "retire", "root", "say", "seal", "send", "set", "sign", "sit", "spread", "stay",
-  "step", "substitute", "surround", "talk", "tax", "tell", "test", "tip", "total", "touch", "trade", "turn",
-  "weather", "witness",
-
-  "gather",
+  "step", "substitute", "surround", "talk", "tax", "tell",
 ]

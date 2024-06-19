@@ -230,14 +230,14 @@ for d in _shap_values:
   print()
 
 lr_coeff = [
-  {"feature": "polarity_pro", "total": 1.876},
-  {"feature": "positive_affect", "total": 1.827},
-  {"feature": "certainty", "total": 0.070},
-  {"feature": "doubt", "total": 0.119},
+  {"feature": "polarity_pro", "total": 1.867},
+  {"feature": "positive_affect", "total": 1.777},
+  {"feature": "certainty", "total": 0.138},
+  {"feature": "doubt", "total": 0.309},
   {"feature": "emphatic", "total": 0.012},
-  {"feature": "hedge", "total": -0.322},
-  {"feature": "negative_affect", "total": -2.097},
-  {"feature": "polarity_con", "total": -3.300}
+  {"feature": "hedge", "total": -0.321},
+  {"feature": "negative_affect", "total": -1.980},
+  {"feature": "polarity_con", "total": -2.722}
 ]
 
 # Processing SHAP values
