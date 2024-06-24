@@ -372,9 +372,9 @@ con_verb = [
 ]
 
 con_verb_phrase = [
-  "cannot", "can not", "will not", "won't", "do not", "break down", "take on",
+  "cannot", "can not", "break down", "take on",
   "spark concern",
-]
+]  # "will not", "won't", "do not",
 
 
 def create_con_verb(matcher):

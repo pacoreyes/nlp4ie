@@ -3,8 +3,9 @@ from pprint import pprint
 import spacy
 from tqdm import tqdm
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import matplotlib.pyplot as plt
+from scipy.stats import ttest_ind
 
 # Import stance markers for adjectives
 from lib.stance_markers_adj import (
@@ -233,30 +234,44 @@ lr_coeff = [
   {"feature": "polarity_pro", "total": 1.867},
   {"feature": "positive_affect", "total": 1.777},
   {"feature": "certainty", "total": 0.138},
-  {"feature": "doubt", "total": 0.309},
-  {"feature": "emphatic", "total": 0.012},
+  {"feature": "doubt", "total": 0.1881},
+  {"feature": "emphatic", "total": 0.033},
   {"feature": "hedge", "total": -0.321},
   {"feature": "negative_affect", "total": -1.980},
-  {"feature": "polarity_con", "total": -2.722}
+  {"feature": "polarity_con", "total": -2.723}
 ]
 
-# Processing SHAP values
+"""# Processing SHAP values, total_support values are all positive and total_oppose values are all negative
+# absolute values
 shap_processed = [abs(abs(item['total_support']) - abs(item['total_oppose'])) for item in _shap_values]
-lr_processed = [abs(item['total']) for item in lr_coeff]
+# shap_processed = [(item['total_support'] - item['total_oppose']) for item in _shap_values]  # non-absolute values
+lr_processed = [abs(item['total']) for item in lr_coeff]"""
 
+lr_processed = [(item['total']) for item in lr_coeff]
+shap_processed = [(item['total']) for item in _shap_values]
+
+print("---")
 print("SHAP Values (differences)")
 pprint(shap_processed)
+print("---")
+print("LR Coefficients (absolute values)")
+pprint(lr_processed)
+print("---")
 
 # Initialize the MinMaxScaler
-scaler = MinMaxScaler()
+# scaler = MinMaxScaler()
+standard_scaler = StandardScaler()
 
-# Scale and then round the shap_processed array
+"""# Scale and then round the shap_processed array
 shap_normalized = scaler.fit_transform(np.array(shap_processed).reshape(-1, 1)).flatten()
 shap_normalized = np.round(shap_normalized, 3)
 
 # Scale and then round the lr_processed array
 lr_normalized = scaler.fit_transform(np.array(lr_processed).reshape(-1, 1)).flatten()
-lr_normalized = np.round(lr_normalized, 3)
+lr_normalized = np.round(lr_normalized, 3)"""
+
+shap_normalized = standard_scaler.fit_transform(np.array(shap_processed).reshape(-1, 1)).flatten().round(3)
+lr_normalized = standard_scaler.fit_transform(np.array(lr_processed).reshape(-1, 1)).flatten().round(3)
 
 pprint(lr_normalized)
 pprint(shap_normalized)
@@ -272,10 +287,51 @@ _features = [
   "Con polarity"
 ]
 
+# Performing two-sample (Welch) t-test
+t_stat, p_value_ttest = ttest_ind(lr_normalized, shap_normalized, equal_var=False)
+print(f"t-statistic: {t_stat}, p-value: {p_value_ttest}")
+
+
+# Plot Box plot for each feature including both classes
+plt.figure(figsize=(7, 5))
+bplot = plt.boxplot(
+  [lr_normalized, shap_normalized],
+  labels=['LR β', 'SHAP Values'],
+  # notch=True,
+  widths=0.3,
+  patch_artist=True
+)
+
+for element in ['boxes']:  # , 'whiskers', 'fliers', 'means', 'caps'
+  plt.setp(bplot[element], color='#0CA37F')
+
+for box in bplot['boxes']:
+  box.set_edgecolor('black')  # Set edge color to blue
+  box.set_linewidth(1)  # Set line width to 2
+
+# Set fill color for boxes
+for patch in bplot['boxes']:
+  patch.set_facecolor('#0CA37F')
+
+plt.setp(bplot['medians'], color='red', linewidth=2)
+plt.tick_params(axis='y', which='major', labelsize=17)
+plt.tick_params(axis='x', which='major', labelsize=15)
+
+# Set the background grid
+plt.grid(True, linestyle='--', linewidth=0.5, color='grey')
+
+# plt.title(f'Box plot of {features[feature]}')
+plt.ylabel('Scaled Values')
+plt.savefig(f"images/paper_b_t_test_boxplots.png")
+plt.close()
+# plt.show()
+
+
 # Plotting
 plt.figure(figsize=(14, 6))
 plt.plot(_features, shap_normalized, label='SHAP Values', color='orange', marker='o')
 plt.plot(_features, lr_normalized, label='LR Coefficients', color='green', marker='o')
+plt.axhline(0, color='black', linewidth=1.5)  # Darker horizontal line at y=0
 plt.title('Comparison of SHAP Values and Logistic Regression Coefficients')
 plt.ylabel('Values')
 plt.xlabel('Features')
@@ -286,7 +342,6 @@ plt.tight_layout()
 plt.savefig("images/paper_b_compare_shap_lr.png")
 
 # Bland-Altman Plot Analysis and Visualization
-
 # Calculate differences and averages for Bland-Altman plot
 differences = np.array(shap_normalized) - np.array(lr_normalized)
 averages = (np.array(shap_normalized) + np.array(lr_normalized)) / 2
@@ -337,3 +392,54 @@ ax.grid(True, linestyle=':', color='gray', linewidth=0.5)  # Set the grid style 
 
 plt.tight_layout()
 plt.savefig("images/paper_b_bland_altman.png")
+
+"""
+pro_indicator: 12.77621507204229
+- Support: 12.988650503470385
+- Oppose: -0.21243543142809732
+
+positive_affect: 8.257987715881907
+- Support: 8.525556027573126
+- Oppose: -0.26756831169121853
+
+certainty: 2.8345632484344905
+- Support: 4.056569005849729
+- Oppose: -1.2220057574152392
+
+doubt: -1.2406872767769745
+- Support: 0.28279926026591345
+- Oppose: -1.523486537042888
+
+emphatic: 3.732219163577949
+- Support: 8.320471461693113
+- Oppose: -4.588252298115165
+
+hedge: -0.45501899879904995
+- Support: 1.9584075150011946
+- Oppose: -2.4134265138002453
+
+negative_affect: -6.888853903839195
+- Support: 0.09589241185813296
+- Oppose: -6.984746315697328
+
+con_indicator: -17.095289373894406
+- Support: 0.17548569344508697
+- Oppose: -17.270775067339493
+
+---
+SHAP Values (differences)
+[12.77621507204229,
+ 8.257987715881907,
+ 2.8345632484344905,
+ -1.2406872767769745,
+ 3.732219163577949,
+ -0.45501899879904995,
+ -6.888853903839195,
+ -17.095289373894406]
+---
+LR Coefficients (absolute values)
+[1.867, 1.777, 0.138, 0.1881, 0.033, -0.321, -1.98, -2.723]
+---
+array([ 1.329,  1.27 ,  0.177,  0.21 ,  0.107, -0.129, -1.235, -1.73 ])
+array([ 1.454,  0.93 ,  0.301, -0.172,  0.405, -0.081, -0.827, -2.011])
+"""

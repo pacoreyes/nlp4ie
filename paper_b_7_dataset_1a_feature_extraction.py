@@ -473,7 +473,7 @@ def extract_stance_features(_doc, pos, feature, label, use_patterns=False):
   elif pos == "VERB" and feature == "pro":
     _matcher_single = matcher_pro_verb
     _matcher_phrase = phrase_matcher_pro_verb_phrase
-    _matcher_neg = matcher_con_verb_negation
+    _matcher_neg = matcher_con_verb_negation  # negation using con
   elif pos == "VERB" and feature == "con":
     _matcher_single = matcher_con_verb
     _matcher_phrase = phrase_matcher_con_verb_phrase

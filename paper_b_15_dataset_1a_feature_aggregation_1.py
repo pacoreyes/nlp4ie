@@ -73,24 +73,37 @@ for _idx, dataset in enumerate([dataset_train, dataset_test]):
     ]
 
     # Aggregate Features
-    aggr_positive_affect = [int(any(values)) for values in zip(*positive_affect)]
+    """aggr_positive_affect = [int(any(values)) for values in zip(*positive_affect)]
     aggr_negative_affect = [int(any(values)) for values in zip(*negative_affect)]
     aggr_epistemic_certainty = [int(any(values)) for values in zip(*epistemic_certainty)]
     aggr_epistemic_doubt = [int(any(values)) for values in zip(*epistemic_doubt)]
     aggr_pro_indicator = [int(any(values)) for values in zip(*polarity_pro)]
-    aggr_con_indicator = [int(any(values)) for values in zip(*polarity_con)]
+    aggr_con_indicator = [int(any(values)) for values in zip(*polarity_con)]"""
+
+    aggr_positive_affect = 1 if any(1 in lst for lst in positive_affect) else 0
+    aggr_negative_affect = 1 if any(1 in lst for lst in negative_affect) else 0
+    aggr_epistemic_certainty = 1 if any(1 in lst for lst in epistemic_certainty) else 0
+    aggr_epistemic_doubt = 1 if any(1 in lst for lst in epistemic_doubt) else 0
+    # aggr_emphatics = 1 if any(1 in lst for lst in emphatics) else 0
+    # aggr_hedge = 1 if any(1 in lst for lst in hedge) else 0
+    aggr_pro = 1 if any(1 in lst for lst in polarity_pro) else 0
+    aggr_con = 1 if any(1 in lst for lst in polarity_con) else 0
 
     row = {
       "id": datapoint["id"],
       "label": datapoint["label"],
+      "text": datapoint["text"],
 
       "positive_affect": aggr_positive_affect,
       "negative_affect": aggr_negative_affect,
       "epistemic_certainty": aggr_epistemic_certainty,
       "epistemic_doubt": aggr_epistemic_doubt,
-      "polarity_pro": aggr_pro_indicator,
-      "polarity_con": aggr_con_indicator,
+      "pro": aggr_pro,
+      "con": aggr_con,
+
+      "semantic_frames": datapoint["semantic_frames"],
     }
+
     # convert rec["metadata"] to dict
     if "metadata" in datapoint:
       row["metadata"] = eval(datapoint["metadata"])
