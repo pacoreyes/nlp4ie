@@ -60,7 +60,7 @@ def f(x):
                      for v in x], device=device)
   outputs = model(tv)[0].detach().cpu().numpy()
   scores = (np.exp(outputs).T / np.exp(outputs).sum(-1)).T
-  val = sp.special.logit(scores[:, 1])  # use one vs rest logit units
+  val = sp.special.logit(scores[:, 1])
   return val
 
 

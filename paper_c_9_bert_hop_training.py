@@ -8,15 +8,13 @@ import torch
 import torch.optim as optim
 from sklearn.metrics import (confusion_matrix, roc_auc_score, matthews_corrcoef, accuracy_score,
                              precision_recall_fscore_support)
-from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 from transformers import BertTokenizer, BertForSequenceClassification, get_linear_schedule_with_warmup
 
-from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file, save_jsonl_file
-from lib.utils2 import balance_classes_in_dataset
+from lib.utils import load_jsonl_file, save_row_to_jsonl_file, empty_json_file
 from lib.visualizations import plot_confusion_matrix
 
 # Initialize label map and class names
@@ -27,7 +25,7 @@ REVERSED_LABEL_MAP = {0: "continue", 1: "not_continue"}
 # Initialize constants
 MAX_LENGTH = 512  # the maximum sequence length that can be processed by the BERT model
 SEED = 42  # 42, 1234, 2024
-NUM_TRIALS = 20  # Number of trials for hyperparameter optimization
+NUM_TRIALS = 15  # Number of trials for hyperparameter optimization
 VALIDATION_STEP_INTERVAL = 20  # Interval for validation step for early stopping
 
 print("############################################")
@@ -64,49 +62,58 @@ set_seed(SEED)
 
 # Load BERT model
 model = BertForSequenceClassification.from_pretrained("bert-base-uncased",
-                                                      num_labels=len(LABEL_MAP),
-                                                      hidden_dropout_prob=0.2)
+                                                      num_labels=len(LABEL_MAP))
 # Move model to device
 model.to(device)
 
 # Load the BERT tokenizer
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
-# Load the dataset
-dataset = load_jsonl_file("shared_data/dataset_2_5_pair_sentences_reclass.jsonl")
-# Create a balanced dataset by undersampling the majority class
-dataset = balance_classes_in_dataset(dataset, "continue", "not_continue", "label")
-# Save the balanced dataset to a JSONL file
-save_jsonl_file(dataset, "shared_data/dataset_2_6_2b.jsonl")
+# Load the datasets
+train_set = load_jsonl_file("shared_data/topic_continuity_train.jsonl")
+val_set = load_jsonl_file("shared_data/topic_continuity_valid.jsonl")
+test_set = load_jsonl_file("shared_data/topic_continuity_test.jsonl")
 
 # Convert to pandas DataFrame for stratified splitting
-df = pd.DataFrame({
-  "id": [entry["id"] for entry in dataset],
-  "text": [entry["text"] for entry in dataset],
-  "label": [LABEL_MAP[entry["label"]] for entry in dataset],
-  # "metadata": [entry["metadata"] for entry in dataset]
+df_train = pd.DataFrame({
+    "id": [entry["id"] for entry in train_set],
+    "text": [entry["text"] for entry in train_set],
+    "label": [LABEL_MAP[entry["label"]] for entry in train_set],
+    # "metadata": [entry["metadata"] for entry in train_set]
 })
 
-# Stratified split of the data to obtain the train and the remaining data
-df_train, remaining_df = train_test_split(df, stratify=df["label"], test_size=0.2, random_state=SEED)
+df_val = pd.DataFrame({
+    "id": [entry["id"] for entry in val_set],
+    "text": [entry["text"] for entry in val_set],
+    "label": [LABEL_MAP[entry["label"]] for entry in val_set],
+    # "metadata": [entry["metadata"] for entry in val_set]
+})
 
-# Split the remaining data equally to get a validation set and a test set
-df_val, df_test = train_test_split(remaining_df, stratify=remaining_df["label"], test_size=0.5,
-                                   random_state=SEED)
+df_test = pd.DataFrame({
+    "id": [entry["id"] for entry in test_set],
+    "text": [entry["text"] for entry in test_set],
+    "label": [LABEL_MAP[entry["label"]] for entry in test_set],
+    # "metadata": [entry["metadata"] for entry in test_set]
+})
 
 
-# Early stopping class for stopping the training when the validation loss does not improve
+# Function for handling sentence pairs
+def create_dataset(_df):
+  _texts = _df['text'].tolist()  # Assuming this contains sentence pairs
+  _labels = _df['label'].tolist()
+  _ids = _df['id'].tolist()  # Keep ids as a list of strings
+
+  # Tokenize and preprocess texts for sentence pairs
+  _input_ids, _attention_masks = preprocess_pairs(_texts, tokenizer, device, max_length=MAX_LENGTH)
+
+  # Create TensorDataset without ids, since they are strings
+  return TensorDataset(_input_ids, _attention_masks, torch.tensor(_labels)), _ids
+
+
+"""# Early stopping class for stopping the training when the validation loss does not improve
 class EarlyStopping:
-  """Early stops the training if validation loss doesn't improve after a given patience."""
 
   def __init__(self, patience=3, min_delta=0):
-    """
-    Args:
-        patience (int): How many steps to wait after last time validation loss improved.
-                        Default: 7
-        min_delta (float): Minimum change in the monitored quantity to qualify as an improvement.
-                           Default: 0
-    """
     self.patience = patience
     self.min_delta = min_delta
     self.counter = 0
@@ -124,20 +131,7 @@ class EarlyStopping:
         self.early_stop = True
     else:
       self.best_score = val_loss
-      self.counter = 0
-
-
-# Function for handling sentence pairs
-def create_dataset(_df):
-  _texts = _df['text'].tolist()  # Assuming this contains sentence pairs
-  _labels = _df['label'].tolist()
-  _ids = _df['id'].tolist()  # Keep ids as a list of strings
-
-  # Tokenize and preprocess texts for sentence pairs
-  _input_ids, _attention_masks = preprocess_pairs(_texts, tokenizer, device, max_length=MAX_LENGTH)
-
-  # Create TensorDataset without ids, since they are strings
-  return TensorDataset(_input_ids, _attention_masks, torch.tensor(_labels)), _ids
+      self.counter = 0"""
 
 
 # Function for handling sentence pairs
@@ -182,7 +176,9 @@ class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
 # Optuna objective function for hyperparameter optimization
 def objective(_trial):
   # Initialize early stopping
-  early_stopping = EarlyStopping(patience=7, min_delta=0.001)
+  # early_stopping = EarlyStopping(patience=5, min_delta=0.001)
+
+  trial_number = _trial.number
 
   learning_rate = _trial.suggest_float("learning_rate", 1e-6, 3e-5, log=True)
   batch_size = _trial.suggest_categorical("batch_size", [16, 16])
@@ -218,7 +214,7 @@ def objective(_trial):
   print("---")
   print(f"- Seed: {SEED}")
 
-  epoch, step = 0, 0
+  # epoch, step = 0, 0
 
   # Training Loop
   for epoch in range(num_epochs):
@@ -252,7 +248,7 @@ def objective(_trial):
       scheduler.step()
       total_train_loss += loss.item()
 
-      # Check for early stopping validation after specified steps
+      """# Check for early stopping validation after specified steps
       if (step + 1) % VALIDATION_STEP_INTERVAL == 0 or (step + 1) == len(train_dataloader):
         # Switch to evaluation mode
         model.eval()
@@ -277,7 +273,7 @@ def objective(_trial):
           break
 
     if early_stopping.early_stop:
-      break
+      break"""
 
     # Calculate average training loss for this epoch
     avg_train_loss = total_train_loss / len(train_dataloader)
@@ -308,6 +304,9 @@ def objective(_trial):
     avg_val_loss = total_val_loss / len(val_dataloader)
     val_losses.append(avg_val_loss)
 
+    # Print average losses for this epoch
+    print(f"* Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}")
+
   """print(len(train_losses))
   print(len(val_losses))"""
 
@@ -319,7 +318,7 @@ def objective(_trial):
   plt.ylabel("Loss")
   plt.title("Training and Validation Losses per Epoch")
   plt.legend()
-  plt.savefig("images/paper_b_3_bert_losses.png")
+  plt.savefig(f"images/paper_c_bert_losses_trial{trial_number}.png")
   plt.close()
 
   """ END of training /validation loop ------------------- """
@@ -342,14 +341,13 @@ def objective(_trial):
   softmax = torch.nn.Softmax(dim=1)
 
   # Initialize JSONL file for misclassified examples
-  misclassified_output_file = "shared_data/dataset_2_8_1b_misclassified_examples_reclass.jsonl"
+  misclassified_output_file = "shared_data/paper_c__misclassified_examples_reclass.jsonl"
   empty_json_file(misclassified_output_file)
 
   for i, batch in enumerate(tqdm(test_dataloader, desc="Testing")):
     with torch.no_grad():
       # Unpack batch data
-      b_input_ids, b_attention_mask, b_labels = batch
-      b_input_ids, b_attention_mask, b_labels = b_input_ids.to(device), b_attention_mask.to(device), b_labels.to(device)
+      b_input_ids, b_attention_mask, b_labels = [b.to(device) for b in batch]
 
       # Forward pass
       outputs = model(b_input_ids, attention_mask=b_attention_mask, labels=b_labels)
@@ -405,7 +403,7 @@ def objective(_trial):
   plot_confusion_matrix(test_true_labels,
                         test_predictions,
                         class_names,
-                        "paper_b_2_bert_confusion_matrix.png",
+                        "paper_c_bert_confusion_matrix.png",
                         "Confusion Matrix for BERT Model",
                         values_fontsize=22
                         )
@@ -434,16 +432,16 @@ def objective(_trial):
   print("---")
   print(f"- Seed: {SEED}")
   # Report where early stopping was triggered
-  if early_stopping.early_stop:
+  """if early_stopping.early_stop:
     print("---")
     print("Early stopping triggered at:")
     print(f"- Epoch {epoch + 1}")
-    print(f" Step {step + 1}\n")
+    print(f" Step {step + 1}\n")"""
 
   # Save the best model only if the current trial achieves the best accuracy
   if test_accuracy > _trial.user_attrs.get("best_test_accuracy", 0):
     _trial.set_user_attr("best_test_accuracy", test_accuracy)
-    best_model_path = f"models/2/paper_b_hop_bert_reclass.pth"
+    best_model_path = f"models/11/topic_boundary_detection_final_hop.pth"
     torch.save(model.state_dict(), best_model_path)
     _trial.set_user_attr("best_model_path", best_model_path)
 
@@ -452,6 +450,8 @@ def objective(_trial):
 
 # Create an Optuna study
 study = optuna.create_study(direction="maximize")  # or "minimize" depending on your metric
+
+study.study_name = "topic_boundary_detection"  # Name of the study
 
 # Optimize the study
 study.optimize(objective, n_trials=NUM_TRIALS)  # Adjust the number of trials as needed
@@ -492,4 +492,40 @@ Hyperparameters:
 ---
 - Seed: 2024
 
+"""
+""" -------------------------------------------------------------- """
+"""
+Metrics for testing:
+Accuracy: 0.8206896551724138
+
+
+Model: BERT
+
+- Accuracy: 0.821
+- Precision: 0.839
+- Recall: 0.821
+- F1 Score: 0.818
+- AUC-ROC: 0.913
+- Matthews Correlation Coefficient (MCC): 0.660
+- Confusion Matrix:
+              continue  not_continue
+continue           136             9
+not_continue        43           102
+
+Class-wise metrics:
+continue: Precision = 0.760, Recall = 0.938, F1 = 0.840
+not_continue: Precision = 0.919, Recall = 0.703, F1 = 0.797
+
+Hyperparameters:
+- Learning Rate: 1.9862845049132457e-05
+- Batch Size: 16
+- Warmup Steps: 632
+- Number of Epochs: 3
+---
+- Seed: 42
+datasets with prefix _
+"""
+
+"""
+28 Jun 1620 I have recreated datasets with seed 42 not using prefixes
 """

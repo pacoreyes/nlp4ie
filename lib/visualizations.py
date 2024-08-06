@@ -73,7 +73,7 @@ def plot_dependency_visualization(sentence, output_path, nlp):
     "bg": False,
     "collapse_phrases": True,
     "collapse_punct": True,
-    "distance": 175,
+    "distance": 100,
     "add_lemma": True,
     "fine_grained": True,
     "offset_x": 100
